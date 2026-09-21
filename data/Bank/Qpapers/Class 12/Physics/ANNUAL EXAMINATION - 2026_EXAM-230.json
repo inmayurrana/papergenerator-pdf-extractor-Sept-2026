@@ -1,0 +1,641 @@
+{
+  "id": "25bf5754-fa35-4a3c-aa8c-218ea689633c",
+  "title": "ANNUAL EXAMINATION - 2026",
+  "examCode": "EXAM-230",
+  "schoolName": "CAMBRIDGE INTERNATIONAL SCHOOL MANDI",
+  "className": "Class 12",
+  "subjectName": "Physics",
+  "maxMarks": 70,
+  "durationMinutes": 180,
+  "examDate": "2026-09-19",
+  "examTime": "09:00 AM - 12:00 PM",
+  "instructions": "1. All questions are compulsory.\n2. Section A contains 1-mark MCQs.\n3. Section B contains short answer questions.\n4. Use of calculators is not permitted.",
+  "status": "DRAFT",
+  "canvasLayout": {
+    "questions": [
+      {
+        "id": "bdf04b4b-acbf-4adf-9c43-a3e9ce79f1e3",
+        "folderId": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "4",
+        "questionText": "How many numbers greater than 10 lacs be formed from 2, 3, 0, 3, 4, 2, 3 ?",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"420\"},{\"key\":\"B\",\"text\":\"360\"},{\"key\":\"C\",\"text\":\"400\"},{\"key\":\"D\",\"text\":\"300\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-18T11:24:32.095Z",
+        "updatedAt": "2026-09-18T11:24:32.095Z",
+        "folder": {
+          "id": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+          "name": "Maths",
+          "type": "SUBJECT"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "1244e205-e2ca-4f32-acef-ad2d9c25c8e4",
+        "folderId": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "5",
+        "questionText": "The number of different signals which can be given from 6 flags of different colours taking one or\nmore at a time, is",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"1958\"},{\"key\":\"B\",\"text\":\"1956\"},{\"key\":\"C\",\"text\":\"16\"},{\"key\":\"D\",\"text\":\"64\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-18T11:24:32.141Z",
+        "updatedAt": "2026-09-18T11:24:32.141Z",
+        "folder": {
+          "id": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+          "name": "Maths",
+          "type": "SUBJECT"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "ec0941f2-02c7-4cf8-a8c8-fb5aed9158b3",
+        "folderId": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "6",
+        "questionText": "The number of words from the letters of the word “BHARAT” in which B and H will never come\ntogether, is",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"360\"},{\"key\":\"B\",\"text\":\"240\"},{\"key\":\"C\",\"text\":\"120\"},{\"key\":\"D\",\"text\":\"none of these\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-18T11:24:32.193Z",
+        "updatedAt": "2026-09-18T11:24:32.193Z",
+        "folder": {
+          "id": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+          "name": "Maths",
+          "type": "SUBJECT"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "f6d56b0d-b465-490a-a4e0-eb01076b8d44",
+        "folderId": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "7",
+        "questionText": "The number of six letter words that can be formed using the letters of the word “ASSIST” in which S’s\nalternate with other letters is",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"12\"},{\"key\":\"B\",\"text\":\"24\"},{\"key\":\"C\",\"text\":\"18\"},{\"key\":\"D\",\"text\":\"none of these\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-18T11:24:32.247Z",
+        "updatedAt": "2026-09-18T11:24:32.247Z",
+        "folder": {
+          "id": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+          "name": "Maths",
+          "type": "SUBJECT"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "090f2004-daf6-4dc9-85a9-99ab95ac453d",
+        "folderId": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "8",
+        "questionText": "The number of arrangements of the word “DELHI” in which E precedes I is",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"30\"},{\"key\":\"B\",\"text\":\"60\"},{\"key\":\"C\",\"text\":\"120\"},{\"key\":\"D\",\"text\":\"59\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-18T11:24:32.294Z",
+        "updatedAt": "2026-09-18T11:24:32.294Z",
+        "folder": {
+          "id": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+          "name": "Maths",
+          "type": "SUBJECT"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "a9d15756-a31c-40da-8a4d-c2a442360cb4",
+        "folderId": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "9",
+        "questionText": "The number of ways in which the letters of the word ‘CONSTANT’ can be arranged without changing\nthe relative positions of the vowels and consonants is",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"360\"},{\"key\":\"B\",\"text\":\"256\"},{\"key\":\"C\",\"text\":\"444\"},{\"key\":\"D\",\"text\":\"none of these\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-18T11:24:32.340Z",
+        "updatedAt": "2026-09-18T11:24:32.340Z",
+        "folder": {
+          "id": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+          "name": "Maths",
+          "type": "SUBJECT"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "514c6b33-6d86-457d-a9f2-ce51c2862703",
+        "folderId": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "10",
+        "questionText": "The number of ways to arrange the letters of the word CHEESE are",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"120\"},{\"key\":\"B\",\"text\":\"240\"},{\"key\":\"C\",\"text\":\"720\"},{\"key\":\"D\",\"text\":\"6\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-18T11:24:32.397Z",
+        "updatedAt": "2026-09-18T11:24:32.397Z",
+        "folder": {
+          "id": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+          "name": "Maths",
+          "type": "SUBJECT"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "035ab9ee-821b-433e-9c1b-cc2d0d9c66c5",
+        "folderId": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "11",
+        "questionText": "Number of all four digit numbers having different digits formed of the digits 1, 2, 3, 4 and 5 and\ndivisible by 4 is",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"24\"},{\"key\":\"B\",\"text\":\"30\"},{\"key\":\"C\",\"text\":\"125\"},{\"key\":\"D\",\"text\":\"100\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-18T11:24:32.439Z",
+        "updatedAt": "2026-09-18T11:24:32.439Z",
+        "folder": {
+          "id": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+          "name": "Maths",
+          "type": "SUBJECT"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "0221157e-fa3e-404e-86c5-ab6b0db6933a",
+        "folderId": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "12",
+        "questionText": "If the letters of the word KRISNA are arranged in all possible ways and these words are written out as\nin a dictionary, then the rank of the word KRISNA is",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"324\"},{\"key\":\"B\",\"text\":\"341\"},{\"key\":\"C\",\"text\":\"359\"},{\"key\":\"D\",\"text\":\"none of these\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-18T11:24:32.482Z",
+        "updatedAt": "2026-09-18T11:24:32.482Z",
+        "folder": {
+          "id": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+          "name": "Maths",
+          "type": "SUBJECT"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      }
+    ],
+    "settings": {
+      "className": "Class 12",
+      "subjectName": "Physics",
+      "fontFamily": "serif",
+      "fontSize": "10pt",
+      "lineSpacing": "tight",
+      "pageColumns": 1,
+      "spacingPreset": "zero",
+      "pageMargin": "normal",
+      "marginTop": 15,
+      "marginBottom": 15,
+      "marginLeft": 18,
+      "marginRight": 18,
+      "borderStyle": "none",
+      "optionLayout": "inline",
+      "imageAlignment": "inline",
+      "imageBorderStyle": "none",
+      "imageCustomHeight": 15,
+      "autoMatchText": true,
+      "showWatermark": false,
+      "watermarkText": "CONFIDENTIAL",
+      "showCandidateBox": false,
+      "rollNoStyle": "boxes",
+      "schoolLogoUrl": null,
+      "schoolLogoWidth": 75,
+      "schoolLogoHeight": 75,
+      "schoolLogoPosition": "left",
+      "customHeaderFields": [
+        {
+          "id": "f_class",
+          "label": "CLASS",
+          "value": "11"
+        },
+        {
+          "id": "f_sub",
+          "label": "SUBJECT",
+          "value": "Maths"
+        },
+        {
+          "id": "hf_1789807646948",
+          "label": "DPP",
+          "value": "1"
+        }
+      ],
+      "customCandidateFields": [],
+      "showHeaderMeta": true,
+      "showExamCode": false,
+      "showTime": false,
+      "showMaxMarks": false,
+      "showSchoolName": true,
+      "showExamTitle": false,
+      "showCandidateName": true,
+      "showRollNo": true,
+      "showInstructions": false,
+      "schoolNameSize": 18,
+      "examTitleSize": 13,
+      "candidateBoxFontSize": 11,
+      "baseFontSizePt": 10,
+      "showQuestionMarks": true,
+      "hideAllOptions": false,
+      "hideAllSections": false
+    }
+  },
+  "questions": [
+    {
+      "id": "bdf04b4b-acbf-4adf-9c43-a3e9ce79f1e3",
+      "folderId": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "4",
+      "questionText": "How many numbers greater than 10 lacs be formed from 2, 3, 0, 3, 4, 2, 3 ?",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"420\"},{\"key\":\"B\",\"text\":\"360\"},{\"key\":\"C\",\"text\":\"400\"},{\"key\":\"D\",\"text\":\"300\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-18T11:24:32.095Z",
+      "updatedAt": "2026-09-18T11:24:32.095Z",
+      "folder": {
+        "id": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+        "name": "Maths",
+        "type": "SUBJECT"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "1244e205-e2ca-4f32-acef-ad2d9c25c8e4",
+      "folderId": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "5",
+      "questionText": "The number of different signals which can be given from 6 flags of different colours taking one or\nmore at a time, is",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"1958\"},{\"key\":\"B\",\"text\":\"1956\"},{\"key\":\"C\",\"text\":\"16\"},{\"key\":\"D\",\"text\":\"64\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-18T11:24:32.141Z",
+      "updatedAt": "2026-09-18T11:24:32.141Z",
+      "folder": {
+        "id": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+        "name": "Maths",
+        "type": "SUBJECT"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "ec0941f2-02c7-4cf8-a8c8-fb5aed9158b3",
+      "folderId": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "6",
+      "questionText": "The number of words from the letters of the word “BHARAT” in which B and H will never come\ntogether, is",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"360\"},{\"key\":\"B\",\"text\":\"240\"},{\"key\":\"C\",\"text\":\"120\"},{\"key\":\"D\",\"text\":\"none of these\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-18T11:24:32.193Z",
+      "updatedAt": "2026-09-18T11:24:32.193Z",
+      "folder": {
+        "id": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+        "name": "Maths",
+        "type": "SUBJECT"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "f6d56b0d-b465-490a-a4e0-eb01076b8d44",
+      "folderId": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "7",
+      "questionText": "The number of six letter words that can be formed using the letters of the word “ASSIST” in which S’s\nalternate with other letters is",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"12\"},{\"key\":\"B\",\"text\":\"24\"},{\"key\":\"C\",\"text\":\"18\"},{\"key\":\"D\",\"text\":\"none of these\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-18T11:24:32.247Z",
+      "updatedAt": "2026-09-18T11:24:32.247Z",
+      "folder": {
+        "id": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+        "name": "Maths",
+        "type": "SUBJECT"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "090f2004-daf6-4dc9-85a9-99ab95ac453d",
+      "folderId": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "8",
+      "questionText": "The number of arrangements of the word “DELHI” in which E precedes I is",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"30\"},{\"key\":\"B\",\"text\":\"60\"},{\"key\":\"C\",\"text\":\"120\"},{\"key\":\"D\",\"text\":\"59\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-18T11:24:32.294Z",
+      "updatedAt": "2026-09-18T11:24:32.294Z",
+      "folder": {
+        "id": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+        "name": "Maths",
+        "type": "SUBJECT"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "a9d15756-a31c-40da-8a4d-c2a442360cb4",
+      "folderId": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "9",
+      "questionText": "The number of ways in which the letters of the word ‘CONSTANT’ can be arranged without changing\nthe relative positions of the vowels and consonants is",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"360\"},{\"key\":\"B\",\"text\":\"256\"},{\"key\":\"C\",\"text\":\"444\"},{\"key\":\"D\",\"text\":\"none of these\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-18T11:24:32.340Z",
+      "updatedAt": "2026-09-18T11:24:32.340Z",
+      "folder": {
+        "id": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+        "name": "Maths",
+        "type": "SUBJECT"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "514c6b33-6d86-457d-a9f2-ce51c2862703",
+      "folderId": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "10",
+      "questionText": "The number of ways to arrange the letters of the word CHEESE are",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"120\"},{\"key\":\"B\",\"text\":\"240\"},{\"key\":\"C\",\"text\":\"720\"},{\"key\":\"D\",\"text\":\"6\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-18T11:24:32.397Z",
+      "updatedAt": "2026-09-18T11:24:32.397Z",
+      "folder": {
+        "id": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+        "name": "Maths",
+        "type": "SUBJECT"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "035ab9ee-821b-433e-9c1b-cc2d0d9c66c5",
+      "folderId": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "11",
+      "questionText": "Number of all four digit numbers having different digits formed of the digits 1, 2, 3, 4 and 5 and\ndivisible by 4 is",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"24\"},{\"key\":\"B\",\"text\":\"30\"},{\"key\":\"C\",\"text\":\"125\"},{\"key\":\"D\",\"text\":\"100\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-18T11:24:32.439Z",
+      "updatedAt": "2026-09-18T11:24:32.439Z",
+      "folder": {
+        "id": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+        "name": "Maths",
+        "type": "SUBJECT"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "0221157e-fa3e-404e-86c5-ab6b0db6933a",
+      "folderId": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "12",
+      "questionText": "If the letters of the word KRISNA are arranged in all possible ways and these words are written out as\nin a dictionary, then the rank of the word KRISNA is",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"324\"},{\"key\":\"B\",\"text\":\"341\"},{\"key\":\"C\",\"text\":\"359\"},{\"key\":\"D\",\"text\":\"none of these\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-18T11:24:32.482Z",
+      "updatedAt": "2026-09-18T11:24:32.482Z",
+      "folder": {
+        "id": "b44703ff-c09e-47c4-8f8f-3aef20e3f019",
+        "name": "Maths",
+        "type": "SUBJECT"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    }
+  ],
+  "updatedAt": "2026-09-19T08:48:03.638Z"
+}

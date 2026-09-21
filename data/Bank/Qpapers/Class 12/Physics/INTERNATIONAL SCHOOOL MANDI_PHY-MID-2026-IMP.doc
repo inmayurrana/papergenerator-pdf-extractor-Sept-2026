@@ -1,0 +1,125 @@
+
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <meta charset="utf-8">
+        <title>INTERNATIONAL SCHOOOL MANDI</title>
+        <style>
+          body { font-family: 'Calibri', 'Times New Roman', 'Arial', sans-serif; font-size: 11pt; line-height: 1.35; color: #000; margin: 0.8in; }
+          .school-title { font-size: 18pt; font-weight: bold; text-align: center; text-transform: uppercase; margin-bottom: 3pt; }
+          .exam-title { font-size: 13pt; font-weight: bold; text-align: center; text-transform: uppercase; margin-bottom: 6pt; color: #1a365d; }
+          .meta-table { width: 100%; font-size: 10pt; font-weight: bold; margin-top: 4pt; }
+          .candidate-box { border: 1pt solid #000; padding: 8pt; margin-bottom: 14pt; font-size: 10pt; background: #fafafa; }
+          .roll-box { display: inline-block; width: 16pt; height: 16pt; border: 1pt solid #000; margin-left: 2pt; text-align: center; vertical-align: middle; }
+          .instructions { font-size: 9pt; border-top: 0.5pt solid #ccc; padding-top: 4pt; margin-top: 4pt; color: #333; }
+          .question-block { margin-bottom: 12pt; page-break-inside: avoid; border-bottom: 0.5pt solid #e2e8f0; padding-bottom: 8pt; }
+          .q-stem { font-weight: 500; font-size: 11pt; margin-bottom: 4pt; }
+          .q-marks { float: right; font-weight: bold; font-family: monospace; color: #2d3748; }
+          .diagram-container { margin: 6pt 0; text-align: left; }
+          .diagram-img { max-height: 200pt; max-width: 450pt; width: auto; border: 0.5pt solid #cbd5e0; margin: 4pt 0; }
+          .options-grid { margin-left: 15pt; margin-top: 4pt; font-size: 10.5pt; }
+          .opt-item { display: inline-block; min-width: 22%; margin-right: 15pt; margin-bottom: 4pt; vertical-align: top; }
+          .opt-img { max-height: 45pt; width: auto; display: block; margin-top: 2pt; }
+        </style>
+      </head>
+      <body>
+        
+        <div class="school-title">CAMBRIDGE </div>
+        <div class="exam-title">INTERNATIONAL SCHOOOL MANDI</div>
+        <table class="meta-table">
+          <tr>
+            <td><strong>CLASS & SUBJECT:</strong> Class 12 &gt; Physics</td>
+            <td style="text-align:center;"><strong>TIME:</strong> 120 MINS</td>
+            <td style="text-align:right;"><strong>MAX MARKS:</strong> 50</td>
+          </tr>
+        </table>
+        <hr style="border: 1pt solid #000; margin: 6pt 0 12pt 0;" />
+
+        <div class="candidate-box">
+          <table style="width:100%;">
+            <tr>
+              <td><strong>Candidate Name:</strong> ___________________________________</td>
+              <td style="text-align:right;">
+                <strong>Roll No:</strong>
+                <span class="roll-box"></span><span class="roll-box"></span><span class="roll-box"></span><span class="roll-box"></span><span class="roll-box"></span><span class="roll-box"></span><span class="roll-box"></span><span class="roll-box"></span>
+              </td>
+            </tr>
+          </table>
+          <div class="instructions"><strong>General Instructions:</strong><br/>1. Answer all questions.<br/>2. Calculator permitted.</div>
+        </div>
+
+        <div class="questions-container">
+          
+              <div class="question-block">
+                <div class="q-stem">
+                  <span class="q-marks">[2 Marks]</span>
+                  <strong>Q1.</strong> What is the capital of France?
+                </div>
+
+                
+
+                
+                  <div class="options-grid">
+                    
+                          <span class="opt-item">
+                            <strong>(A)</strong> Berlin
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(B)</strong> Paris
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(C)</strong> Madrid
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(D)</strong> Rome
+                            
+                          </span>
+                        
+                  </div>
+                
+              </div>
+            
+              <div class="question-block">
+                <div class="q-stem">
+                  <span class="q-marks">[3 Marks]</span>
+                  <strong>Q2.</strong> Solve for x: 2x + 6 = 14
+                </div>
+
+                
+
+                
+                  <div class="options-grid">
+                    
+                          <span class="opt-item">
+                            <strong>(A)</strong> x = 2
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(B)</strong> x = 3
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(C)</strong> x = 4
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(D)</strong> x = 5
+                            
+                          </span>
+                        
+                  </div>
+                
+              </div>
+            
+        </div>
+      </body>
+      </html>
+    

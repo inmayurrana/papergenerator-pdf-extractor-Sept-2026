@@ -1,0 +1,1006 @@
+{
+  "id": "92491a1d-25be-49cf-84e1-0dd5b4ee1af3",
+  "title": "tesing-Class 12 Physics",
+  "examCode": "PHY-12-2026",
+  "schoolName": "CAMBRIDGE INTERNATIONAL SCHOOL MANDI",
+  "className": "Class 12",
+  "subjectName": "Physics",
+  "maxMarks": 10,
+  "durationMinutes": 180,
+  "examDate": "2026-08-26",
+  "examTime": "09:00 AM - 12:00 PM",
+  "instructions": "",
+  "status": "FINALIZED",
+  "canvasLayout": {
+    "questions": [
+      {
+        "questionText": "Which of the following electromagnetic waves has the highest frequency?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Radio waves"
+          },
+          {
+            "key": "B",
+            "text": "Micro waves"
+          },
+          {
+            "key": "C",
+            "text": "Gamma rays"
+          },
+          {
+            "key": "D",
+            "text": "Infrared waves"
+          }
+        ],
+        "correctAnswer": "C",
+        "marks": 1,
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"Radio waves\"},{\"key\":\"B\",\"text\":\"Micro waves\"},{\"key\":\"C\",\"text\":\"Gamma rays\"},{\"key\":\"D\",\"text\":\"Infrared waves\"}]"
+      },
+      {
+        "id": "e4c8f855-e9e0-47b6-a9e7-87e186d7decb",
+        "folderId": "afafd86f-23cf-4049-b6dc-a90e922a38d7",
+        "creatorId": "0469c6bc-9259-4627-a18d-5f204963088f",
+        "questionNumber": "2",
+        "questionText": "Essential characteristic of equilibrium is :-\n",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"1\",\"text\":\"Momentum equals zero\"},{\"key\":\"2\",\"text\":\"Acceleration equals zero\"},{\"key\":\"3\",\"text\":\"K.E. equals zero\"},{\"key\":\"4\",\"text\":\"Velocity equals zero\"}]",
+        "correctAnswer": "A",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-08-25T18:21:42.242Z",
+        "updatedAt": "2026-08-25T18:21:42.242Z",
+        "folder": {
+          "id": "afafd86f-23cf-4049-b6dc-a90e922a38d7",
+          "name": "Physics XI+XII NEET_All",
+          "type": "CHAPTER"
+        },
+        "creator": {
+          "id": "0469c6bc-9259-4627-a18d-5f204963088f",
+          "fullName": "System Administrator",
+          "email": "admin@school.local"
+        },
+        "options": [
+          {
+            "key": "1",
+            "text": "Momentum equals zero"
+          },
+          {
+            "key": "2",
+            "text": "Acceleration equals zero"
+          },
+          {
+            "key": "3",
+            "text": "K.E. equals zero"
+          },
+          {
+            "key": "4",
+            "text": "Velocity equals zero"
+          }
+        ]
+      },
+      {
+        "id": "d8185be8-1641-4a5b-b6c8-cbc1ba141929",
+        "folderId": "afafd86f-23cf-4049-b6dc-a90e922a38d7",
+        "creatorId": "0469c6bc-9259-4627-a18d-5f204963088f",
+        "questionNumber": "1",
+        "questionText": "",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"1\",\"text\":\"To increase the speed\"},{\"key\":\"2\",\"text\":\"To decrease the speed\"},{\"key\":\"3\",\"text\":\"To maintain the same speed\"},{\"key\":\"4\",\"text\":\"To change the direction\"}]",
+        "correctAnswer": "B",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$EXERCISE-I  (Conceptual Questions)\\nBuild Up Your Understanding$\"}]",
+        "diagramsJson": "[{\"relative_url\":\"/data/snips/snip_7a01f322.png\",\"label\":\"Question Screenshot / Diagram\",\"width\":302,\"height\":104}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-08-25T18:19:38.661Z",
+        "updatedAt": "2026-08-25T18:19:38.661Z",
+        "folder": {
+          "id": "afafd86f-23cf-4049-b6dc-a90e922a38d7",
+          "name": "Physics XI+XII NEET_All",
+          "type": "CHAPTER"
+        },
+        "creator": {
+          "id": "0469c6bc-9259-4627-a18d-5f204963088f",
+          "fullName": "System Administrator",
+          "email": "admin@school.local"
+        },
+        "diagrams": [
+          {
+            "relative_url": "/data/snips/snip_7a01f322.png",
+            "label": "Question Screenshot / Diagram",
+            "width": 302,
+            "height": 104
+          }
+        ],
+        "options": [
+          {
+            "key": "1",
+            "text": "To increase the speed"
+          },
+          {
+            "key": "2",
+            "text": "To decrease the speed"
+          },
+          {
+            "key": "3",
+            "text": "To maintain the same speed"
+          },
+          {
+            "key": "4",
+            "text": "To change the direction"
+          }
+        ]
+      },
+      {
+        "id": "2d451354-98df-4c43-bab2-ca02210e9aab",
+        "folderId": "afafd86f-23cf-4049-b6dc-a90e922a38d7",
+        "creatorId": "0469c6bc-9259-4627-a18d-5f204963088f",
+        "questionNumber": "16",
+        "questionText": "The velocity acquired by a mass m in travelling a\ncertain distance d starting from rest under the action\nof a constant force is directly proportional to :-",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"1\",\"text\":\"\",\"imageUrl\":\"/data/snips/snip_ee73f2db.png\",\"imageHeight\":15},{\"key\":\"3\",\"text\":\"\",\"imageUrl\":\"/data/snips/snip_87adc96e.png\",\"imageHeight\":15},{\"key\":\"3\",\"text\":\"\",\"imageUrl\":\"/data/snips/snip_87adc96e.png\",\"imageWidth\":0,\"imageHeight\":15},{\"key\":\"4\",\"text\":\"\",\"imageUrl\":\"/data/snips/snip_bfca5b36.png\",\"imageHeight\":15}]",
+        "correctAnswer": "D",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-08-25T18:04:11.367Z",
+        "updatedAt": "2026-08-25T18:55:19.746Z",
+        "folder": {
+          "id": "afafd86f-23cf-4049-b6dc-a90e922a38d7",
+          "name": "Physics XI+XII NEET_All",
+          "type": "CHAPTER"
+        },
+        "creator": {
+          "id": "0469c6bc-9259-4627-a18d-5f204963088f",
+          "fullName": "System Administrator",
+          "email": "admin@school.local"
+        },
+        "options": [
+          {
+            "key": "1",
+            "text": "",
+            "imageUrl": "/data/snips/snip_ee73f2db.png",
+            "imageHeight": 15
+          },
+          {
+            "key": "3",
+            "text": "",
+            "imageUrl": "/data/snips/snip_87adc96e.png",
+            "imageHeight": 15
+          },
+          {
+            "key": "3",
+            "text": "",
+            "imageUrl": "/data/snips/snip_87adc96e.png",
+            "imageWidth": 0,
+            "imageHeight": 15
+          },
+          {
+            "key": "4",
+            "text": "",
+            "imageUrl": "/data/snips/snip_bfca5b36.png",
+            "imageHeight": 15
+          }
+        ]
+      },
+      {
+        "id": "fce69994-665f-47b4-9f0d-93e78f0ff59f",
+        "folderId": null,
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "11",
+        "questionText": "A material body A of mass m 1  exerts a force on\nanother material body B of mass m 2 . If the\nacceleration of B be a 2 , the magnitude of the\nacceleration of A is :-",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"1\",\"text\":\"Zero\"},{\"key\":\"2\",\"text\":\"\",\"imageUrl\":\"/data/snips/snip_560abe2b.png\",\"imageHeight\":15},{\"key\":\"3\",\"text\":\"\",\"imageUrl\":\"/data/snips/snip_aec03522.png\",\"imageHeight\":15},{\"key\":\"4\",\"text\":\"\",\"imageUrl\":\"/data/snips/snip_2ea26507.png\",\"imageHeight\":15}]",
+        "correctAnswer": "A",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$//(1\"},{\"type\":\"MATH\",\"raw\":\"$Session : 2020-21$\"}]",
+        "diagramsJson": "[{\"diagram_id\":\"diag_3f77f6be\",\"filename\":\"2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_3f77f6be.png\",\"relative_url\":\"/data/diagrams/2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_3f77f6be.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_3f77f6be.png\",\"bbox\":[859,1729,576,123],\"width\":576,\"height\":123,\"labels\":[]}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-08-26T03:55:18.236Z",
+        "updatedAt": "2026-08-26T03:55:18.236Z",
+        "folder": null,
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "options": [
+          {
+            "key": "1",
+            "text": "Zero"
+          },
+          {
+            "key": "2",
+            "text": "",
+            "imageUrl": "/data/snips/snip_560abe2b.png",
+            "imageHeight": 15
+          },
+          {
+            "key": "3",
+            "text": "",
+            "imageUrl": "/data/snips/snip_aec03522.png",
+            "imageHeight": 15
+          },
+          {
+            "key": "4",
+            "text": "",
+            "imageUrl": "/data/snips/snip_2ea26507.png",
+            "imageHeight": 15
+          }
+        ]
+      },
+      {
+        "id": "489e1c63-a9ff-48e9-8045-f152cbac21d5",
+        "folderId": null,
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "10",
+        "questionText": "A man is at rest in the middle of a pond on perfectly\nsmooth ice. He can get himself to the shore by\nmaking use of Newton's :-",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"1\",\"text\":\"First law\"},{\"key\":\"2\",\"text\":\" Second law\"},{\"key\":\"3\",\"text\":\"Third law\"},{\"key\":\"4\",\"text\":\"Law of gravitation\"}]",
+        "correctAnswer": "C",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[{\"diagram_id\":\"diag_33d3c250\",\"filename\":\"2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_33d3c250.png\",\"relative_url\":\"/data/diagrams/2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_33d3c250.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_33d3c250.png\",\"bbox\":[860,1476,576,119],\"width\":516,\"height\":74,\"labels\":[]}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-08-26T03:55:17.680Z",
+        "updatedAt": "2026-08-26T03:55:17.680Z",
+        "folder": null,
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "diagrams": [
+          {
+            "diagram_id": "diag_33d3c250",
+            "filename": "2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_33d3c250.png",
+            "relative_url": "/data/diagrams/2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_33d3c250.png",
+            "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_33d3c250.png",
+            "bbox": [
+              860,
+              1476,
+              576,
+              119
+            ],
+            "width": 516,
+            "height": 74,
+            "labels": []
+          }
+        ],
+        "options": [
+          {
+            "key": "1",
+            "text": "First law"
+          },
+          {
+            "key": "2",
+            "text": " Second law"
+          },
+          {
+            "key": "3",
+            "text": "Third law"
+          },
+          {
+            "key": "4",
+            "text": "Law of gravitation"
+          }
+        ]
+      },
+      {
+        "id": "9eb5ac5c-9145-4b0a-b042-0da30d319b3e",
+        "folderId": null,
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "9",
+        "questionText": "When a horse pulls a wagon, the force that causes\nthe horse to move forward is the force",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"1\",\"text\":\"He exerts on the wagon\"},{\"key\":\"3\",\"text\":\"The wagon exerts on him\"},{\"key\":\"3\",\"text\":\"The ground exerts on him\"},{\"key\":\"4\",\"text\":\"He exerts on the ground\"}]",
+        "correctAnswer": "B",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$Z:\\\\NODE02\\\\B0B0-BA\\\\TARGET\\\\PHY\\\\ENG\\\\MODULE_01\\\\04-NLM\\\\04-NLM_EXERCISE.P65$\"}]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-08-26T03:52:42.689Z",
+        "updatedAt": "2026-08-26T03:52:42.689Z",
+        "folder": null,
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "options": [
+          {
+            "key": "1",
+            "text": "He exerts on the wagon"
+          },
+          {
+            "key": "3",
+            "text": "The wagon exerts on him"
+          },
+          {
+            "key": "3",
+            "text": "The ground exerts on him"
+          },
+          {
+            "key": "4",
+            "text": "He exerts on the ground"
+          }
+        ]
+      },
+      {
+        "id": "f03489e9-c286-4331-812c-649278c4c9bf",
+        "folderId": null,
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "8",
+        "questionText": "Working of rocket or jet is based on :-\n",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"1\",\"text\":\"Newton's law\"},{\"key\":\"2\",\"text\":\" Newton's II law\"},{\"key\":\"3\",\"text\":\"Newton's III law\"},{\"key\":\"4\",\"text\":\"All the three laws\"}]",
+        "correctAnswer": "D",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-08-26T03:51:09.194Z",
+        "updatedAt": "2026-08-26T03:51:09.194Z",
+        "folder": null,
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "options": [
+          {
+            "key": "1",
+            "text": "Newton's law"
+          },
+          {
+            "key": "2",
+            "text": " Newton's II law"
+          },
+          {
+            "key": "3",
+            "text": "Newton's III law"
+          },
+          {
+            "key": "4",
+            "text": "All the three laws"
+          }
+        ]
+      },
+      {
+        "id": "88611c13-d9b8-4c7d-a283-bf01fcb3cb5c",
+        "folderId": null,
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "7",
+        "questionText": "",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"1\",\"text\":\"Newton's first law\"},{\"key\":\"2\",\"text\":\"Newton's second law\"},{\"key\":\"3\",\"text\":\"Newton's third law\"},{\"key\":\"4\",\"text\":\"None of these\"}]",
+        "correctAnswer": "A",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$1^2\\næ\\nö\\nç\\n÷\\nè\\nø   at 2  . This result follows$\"},{\"type\":\"MATH\",\"raw\":\"$a is given by  x = v 0 t +$\"},{\"type\":\"MATH\",\"raw\":\"$from :-$\"}]",
+        "diagramsJson": "[{\"relative_url\":\"/data/snips/snip_c4faebc6.png\",\"label\":\"Question Screenshot / Diagram\"}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-08-26T03:50:29.877Z",
+        "updatedAt": "2026-08-26T03:50:29.877Z",
+        "folder": null,
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "options": [
+          {
+            "key": "1",
+            "text": "Newton's first law"
+          },
+          {
+            "key": "2",
+            "text": "Newton's second law"
+          },
+          {
+            "key": "3",
+            "text": "Newton's third law"
+          },
+          {
+            "key": "4",
+            "text": "None of these"
+          }
+        ]
+      },
+      {
+        "id": "f8e155ef-e590-468b-8467-74e202a75660",
+        "folderId": null,
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "6",
+        "questionText": "A body of mass 2 kg moving on a horizontal surface\n$with an initial velocity of 4 m/s comes to rest after$\n2 s. If one wants to keep this body moving on the\nsame surface with a velocity of 4 m/s, the force\nrequired is :-\n",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"1\",\"text\":\"8 N\"},{\"key\":\"2\",\"text\":\" 4 N\"},{\"key\":\"3\",\"text\":\" Zero\"},{\"key\":\"4\",\"text\":\"2 N\"}]",
+        "correctAnswer": "B",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$with an initial velocity of 4 m/s comes to rest after$\"},{\"type\":\"MATH\",\"raw\":\"$same surface with a velocity of 4 m/s, the force$\"},{\"type\":\"MATH\",\"raw\":\"$required is :-$\"}]",
+        "diagramsJson": "[{\"diagram_id\":\"diag_25814828\",\"filename\":\"2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_25814828.png\",\"relative_url\":\"/data/diagrams/2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_25814828.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_25814828.png\",\"bbox\":[859,258,576,168],\"width\":576,\"height\":168,\"labels\":[]}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-08-26T03:49:35.860Z",
+        "updatedAt": "2026-08-26T03:49:35.860Z",
+        "folder": null,
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "options": [
+          {
+            "key": "1",
+            "text": "8 N"
+          },
+          {
+            "key": "2",
+            "text": " 4 N"
+          },
+          {
+            "key": "3",
+            "text": " Zero"
+          },
+          {
+            "key": "4",
+            "text": "2 N"
+          }
+        ]
+      }
+    ],
+    "settings": {
+      "className": "Class 12",
+      "subjectName": "Physics",
+      "fontFamily": "serif",
+      "fontSize": "10pt",
+      "lineSpacing": "tight",
+      "pageColumns": 1,
+      "spacingPreset": "zero",
+      "borderStyle": "divider",
+      "optionLayout": "inline",
+      "imageAlignment": "inline",
+      "imageBorderStyle": "none",
+      "imageCustomHeight": 15,
+      "autoMatchText": true,
+      "showWatermark": false,
+      "watermarkText": "CONFIDENTIAL",
+      "showCandidateBox": true,
+      "rollNoStyle": "boxes",
+      "schoolLogoUrl": null,
+      "schoolLogoWidth": 75,
+      "schoolLogoHeight": 75,
+      "schoolLogoPosition": "left"
+    }
+  },
+  "questions": [
+    {
+      "questionText": "Which of the following electromagnetic waves has the highest frequency?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Radio waves"
+        },
+        {
+          "key": "B",
+          "text": "Micro waves"
+        },
+        {
+          "key": "C",
+          "text": "Gamma rays"
+        },
+        {
+          "key": "D",
+          "text": "Infrared waves"
+        }
+      ],
+      "correctAnswer": "C",
+      "marks": 1,
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"Radio waves\"},{\"key\":\"B\",\"text\":\"Micro waves\"},{\"key\":\"C\",\"text\":\"Gamma rays\"},{\"key\":\"D\",\"text\":\"Infrared waves\"}]"
+    },
+    {
+      "id": "e4c8f855-e9e0-47b6-a9e7-87e186d7decb",
+      "folderId": "afafd86f-23cf-4049-b6dc-a90e922a38d7",
+      "creatorId": "0469c6bc-9259-4627-a18d-5f204963088f",
+      "questionNumber": "2",
+      "questionText": "Essential characteristic of equilibrium is :-\n",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"1\",\"text\":\"Momentum equals zero\"},{\"key\":\"2\",\"text\":\"Acceleration equals zero\"},{\"key\":\"3\",\"text\":\"K.E. equals zero\"},{\"key\":\"4\",\"text\":\"Velocity equals zero\"}]",
+      "correctAnswer": "A",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-08-25T18:21:42.242Z",
+      "updatedAt": "2026-08-25T18:21:42.242Z",
+      "folder": {
+        "id": "afafd86f-23cf-4049-b6dc-a90e922a38d7",
+        "name": "Physics XI+XII NEET_All",
+        "type": "CHAPTER"
+      },
+      "creator": {
+        "id": "0469c6bc-9259-4627-a18d-5f204963088f",
+        "fullName": "System Administrator",
+        "email": "admin@school.local"
+      },
+      "options": [
+        {
+          "key": "1",
+          "text": "Momentum equals zero"
+        },
+        {
+          "key": "2",
+          "text": "Acceleration equals zero"
+        },
+        {
+          "key": "3",
+          "text": "K.E. equals zero"
+        },
+        {
+          "key": "4",
+          "text": "Velocity equals zero"
+        }
+      ]
+    },
+    {
+      "id": "d8185be8-1641-4a5b-b6c8-cbc1ba141929",
+      "folderId": "afafd86f-23cf-4049-b6dc-a90e922a38d7",
+      "creatorId": "0469c6bc-9259-4627-a18d-5f204963088f",
+      "questionNumber": "1",
+      "questionText": "",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"1\",\"text\":\"To increase the speed\"},{\"key\":\"2\",\"text\":\"To decrease the speed\"},{\"key\":\"3\",\"text\":\"To maintain the same speed\"},{\"key\":\"4\",\"text\":\"To change the direction\"}]",
+      "correctAnswer": "B",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$EXERCISE-I  (Conceptual Questions)\\nBuild Up Your Understanding$\"}]",
+      "diagramsJson": "[{\"relative_url\":\"/data/snips/snip_7a01f322.png\",\"label\":\"Question Screenshot / Diagram\",\"width\":302,\"height\":104}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-08-25T18:19:38.661Z",
+      "updatedAt": "2026-08-25T18:19:38.661Z",
+      "folder": {
+        "id": "afafd86f-23cf-4049-b6dc-a90e922a38d7",
+        "name": "Physics XI+XII NEET_All",
+        "type": "CHAPTER"
+      },
+      "creator": {
+        "id": "0469c6bc-9259-4627-a18d-5f204963088f",
+        "fullName": "System Administrator",
+        "email": "admin@school.local"
+      },
+      "diagrams": [
+        {
+          "relative_url": "/data/snips/snip_7a01f322.png",
+          "label": "Question Screenshot / Diagram",
+          "width": 302,
+          "height": 104
+        }
+      ],
+      "options": [
+        {
+          "key": "1",
+          "text": "To increase the speed"
+        },
+        {
+          "key": "2",
+          "text": "To decrease the speed"
+        },
+        {
+          "key": "3",
+          "text": "To maintain the same speed"
+        },
+        {
+          "key": "4",
+          "text": "To change the direction"
+        }
+      ]
+    },
+    {
+      "id": "2d451354-98df-4c43-bab2-ca02210e9aab",
+      "folderId": "afafd86f-23cf-4049-b6dc-a90e922a38d7",
+      "creatorId": "0469c6bc-9259-4627-a18d-5f204963088f",
+      "questionNumber": "16",
+      "questionText": "The velocity acquired by a mass m in travelling a\ncertain distance d starting from rest under the action\nof a constant force is directly proportional to :-",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"1\",\"text\":\"\",\"imageUrl\":\"/data/snips/snip_ee73f2db.png\",\"imageHeight\":15},{\"key\":\"3\",\"text\":\"\",\"imageUrl\":\"/data/snips/snip_87adc96e.png\",\"imageHeight\":15},{\"key\":\"3\",\"text\":\"\",\"imageUrl\":\"/data/snips/snip_87adc96e.png\",\"imageWidth\":0,\"imageHeight\":15},{\"key\":\"4\",\"text\":\"\",\"imageUrl\":\"/data/snips/snip_bfca5b36.png\",\"imageHeight\":15}]",
+      "correctAnswer": "D",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-08-25T18:04:11.367Z",
+      "updatedAt": "2026-08-25T18:55:19.746Z",
+      "folder": {
+        "id": "afafd86f-23cf-4049-b6dc-a90e922a38d7",
+        "name": "Physics XI+XII NEET_All",
+        "type": "CHAPTER"
+      },
+      "creator": {
+        "id": "0469c6bc-9259-4627-a18d-5f204963088f",
+        "fullName": "System Administrator",
+        "email": "admin@school.local"
+      },
+      "options": [
+        {
+          "key": "1",
+          "text": "",
+          "imageUrl": "/data/snips/snip_ee73f2db.png",
+          "imageHeight": 15
+        },
+        {
+          "key": "3",
+          "text": "",
+          "imageUrl": "/data/snips/snip_87adc96e.png",
+          "imageHeight": 15
+        },
+        {
+          "key": "3",
+          "text": "",
+          "imageUrl": "/data/snips/snip_87adc96e.png",
+          "imageWidth": 0,
+          "imageHeight": 15
+        },
+        {
+          "key": "4",
+          "text": "",
+          "imageUrl": "/data/snips/snip_bfca5b36.png",
+          "imageHeight": 15
+        }
+      ]
+    },
+    {
+      "id": "fce69994-665f-47b4-9f0d-93e78f0ff59f",
+      "folderId": null,
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "11",
+      "questionText": "A material body A of mass m 1  exerts a force on\nanother material body B of mass m 2 . If the\nacceleration of B be a 2 , the magnitude of the\nacceleration of A is :-",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"1\",\"text\":\"Zero\"},{\"key\":\"2\",\"text\":\"\",\"imageUrl\":\"/data/snips/snip_560abe2b.png\",\"imageHeight\":15},{\"key\":\"3\",\"text\":\"\",\"imageUrl\":\"/data/snips/snip_aec03522.png\",\"imageHeight\":15},{\"key\":\"4\",\"text\":\"\",\"imageUrl\":\"/data/snips/snip_2ea26507.png\",\"imageHeight\":15}]",
+      "correctAnswer": "A",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$//(1\"},{\"type\":\"MATH\",\"raw\":\"$Session : 2020-21$\"}]",
+      "diagramsJson": "[{\"diagram_id\":\"diag_3f77f6be\",\"filename\":\"2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_3f77f6be.png\",\"relative_url\":\"/data/diagrams/2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_3f77f6be.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_3f77f6be.png\",\"bbox\":[859,1729,576,123],\"width\":576,\"height\":123,\"labels\":[]}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-08-26T03:55:18.236Z",
+      "updatedAt": "2026-08-26T03:55:18.236Z",
+      "folder": null,
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "options": [
+        {
+          "key": "1",
+          "text": "Zero"
+        },
+        {
+          "key": "2",
+          "text": "",
+          "imageUrl": "/data/snips/snip_560abe2b.png",
+          "imageHeight": 15
+        },
+        {
+          "key": "3",
+          "text": "",
+          "imageUrl": "/data/snips/snip_aec03522.png",
+          "imageHeight": 15
+        },
+        {
+          "key": "4",
+          "text": "",
+          "imageUrl": "/data/snips/snip_2ea26507.png",
+          "imageHeight": 15
+        }
+      ]
+    },
+    {
+      "id": "489e1c63-a9ff-48e9-8045-f152cbac21d5",
+      "folderId": null,
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "10",
+      "questionText": "A man is at rest in the middle of a pond on perfectly\nsmooth ice. He can get himself to the shore by\nmaking use of Newton's :-",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"1\",\"text\":\"First law\"},{\"key\":\"2\",\"text\":\" Second law\"},{\"key\":\"3\",\"text\":\"Third law\"},{\"key\":\"4\",\"text\":\"Law of gravitation\"}]",
+      "correctAnswer": "C",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[{\"diagram_id\":\"diag_33d3c250\",\"filename\":\"2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_33d3c250.png\",\"relative_url\":\"/data/diagrams/2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_33d3c250.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_33d3c250.png\",\"bbox\":[860,1476,576,119],\"width\":516,\"height\":74,\"labels\":[]}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-08-26T03:55:17.680Z",
+      "updatedAt": "2026-08-26T03:55:17.680Z",
+      "folder": null,
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "diagrams": [
+        {
+          "diagram_id": "diag_33d3c250",
+          "filename": "2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_33d3c250.png",
+          "relative_url": "/data/diagrams/2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_33d3c250.png",
+          "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_33d3c250.png",
+          "bbox": [
+            860,
+            1476,
+            576,
+            119
+          ],
+          "width": 516,
+          "height": 74,
+          "labels": []
+        }
+      ],
+      "options": [
+        {
+          "key": "1",
+          "text": "First law"
+        },
+        {
+          "key": "2",
+          "text": " Second law"
+        },
+        {
+          "key": "3",
+          "text": "Third law"
+        },
+        {
+          "key": "4",
+          "text": "Law of gravitation"
+        }
+      ]
+    },
+    {
+      "id": "9eb5ac5c-9145-4b0a-b042-0da30d319b3e",
+      "folderId": null,
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "9",
+      "questionText": "When a horse pulls a wagon, the force that causes\nthe horse to move forward is the force",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"1\",\"text\":\"He exerts on the wagon\"},{\"key\":\"3\",\"text\":\"The wagon exerts on him\"},{\"key\":\"3\",\"text\":\"The ground exerts on him\"},{\"key\":\"4\",\"text\":\"He exerts on the ground\"}]",
+      "correctAnswer": "B",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$Z:\\\\NODE02\\\\B0B0-BA\\\\TARGET\\\\PHY\\\\ENG\\\\MODULE_01\\\\04-NLM\\\\04-NLM_EXERCISE.P65$\"}]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-08-26T03:52:42.689Z",
+      "updatedAt": "2026-08-26T03:52:42.689Z",
+      "folder": null,
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "options": [
+        {
+          "key": "1",
+          "text": "He exerts on the wagon"
+        },
+        {
+          "key": "3",
+          "text": "The wagon exerts on him"
+        },
+        {
+          "key": "3",
+          "text": "The ground exerts on him"
+        },
+        {
+          "key": "4",
+          "text": "He exerts on the ground"
+        }
+      ]
+    },
+    {
+      "id": "f03489e9-c286-4331-812c-649278c4c9bf",
+      "folderId": null,
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "8",
+      "questionText": "Working of rocket or jet is based on :-\n",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"1\",\"text\":\"Newton's law\"},{\"key\":\"2\",\"text\":\" Newton's II law\"},{\"key\":\"3\",\"text\":\"Newton's III law\"},{\"key\":\"4\",\"text\":\"All the three laws\"}]",
+      "correctAnswer": "D",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-08-26T03:51:09.194Z",
+      "updatedAt": "2026-08-26T03:51:09.194Z",
+      "folder": null,
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "options": [
+        {
+          "key": "1",
+          "text": "Newton's law"
+        },
+        {
+          "key": "2",
+          "text": " Newton's II law"
+        },
+        {
+          "key": "3",
+          "text": "Newton's III law"
+        },
+        {
+          "key": "4",
+          "text": "All the three laws"
+        }
+      ]
+    },
+    {
+      "id": "88611c13-d9b8-4c7d-a283-bf01fcb3cb5c",
+      "folderId": null,
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "7",
+      "questionText": "",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"1\",\"text\":\"Newton's first law\"},{\"key\":\"2\",\"text\":\"Newton's second law\"},{\"key\":\"3\",\"text\":\"Newton's third law\"},{\"key\":\"4\",\"text\":\"None of these\"}]",
+      "correctAnswer": "A",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$1^2\\næ\\nö\\nç\\n÷\\nè\\nø   at 2  . This result follows$\"},{\"type\":\"MATH\",\"raw\":\"$a is given by  x = v 0 t +$\"},{\"type\":\"MATH\",\"raw\":\"$from :-$\"}]",
+      "diagramsJson": "[{\"relative_url\":\"/data/snips/snip_c4faebc6.png\",\"label\":\"Question Screenshot / Diagram\"}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-08-26T03:50:29.877Z",
+      "updatedAt": "2026-08-26T03:50:29.877Z",
+      "folder": null,
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "options": [
+        {
+          "key": "1",
+          "text": "Newton's first law"
+        },
+        {
+          "key": "2",
+          "text": "Newton's second law"
+        },
+        {
+          "key": "3",
+          "text": "Newton's third law"
+        },
+        {
+          "key": "4",
+          "text": "None of these"
+        }
+      ]
+    },
+    {
+      "id": "f8e155ef-e590-468b-8467-74e202a75660",
+      "folderId": null,
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "6",
+      "questionText": "A body of mass 2 kg moving on a horizontal surface\n$with an initial velocity of 4 m/s comes to rest after$\n2 s. If one wants to keep this body moving on the\nsame surface with a velocity of 4 m/s, the force\nrequired is :-\n",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"1\",\"text\":\"8 N\"},{\"key\":\"2\",\"text\":\" 4 N\"},{\"key\":\"3\",\"text\":\" Zero\"},{\"key\":\"4\",\"text\":\"2 N\"}]",
+      "correctAnswer": "B",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$with an initial velocity of 4 m/s comes to rest after$\"},{\"type\":\"MATH\",\"raw\":\"$same surface with a velocity of 4 m/s, the force$\"},{\"type\":\"MATH\",\"raw\":\"$required is :-$\"}]",
+      "diagramsJson": "[{\"diagram_id\":\"diag_25814828\",\"filename\":\"2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_25814828.png\",\"relative_url\":\"/data/diagrams/2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_25814828.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\2fcaeb69-7e5c-4e7a-9e9f-5766ae512a86_p1_diag_25814828.png\",\"bbox\":[859,258,576,168],\"width\":576,\"height\":168,\"labels\":[]}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-08-26T03:49:35.860Z",
+      "updatedAt": "2026-08-26T03:49:35.860Z",
+      "folder": null,
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "options": [
+        {
+          "key": "1",
+          "text": "8 N"
+        },
+        {
+          "key": "2",
+          "text": " 4 N"
+        },
+        {
+          "key": "3",
+          "text": " Zero"
+        },
+        {
+          "key": "4",
+          "text": "2 N"
+        }
+      ]
+    }
+  ],
+  "updatedAt": "2026-09-19T04:02:30.994Z"
+}

@@ -1,0 +1,420 @@
+[
+  {
+    "id": "804c9d97-4555-4ed9-94f5-f3dafa3ba807",
+    "questionNumber": "1",
+    "questionText": "If $V = \\frac{4}{3}\\pi r^{3}$, at what rate in cubic units is V increasing when $r = 10$ and $\\frac{dr}{dt} = 0.01$ ?",
+    "options": [
+      {
+        "key": "A",
+        "text": "$\\pi$"
+      },
+      {
+        "key": "B",
+        "text": "$4\\pi$"
+      },
+      {
+        "key": "C",
+        "text": "$40\\pi$"
+      },
+      {
+        "key": "D",
+        "text": "$\\frac{4\\pi}{3}$"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T07:24:48.456Z",
+    "updatedAt": "2026-09-18T07:24:48.456Z"
+  },
+  {
+    "id": "7dc6a297-23f0-4d81-9246-93a7517c1bb0",
+    "questionNumber": "2",
+    "questionText": "Side of an equilateral triangle expands at the rate of 2 cm/sec. The rate of increase of its area when\neach side is 10 cm is",
+    "options": [
+      {
+        "key": "A",
+        "text": "$10\\sqrt{2}$ cm^{2}/sec"
+      },
+      {
+        "key": "B",
+        "text": "$10\\sqrt{3}$ cm^{2}/sec"
+      },
+      {
+        "key": "C",
+        "text": "10 cm^{2}/sec"
+      },
+      {
+        "key": "D",
+        "text": "5 cm^{2}/sec"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T07:24:48.485Z",
+    "updatedAt": "2026-09-18T07:24:48.485Z"
+  },
+  {
+    "id": "131e830e-1968-445a-b9bb-f811255b15d5",
+    "questionNumber": "3",
+    "questionText": "The radius of a sphere is changing at the rate of 0.1 cm/sec. The rate of change of its surface area\nwhen the radius is 200 cm is",
+    "options": [
+      {
+        "key": "A",
+        "text": "$8\\pi$ cm^{2}/sec"
+      },
+      {
+        "key": "B",
+        "text": "$12\\pi$ cm^{2}/sec"
+      },
+      {
+        "key": "C",
+        "text": "$160\\pi$ cm^{2}/sec"
+      },
+      {
+        "key": "D",
+        "text": "200 cm^{2}/sec"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T07:24:48.517Z",
+    "updatedAt": "2026-09-18T07:24:48.517Z"
+  },
+  {
+    "id": "2ee42997-6945-4037-8f1c-e07a7dafd57f",
+    "questionNumber": "4",
+    "questionText": "A cone whose height is always equal to its diameter is increasing in volume at the rate of 40 cm^{3}/sec.\nAt what rate is the radius increasing when its circular base area is 1 m^{2} ?",
+    "options": [
+      {
+        "key": "A",
+        "text": "1 mm/sec"
+      },
+      {
+        "key": "B",
+        "text": "0.001 cm/sec"
+      },
+      {
+        "key": "C",
+        "text": "2 mm/sec"
+      },
+      {
+        "key": "D",
+        "text": "0.002 cm/sec"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T07:24:48.549Z",
+    "updatedAt": "2026-09-18T07:24:48.549Z"
+  },
+  {
+    "id": "54156c25-fcca-4cb7-9450-46749987c5a8",
+    "questionNumber": "5",
+    "questionText": "A cylindrical vessel of radius 0.5 m is filled with oil at the rate of $0.25\\pi$  m^{3}/minute. The rate at which the\nsurface of the oil is rising, is",
+    "options": [
+      {
+        "key": "A",
+        "text": "1 m/minute"
+      },
+      {
+        "key": "B",
+        "text": "2 m/minute"
+      },
+      {
+        "key": "C",
+        "text": "5 m/minute"
+      },
+      {
+        "key": "D",
+        "text": "1.25 m/minute"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T07:24:48.574Z",
+    "updatedAt": "2026-09-18T07:24:48.574Z"
+  },
+  {
+    "id": "903321c3-1b9a-49a0-bc6e-b139b4ab5f17",
+    "questionNumber": "6",
+    "questionText": "The distance moved by the particle in time t is given by $x = t^{3} - 12t^{2} + 6t + 8$. At the instant when its\nacceleration is zero, the velocity is",
+    "options": [
+      {
+        "key": "A",
+        "text": "42"
+      },
+      {
+        "key": "B",
+        "text": "-42"
+      },
+      {
+        "key": "C",
+        "text": "48"
+      },
+      {
+        "key": "D",
+        "text": "-48"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T07:24:48.603Z",
+    "updatedAt": "2026-09-18T07:24:48.603Z"
+  },
+  {
+    "id": "de95676f-67ad-4ba4-b0d4-5edc0e32b1c7",
+    "questionNumber": "7",
+    "questionText": "The altitude of a cone is 20 cm and its semi-vertical angle is $30^\\circ$. If the semi-vertical angle is increasing\nat the rate of $2^\\circ$ per second, then the radius of the base is increasing at the rate of",
+    "options": [
+      {
+        "key": "A",
+        "text": "30 cm/sec"
+      },
+      {
+        "key": "B",
+        "text": "$\\frac{160}{3}$ cm/sec"
+      },
+      {
+        "key": "C",
+        "text": "10 cm/sec"
+      },
+      {
+        "key": "D",
+        "text": "160 cm/sec"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T07:24:48.630Z",
+    "updatedAt": "2026-09-18T07:24:48.630Z"
+  },
+  {
+    "id": "a6f12641-7e23-4a96-b1bd-4258c7341e57",
+    "questionNumber": "1",
+    "questionText": "A particle is in a straight line motion with uniform\nvelocity. A force is not required :-\n",
+    "options": [
+      {
+        "key": "A",
+        "text": "To increase the speed"
+      },
+      {
+        "key": "B",
+        "text": "To decrease the speed"
+      },
+      {
+        "key": "C",
+        "text": "To maintain the same speed"
+      },
+      {
+        "key": "D",
+        "text": "To change the direction"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [
+      {
+        "diagram_id": "diag_f78037ef",
+        "filename": "36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_f78037ef.png",
+        "relative_url": "/data/diagrams/36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_f78037ef.png",
+        "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_f78037ef.png",
+        "bbox": [
+          195,
+          730,
+          323,
+          85
+        ],
+        "width": 323,
+        "height": 85,
+        "labels": []
+      },
+      {
+        "diagram_id": "diag_379c00cb",
+        "filename": "36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_379c00cb.png",
+        "relative_url": "/data/diagrams/36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_379c00cb.png",
+        "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_379c00cb.png",
+        "bbox": [
+          859,
+          570,
+          576,
+          159
+        ],
+        "width": 576,
+        "height": 159,
+        "labels": []
+      },
+      {
+        "diagram_id": "diag_07a56cd9",
+        "filename": "36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_07a56cd9.png",
+        "relative_url": "/data/diagrams/36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_07a56cd9.png",
+        "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_07a56cd9.png",
+        "bbox": [
+          195,
+          449,
+          303,
+          85
+        ],
+        "width": 303,
+        "height": 85,
+        "labels": []
+      }
+    ],
+    "tags": [],
+    "createdAt": "2026-09-19T08:58:48.188Z",
+    "updatedAt": "2026-09-19T08:58:48.188Z"
+  },
+  {
+    "id": "169c7a19-6c15-4ef0-aaa7-9dc11bc6db8b",
+    "questionNumber": "1",
+    "questionText": "A particle is in a straight line motion with uniform\nvelocity. A force is not required :-\n",
+    "options": [
+      {
+        "key": "A",
+        "text": "To increase the speed"
+      },
+      {
+        "key": "B",
+        "text": "To decrease the speed"
+      },
+      {
+        "key": "C",
+        "text": "To maintain the same speed"
+      },
+      {
+        "key": "D",
+        "text": "To change the direction"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [
+      {
+        "diagram_id": "diag_f78037ef",
+        "filename": "36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_f78037ef.png",
+        "relative_url": "/data/diagrams/36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_f78037ef.png",
+        "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_f78037ef.png",
+        "bbox": [
+          195,
+          730,
+          323,
+          85
+        ],
+        "width": 323,
+        "height": 85,
+        "labels": []
+      },
+      {
+        "diagram_id": "diag_379c00cb",
+        "filename": "36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_379c00cb.png",
+        "relative_url": "/data/diagrams/36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_379c00cb.png",
+        "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_379c00cb.png",
+        "bbox": [
+          859,
+          570,
+          576,
+          159
+        ],
+        "width": 576,
+        "height": 159,
+        "labels": []
+      },
+      {
+        "diagram_id": "diag_07a56cd9",
+        "filename": "36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_07a56cd9.png",
+        "relative_url": "/data/diagrams/36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_07a56cd9.png",
+        "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_07a56cd9.png",
+        "bbox": [
+          195,
+          449,
+          303,
+          85
+        ],
+        "width": 303,
+        "height": 85,
+        "labels": []
+      }
+    ],
+    "tags": [],
+    "createdAt": "2026-09-19T08:58:48.272Z",
+    "updatedAt": "2026-09-19T08:58:48.272Z"
+  },
+  {
+    "id": "885b06c7-1e41-4cfa-9989-0c7cf29736f4",
+    "questionNumber": "92",
+    "questionText": "In the fig. mass $M = 10$ g. is placed on an inclined\nplane. In order to keep it at rest, the value of mass\nm will be:",
+    "options": [
+      {
+        "key": "A",
+        "text": "5 g"
+      },
+      {
+        "key": "B",
+        "text": "$10\\sqrt{3}$ g"
+      },
+      {
+        "key": "C",
+        "text": "0.10 g"
+      },
+      {
+        "key": "D",
+        "text": "$\\sqrt{3}$ g"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [
+      {
+        "diagram_id": "diag_b5f33adc",
+        "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_b5f33adc.png",
+        "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_b5f33adc.png",
+        "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_b5f33adc.png",
+        "bbox": [
+          897,
+          298,
+          450,
+          180
+        ],
+        "width": 450,
+        "height": 180,
+        "labels": []
+      }
+    ],
+    "tags": [],
+    "createdAt": "2026-09-20T14:00:16.048Z",
+    "updatedAt": "2026-09-20T14:00:16.048Z"
+  }
+]

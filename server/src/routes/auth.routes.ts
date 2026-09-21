@@ -1,0 +1,109 @@
+import { Router } from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { prisma } from "../prisma";
+import { config } from "../config";
+import { authenticateJwt, AuthRequest } from "../middleware/auth";
+import { logAuditAction } from "../middleware/audit";
+
+const router = Router();
+
+const generateTokens = (user: { id: string; email: string; role: string }) => {
+  const token = jwt.sign(
+    { id: user.id, email: user.email, role: user.role },
+    config.JWT_SECRET,
+    { expiresIn: "8h" }
+  );
+  const refreshToken = jwt.sign(
+    { id: user.id },
+    config.JWT_REFRESH_SECRET,
+    { expiresIn: "7d" }
+  );
+  return { token, refreshToken };
+};
+
+// Seed default offline admin if no users exist
+router.post("/seed-admin", async (req, res) => {
+  try {
+    const count = await prisma.user.count();
+    if (count > 0) {
+      res.json({ message: "Users already exist. Seed skipped." });
+      return;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash("Admin@12345", salt);
+
+    const admin = await prisma.user.create({
+      data: {
+        email: "admin@school.local",
+        fullName: "System Administrator",
+        passwordHash: hash,
+        role: "SUPER_ADMIN",
+      },
+    });
+
+    // Seed default sample folder hierarchy (Class 10 -> Mathematics -> Algebra -> Quadratic Equations)
+    const class10 = await prisma.folder.create({
+      data: { name: "Class 10", type: "CLASS" },
+    });
+    const math = await prisma.folder.create({
+      data: { name: "Mathematics", type: "SUBJECT", parentId: class10.id },
+    });
+    const algebra = await prisma.folder.create({
+      data: { name: "Algebra", type: "CHAPTER", parentId: math.id },
+    });
+    await prisma.folder.create({
+      data: { name: "Quadratic Equations", type: "TOPIC", parentId: algebra.id },
+    });
+
+    await logAuditAction(admin.id, "SEED_ADMIN", "USER", admin.id, { email: admin.email });
+    res.json({ message: "Default Administrator & Class Folders created successfully!", email: admin.email });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      res.status(400).json({ error: "Email and password are required" });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    if (!user || !user.isActive) {
+      res.status(401).json({ error: "Invalid credentials or account deactivated" });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      res.status(401).json({ error: "Invalid credentials" });
+      return;
+    }
+
+    const { token, refreshToken } = generateTokens(user);
+    await logAuditAction(user.id, "LOGIN", "USER", user.id, { email: user.email });
+
+    res.json({
+      token,
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+      },
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/me", authenticateJwt, async (req: AuthRequest, res) => {
+  res.json({ user: req.user });
+});
+
+export default router;

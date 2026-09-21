@@ -1,0 +1,11 @@
+﻿Q#,Question Text,Option (1),Option (2),Option (3),Option (4),Correct Answer,Marks,Difficulty,Explanation
+"4","How many numbers greater than 10 lacs be formed from 2, 3, 0, 3, 4, 2, 3 ?","420","360","400","300","",1,"MEDIUM",""
+"5","The number of different signals which can be given from 6 flags of different colours taking one or more at a time, is","1958","1956","16","64","",1,"MEDIUM",""
+"6","The number of words from the letters of the word “BHARAT” in which B and H will never come together, is","360","240","120","none of these","",1,"MEDIUM",""
+"7","The number of six letter words that can be formed using the letters of the word “ASSIST” in which S’s alternate with other letters is","12","24","18","none of these","",1,"MEDIUM",""
+"8","The number of arrangements of the word “DELHI” in which E precedes I is","30","60","120","59","",1,"MEDIUM",""
+"9","The number of ways in which the letters of the word ‘CONSTANT’ can be arranged without changing the relative positions of the vowels and consonants is","360","256","444","none of these","",1,"MEDIUM",""
+"10","The number of ways to arrange the letters of the word CHEESE are","120","240","720","6","",1,"MEDIUM",""
+"11","Number of all four digit numbers having different digits formed of the digits 1, 2, 3, 4 and 5 and divisible by 4 is","24","30","125","100","",1,"MEDIUM",""
+"12","If the letters of the word KRISNA are arranged in all possible ways and these words are written out as in a dictionary, then the rank of the word KRISNA is","324","341","359","none of these","",1,"MEDIUM",""
+"13","If in a group of n distinct objects, the number of arrangements of 4 objects is 12 times the number of arrangements of 2 objects, then the number of objects is","10","8","6","none of these","",1,"MEDIUM",""

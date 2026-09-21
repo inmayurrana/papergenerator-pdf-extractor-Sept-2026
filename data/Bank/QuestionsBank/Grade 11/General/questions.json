@@ -1,0 +1,106 @@
+[
+  {
+    "id": "2d451354-98df-4c43-bab2-ca02210e9aab",
+    "questionNumber": "16",
+    "questionText": "The velocity acquired by a mass m in travelling a\ncertain distance d starting from rest under the action\nof a constant force is directly proportional to :-",
+    "options": [
+      {
+        "key": "1",
+        "text": "",
+        "imageUrl": "/data/snips/snip_ee73f2db.png"
+      },
+      {
+        "key": "3",
+        "text": "",
+        "imageUrl": "/data/snips/snip_87adc96e.png"
+      },
+      {
+        "key": "3",
+        "text": "",
+        "imageUrl": "/data/snips/snip_87adc96e.png",
+        "imageWidth": 0,
+        "imageHeight": 60
+      },
+      {
+        "key": "4",
+        "text": "",
+        "imageUrl": "/data/snips/snip_bfca5b36.png"
+      }
+    ],
+    "correctAnswer": "D",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-08-25T18:04:11.367Z",
+    "updatedAt": "2026-08-26T05:08:45.490Z"
+  },
+  {
+    "id": "d8185be8-1641-4a5b-b6c8-cbc1ba141929",
+    "questionNumber": "1",
+    "questionText": "",
+    "options": [
+      {
+        "key": "1",
+        "text": "To increase the speed"
+      },
+      {
+        "key": "2",
+        "text": "To decrease the speed"
+      },
+      {
+        "key": "3",
+        "text": "To maintain the same speed"
+      },
+      {
+        "key": "4",
+        "text": "To change the direction"
+      }
+    ],
+    "correctAnswer": "B",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [
+      {
+        "relative_url": "/data/snips/snip_7a01f322.png",
+        "label": "Question Screenshot / Diagram"
+      }
+    ],
+    "tags": [],
+    "createdAt": "2026-08-25T18:19:38.661Z",
+    "updatedAt": "2026-08-26T05:08:45.479Z"
+  },
+  {
+    "id": "e4c8f855-e9e0-47b6-a9e7-87e186d7decb",
+    "questionNumber": "2",
+    "questionText": "Essential characteristic of equilibrium is :-\n",
+    "options": [
+      {
+        "key": "1",
+        "text": "Momentum equals zero"
+      },
+      {
+        "key": "2",
+        "text": "Acceleration equals zero"
+      },
+      {
+        "key": "3",
+        "text": "K.E. equals zero"
+      },
+      {
+        "key": "4",
+        "text": "Velocity equals zero"
+      }
+    ],
+    "correctAnswer": "A",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-08-25T18:21:42.242Z",
+    "updatedAt": "2026-08-26T05:08:45.470Z"
+  }
+]

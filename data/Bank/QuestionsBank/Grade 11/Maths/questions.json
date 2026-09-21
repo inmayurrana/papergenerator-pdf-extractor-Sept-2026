@@ -1,0 +1,312 @@
+[
+  {
+    "id": "bdf04b4b-acbf-4adf-9c43-a3e9ce79f1e3",
+    "questionNumber": "4",
+    "questionText": "How many numbers greater than 10 lacs be formed from 2, 3, 0, 3, 4, 2, 3 ?",
+    "options": [
+      {
+        "key": "A",
+        "text": "420"
+      },
+      {
+        "key": "B",
+        "text": "360"
+      },
+      {
+        "key": "C",
+        "text": "400"
+      },
+      {
+        "key": "D",
+        "text": "300"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:24:32.095Z",
+    "updatedAt": "2026-09-18T11:24:32.095Z"
+  },
+  {
+    "id": "1244e205-e2ca-4f32-acef-ad2d9c25c8e4",
+    "questionNumber": "5",
+    "questionText": "The number of different signals which can be given from 6 flags of different colours taking one or\nmore at a time, is",
+    "options": [
+      {
+        "key": "A",
+        "text": "1958"
+      },
+      {
+        "key": "B",
+        "text": "1956"
+      },
+      {
+        "key": "C",
+        "text": "16"
+      },
+      {
+        "key": "D",
+        "text": "64"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:24:32.141Z",
+    "updatedAt": "2026-09-18T11:24:32.141Z"
+  },
+  {
+    "id": "ec0941f2-02c7-4cf8-a8c8-fb5aed9158b3",
+    "questionNumber": "6",
+    "questionText": "The number of words from the letters of the word “BHARAT” in which B and H will never come\ntogether, is",
+    "options": [
+      {
+        "key": "A",
+        "text": "360"
+      },
+      {
+        "key": "B",
+        "text": "240"
+      },
+      {
+        "key": "C",
+        "text": "120"
+      },
+      {
+        "key": "D",
+        "text": "none of these"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:24:32.193Z",
+    "updatedAt": "2026-09-18T11:24:32.193Z"
+  },
+  {
+    "id": "f6d56b0d-b465-490a-a4e0-eb01076b8d44",
+    "questionNumber": "7",
+    "questionText": "The number of six letter words that can be formed using the letters of the word “ASSIST” in which S’s\nalternate with other letters is",
+    "options": [
+      {
+        "key": "A",
+        "text": "12"
+      },
+      {
+        "key": "B",
+        "text": "24"
+      },
+      {
+        "key": "C",
+        "text": "18"
+      },
+      {
+        "key": "D",
+        "text": "none of these"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:24:32.247Z",
+    "updatedAt": "2026-09-18T11:24:32.247Z"
+  },
+  {
+    "id": "090f2004-daf6-4dc9-85a9-99ab95ac453d",
+    "questionNumber": "8",
+    "questionText": "The number of arrangements of the word “DELHI” in which E precedes I is",
+    "options": [
+      {
+        "key": "A",
+        "text": "30"
+      },
+      {
+        "key": "B",
+        "text": "60"
+      },
+      {
+        "key": "C",
+        "text": "120"
+      },
+      {
+        "key": "D",
+        "text": "59"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:24:32.294Z",
+    "updatedAt": "2026-09-18T11:24:32.294Z"
+  },
+  {
+    "id": "a9d15756-a31c-40da-8a4d-c2a442360cb4",
+    "questionNumber": "9",
+    "questionText": "The number of ways in which the letters of the word ‘CONSTANT’ can be arranged without changing\nthe relative positions of the vowels and consonants is",
+    "options": [
+      {
+        "key": "A",
+        "text": "360"
+      },
+      {
+        "key": "B",
+        "text": "256"
+      },
+      {
+        "key": "C",
+        "text": "444"
+      },
+      {
+        "key": "D",
+        "text": "none of these"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:24:32.340Z",
+    "updatedAt": "2026-09-18T11:24:32.340Z"
+  },
+  {
+    "id": "514c6b33-6d86-457d-a9f2-ce51c2862703",
+    "questionNumber": "10",
+    "questionText": "The number of ways to arrange the letters of the word CHEESE are",
+    "options": [
+      {
+        "key": "A",
+        "text": "120"
+      },
+      {
+        "key": "B",
+        "text": "240"
+      },
+      {
+        "key": "C",
+        "text": "720"
+      },
+      {
+        "key": "D",
+        "text": "6"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:24:32.397Z",
+    "updatedAt": "2026-09-18T11:24:32.397Z"
+  },
+  {
+    "id": "035ab9ee-821b-433e-9c1b-cc2d0d9c66c5",
+    "questionNumber": "11",
+    "questionText": "Number of all four digit numbers having different digits formed of the digits 1, 2, 3, 4 and 5 and\ndivisible by 4 is",
+    "options": [
+      {
+        "key": "A",
+        "text": "24"
+      },
+      {
+        "key": "B",
+        "text": "30"
+      },
+      {
+        "key": "C",
+        "text": "125"
+      },
+      {
+        "key": "D",
+        "text": "100"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:24:32.439Z",
+    "updatedAt": "2026-09-18T11:24:32.439Z"
+  },
+  {
+    "id": "0221157e-fa3e-404e-86c5-ab6b0db6933a",
+    "questionNumber": "12",
+    "questionText": "If the letters of the word KRISNA are arranged in all possible ways and these words are written out as\nin a dictionary, then the rank of the word KRISNA is",
+    "options": [
+      {
+        "key": "A",
+        "text": "324"
+      },
+      {
+        "key": "B",
+        "text": "341"
+      },
+      {
+        "key": "C",
+        "text": "359"
+      },
+      {
+        "key": "D",
+        "text": "none of these"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:24:32.482Z",
+    "updatedAt": "2026-09-18T11:24:32.482Z"
+  },
+  {
+    "id": "81f934e7-5494-48b2-ba0d-d2273f1ea7bc",
+    "questionNumber": "13",
+    "questionText": "If in a group of n distinct objects, the number of arrangements of 4 objects is 12 times the number of\narrangements of 2 objects, then the number of objects is",
+    "options": [
+      {
+        "key": "A",
+        "text": "10"
+      },
+      {
+        "key": "B",
+        "text": "8"
+      },
+      {
+        "key": "C",
+        "text": "6"
+      },
+      {
+        "key": "D",
+        "text": "none of these"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:24:32.538Z",
+    "updatedAt": "2026-09-18T11:24:32.538Z"
+  }
+]

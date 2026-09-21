@@ -1,0 +1,24 @@
+{
+  "include": [
+    "ai_service",
+    "create_sample_pdf.py",
+    "verify_system.py",
+    "scratch"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "python_env"
+  ],
+  "venvPath": ".",
+  "venv": "python_env",
+  "extraPaths": [
+    ".",
+    "ai_service",
+    "python_env/Lib/site-packages"
+  ],
+  "reportMissingImports": "none",
+  "reportMissingModuleSource": "none",
+  "reportMissingTypeStubs": "none",
+  "pythonVersion": "3.11"
+}

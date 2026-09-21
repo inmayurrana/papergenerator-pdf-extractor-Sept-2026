@@ -1,0 +1,380 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   CSS Custom Property Tokens & Theme Palette Definitions
+   ========================================================================== */
+
+:root, [data-theme="midnight"] {
+  --bg-app: #020617;
+  --bg-sidebar: #0b0f19;
+  --bg-navbar: rgba(15, 23, 42, 0.85);
+  --bg-panel: rgba(15, 23, 42, 0.75);
+  --bg-panel-solid: #0f172a;
+  --bg-panel-hover: rgba(30, 41, 59, 0.85);
+  --bg-subtle: #090e17;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-focus: #6366f1;
+  --accent-primary: #6366f1;
+  --accent-secondary: #8b5cf6;
+  --accent-glow: rgba(99, 102, 241, 0.25);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+}
+
+[data-theme="dracula"] {
+  --bg-app: #1e1f29;
+  --bg-sidebar: #191a21;
+  --bg-navbar: rgba(40, 42, 54, 0.9);
+  --bg-panel: rgba(40, 42, 54, 0.8);
+  --bg-panel-solid: #282a36;
+  --bg-panel-hover: rgba(68, 71, 90, 0.85);
+  --bg-subtle: #21222c;
+  --border-subtle: rgba(98, 114, 164, 0.3);
+  --border-focus: #ff79c6;
+  --accent-primary: #ff79c6;
+  --accent-secondary: #8be9fd;
+  --accent-glow: rgba(255, 121, 198, 0.25);
+  --text-main: #f8f8f2;
+  --text-muted: #bd93f9;
+  --text-dim: #6272a4;
+}
+
+[data-theme="tokyo-night"] {
+  --bg-app: #16161e;
+  --bg-sidebar: #13141c;
+  --bg-navbar: rgba(26, 27, 38, 0.9);
+  --bg-panel: rgba(26, 27, 38, 0.85);
+  --bg-panel-solid: #1a1b26;
+  --bg-panel-hover: rgba(41, 46, 66, 0.85);
+  --bg-subtle: #1f2335;
+  --border-subtle: rgba(125, 207, 255, 0.2);
+  --border-focus: #7dcfff;
+  --accent-primary: #7dcfff;
+  --accent-secondary: #bb9af7;
+  --accent-glow: rgba(125, 207, 255, 0.25);
+  --text-main: #c0caf5;
+  --text-muted: #9aa5ce;
+  --text-dim: #565f89;
+}
+
+[data-theme="nord"] {
+  --bg-app: #242933;
+  --bg-sidebar: #1e222a;
+  --bg-navbar: rgba(46, 52, 64, 0.9);
+  --bg-panel: rgba(46, 52, 64, 0.85);
+  --bg-panel-solid: #2e3440;
+  --bg-panel-hover: rgba(59, 66, 82, 0.9);
+  --bg-subtle: #3b4252;
+  --border-subtle: rgba(136, 192, 208, 0.22);
+  --border-focus: #88c0d0;
+  --accent-primary: #88c0d0;
+  --accent-secondary: #81a1c1;
+  --accent-glow: rgba(136, 192, 208, 0.25);
+  --text-main: #eceff4;
+  --text-muted: #d8dee9;
+  --text-dim: #4c566a;
+}
+
+[data-theme="matrix"] {
+  --bg-app: #050a06;
+  --bg-sidebar: #020503;
+  --bg-navbar: rgba(9, 19, 10, 0.9);
+  --bg-panel: rgba(13, 23, 14, 0.85);
+  --bg-panel-solid: #0d170e;
+  --bg-panel-hover: rgba(22, 38, 24, 0.9);
+  --bg-subtle: #09120a;
+  --border-subtle: rgba(16, 185, 129, 0.25);
+  --border-focus: #10b981;
+  --accent-primary: #10b981;
+  --accent-secondary: #34d399;
+  --accent-glow: rgba(16, 185, 129, 0.3);
+  --text-main: #ecfdf5;
+  --text-muted: #6ee7b7;
+  --text-dim: #065f46;
+}
+
+[data-theme="synthwave"] {
+  --bg-app: #140b24;
+  --bg-sidebar: #0d0617;
+  --bg-navbar: rgba(28, 15, 51, 0.9);
+  --bg-panel: rgba(34, 17, 56, 0.85);
+  --bg-panel-solid: #221138;
+  --bg-panel-hover: rgba(53, 25, 87, 0.9);
+  --bg-subtle: #1a0d2b;
+  --border-subtle: rgba(255, 42, 133, 0.25);
+  --border-focus: #ff2a85;
+  --accent-primary: #ff2a85;
+  --accent-secondary: #f59e0b;
+  --accent-glow: rgba(255, 42, 133, 0.3);
+  --text-main: #fdf4ff;
+  --text-muted: #f472b6;
+  --text-dim: #86198f;
+}
+
+[data-theme="catppuccin"] {
+  --bg-app: #11111b;
+  --bg-sidebar: #0c0c14;
+  --bg-navbar: rgba(24, 24, 37, 0.9);
+  --bg-panel: rgba(30, 30, 46, 0.85);
+  --bg-panel-solid: #1e1e2e;
+  --bg-panel-hover: rgba(49, 50, 68, 0.9);
+  --bg-subtle: #181825;
+  --border-subtle: rgba(203, 166, 247, 0.22);
+  --border-focus: #cba6f7;
+  --accent-primary: #cba6f7;
+  --accent-secondary: #fab387;
+  --accent-glow: rgba(203, 166, 247, 0.25);
+  --text-main: #cdd6f4;
+  --text-muted: #bac2de;
+  --text-dim: #585b70;
+}
+
+[data-theme="monokai"] {
+  --bg-app: #19181a;
+  --bg-sidebar: #131214;
+  --bg-navbar: rgba(34, 31, 34, 0.9);
+  --bg-panel: rgba(45, 42, 46, 0.85);
+  --bg-panel-solid: #2d2a2e;
+  --bg-panel-hover: rgba(64, 60, 65, 0.9);
+  --bg-subtle: #221f22;
+  --border-subtle: rgba(255, 216, 102, 0.22);
+  --border-focus: #ffd866;
+  --accent-primary: #ffd866;
+  --accent-secondary: #ff6188;
+  --accent-glow: rgba(255, 216, 102, 0.25);
+  --text-main: #fcfcfa;
+  --text-muted: #ffd866;
+  --text-dim: #727072;
+}
+
+[data-theme="light-paper"] {
+  --bg-app: #f1f5f9;
+  --bg-sidebar: #e2e8f0;
+  --bg-navbar: rgba(255, 255, 255, 0.95);
+  --bg-panel: rgba(255, 255, 255, 0.92);
+  --bg-panel-solid: #ffffff;
+  --bg-panel-hover: #f8fafc;
+  --bg-subtle: #f8fafc;
+  --border-subtle: rgba(0, 0, 0, 0.12);
+  --border-focus: #2563eb;
+  --accent-primary: #2563eb;
+  --accent-secondary: #4f46e5;
+  --accent-glow: rgba(37, 99, 235, 0.2);
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #94a3b8;
+}
+
+@layer base {
+  body {
+    background-color: var(--bg-app);
+    color: var(--text-main);
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+}
+
+/* Custom dynamic glassmorphism panel */
+.glass-panel {
+  background: var(--bg-panel);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.glass-panel-hover {
+  transition: all 0.2s ease-in-out;
+}
+.glass-panel-hover:hover {
+  background: var(--bg-panel-hover);
+  border-color: var(--border-focus);
+  box-shadow: 0 4px 20px -2px var(--accent-glow);
+}
+
+/* Custom sleek scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-subtle);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.4);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+.animate-scaleUp {
+  animation: scaleUp 0.2s ease-out forwards;
+}
+
+/* KaTeX formula container styling */
+.katex-mathml {
+  display: none !important;
+}
+
+.katex-display {
+  margin: 0.5em 0 !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}
+
+/* Typography Classes for Exam Papers */
+.font-serif-times {
+  font-family: 'Times New Roman', Times, Georgia, Cambria, serif;
+}
+.font-serif-cm {
+  font-family: 'Latin Modern Roman', 'Computer Modern Roman', 'Times New Roman', serif;
+}
+.font-sans-arial {
+  font-family: Arial, Helvetica, 'Liberation Sans', sans-serif;
+}
+.font-sans-calibri {
+  font-family: Calibri, 'Segoe UI', Candara, sans-serif;
+}
+.font-serif-georgia {
+  font-family: Georgia, 'Times New Roman', serif;
+}
+.font-serif-garamond {
+  font-family: Garamond, 'EB Garamond', 'Baskerville', serif;
+}
+.font-serif-cambria {
+  font-family: Cambria, 'Times New Roman', Georgia, serif;
+}
+.font-sans-verdana {
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+.font-sans-trebuchet {
+  font-family: 'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', sans-serif;
+}
+.font-serif-bookman {
+  font-family: 'Book Antiqua', 'Palatino Linotype', 'Palatino', 'URW Bookman', serif;
+}
+.font-sans-dejavu {
+  font-family: 'Lucida Sans', 'Lucida Grande', 'DejaVu Sans', sans-serif;
+}
+.font-mono-code {
+  font-family: 'Courier New', Courier, 'Lucida Console', monospace;
+}
+
+/* 2-Column Newspaper Exam Layout */
+.exam-columns-2 {
+  column-count: 2;
+  column-gap: 24px;
+  column-rule: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.exam-columns-2-print {
+  column-count: 2;
+  column-gap: 20px;
+  column-rule: 1px solid #94a3b8;
+}
+
+.avoid-break {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Print Stylesheet for Question Papers and OMR Sheets */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0 !important;
+  }
+
+  /* 1. Global Reset: Remove dark backgrounds, drop shadows, and set pure white page */
+  *, *::before, *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html, body, #root, #root > div, main, .min-h-screen, .glass-panel {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+
+  /* 2. Hide UI elements, navigation, sidebars, toolbars, buttons, dialogs */
+  .no-print, nav, header, aside, button, input, select, textarea, .resize-handle {
+    display: none !important;
+  }
+
+  /* 3. Full-bleed print container */
+  .print-only {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* 4. The printable paper fills 100% of printable area with no screen borders or rounded corners */
+  .printable-paper {
+    display: block !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: auto !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+  }
+
+  .printable-paper * {
+    color: #000000 !important;
+    border-color: #000000 !important;
+  }
+
+  .printable-paper img {
+    filter: none !important;
+    max-width: 100% !important;
+  }
+
+  .avoid-break {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}

@@ -1,0 +1,206 @@
+{
+  "82c22321dd31acfe94325cac984f069baf501696f8ced138e20b67fee56210e1": {
+    "hash": "82c22321dd31acfe94325cac984f069baf501696f8ced138e20b67fee56210e1",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "",
+      "formula_component": "",
+      "unit": null,
+      "latex": "$$",
+      "raw_latex": "",
+      "mathml": "",
+      "structured_ast": null,
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.7,
+        "visual_similarity": 0.5,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.745,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": true,
+          "confidence": 1.0,
+          "errors": [],
+          "warnings": [],
+          "tokens_count": 0,
+          "ast": null
+        }
+      }
+    }
+  },
+  "5f2d08e24741eba1a13098f12e0a2488c4db36796ecbef236a2f92103b4e2c38": {
+    "hash": "5f2d08e24741eba1a13098f12e0a2488c4db36796ecbef236a2f92103b4e2c38",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "",
+      "formula_component": "",
+      "unit": null,
+      "latex": "$$",
+      "raw_latex": "",
+      "mathml": "",
+      "structured_ast": null,
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.7,
+        "visual_similarity": 0.5,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.745,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": true,
+          "confidence": 1.0,
+          "errors": [],
+          "warnings": [],
+          "tokens_count": 0,
+          "ast": null
+        }
+      }
+    }
+  },
+  "b6de42289af0022769201095c9351098a11ba1c2e3869c472ee564732ef7746b": {
+    "hash": "b6de42289af0022769201095c9351098a11ba1c2e3869c472ee564732ef7746b",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "",
+      "formula_component": "",
+      "unit": null,
+      "latex": "$$",
+      "raw_latex": "",
+      "mathml": "",
+      "structured_ast": null,
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.7,
+        "visual_similarity": 0.5,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.745,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": true,
+          "confidence": 1.0,
+          "errors": [],
+          "warnings": [],
+          "tokens_count": 0,
+          "ast": null
+        }
+      }
+    }
+  },
+  "985c4884527fd2b6c7bfbeb69b5a771aaca37ca250d4a457eace8cd89535b6c4": {
+    "hash": "985c4884527fd2b6c7bfbeb69b5a771aaca37ca250d4a457eace8cd89535b6c4",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "",
+      "formula_component": "",
+      "unit": null,
+      "latex": "$$",
+      "raw_latex": "",
+      "mathml": "",
+      "structured_ast": null,
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.7,
+        "visual_similarity": 0.5,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.745,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": true,
+          "confidence": 1.0,
+          "errors": [],
+          "warnings": [],
+          "tokens_count": 0,
+          "ast": null
+        }
+      }
+    }
+  },
+  "740d8d5915fa8f871042fc82676cdf24dacb381fdda5f16f7e5dc6492d9a3217": {
+    "hash": "740d8d5915fa8f871042fc82676cdf24dacb381fdda5f16f7e5dc6492d9a3217",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "",
+      "formula_component": "",
+      "unit": null,
+      "latex": "$$",
+      "raw_latex": "",
+      "mathml": "",
+      "structured_ast": null,
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.7,
+        "visual_similarity": 0.5,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.745,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": true,
+          "confidence": 1.0,
+          "errors": [],
+          "warnings": [],
+          "tokens_count": 0,
+          "ast": null
+        }
+      }
+    }
+  },
+  "5d59166fec11eaee9c1241600b60bfc67d821de58ead9fc11e6781181368a57b": {
+    "hash": "5d59166fec11eaee9c1241600b60bfc67d821de58ead9fc11e6781181368a57b",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "",
+      "formula_component": "",
+      "unit": null,
+      "latex": "$$",
+      "raw_latex": "",
+      "mathml": "",
+      "structured_ast": null,
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.7,
+        "visual_similarity": 0.5,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.745,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": true,
+          "confidence": 1.0,
+          "errors": [],
+          "warnings": [],
+          "tokens_count": 0,
+          "ast": null
+        }
+      }
+    }
+  }
+}

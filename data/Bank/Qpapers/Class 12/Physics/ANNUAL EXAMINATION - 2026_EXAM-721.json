@@ -1,0 +1,617 @@
+{
+  "id": "58d4b837-611a-4759-af4a-5b7d5c6c088e",
+  "title": "ANNUAL EXAMINATION - 2026",
+  "examCode": "EXAM-721",
+  "schoolName": "CAMBRIDGE INTERNATIONAL SCHOOL MANDI",
+  "className": "Class 12",
+  "subjectName": "Physics",
+  "maxMarks": 70,
+  "durationMinutes": 180,
+  "examDate": "2026-09-19",
+  "examTime": "09:00 AM - 12:00 PM",
+  "instructions": "1. All questions are compulsory.\n2. Section A contains 1-mark MCQs.\n3. Section B contains short answer questions.\n4. Use of calculators is not permitted.",
+  "status": "DRAFT",
+  "canvasLayout": {
+    "questions": [
+      {
+        "id": "0437a92f-4777-41b1-9fa1-21c695feced8",
+        "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "1",
+        "questionText": "Three blocks with masses m, 2m and 3m are connected by strings, as shown in the figure. After an upward force F is applied on block m, the masses move upward at constant speed v. What is the net force on the block of mass 2m? (g is the acceleration due to gravity) m 2m 3m v F",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"6 mg\"},{\"key\":\"B\",\"text\":\"zero\"},{\"key\":\"C\",\"text\":\"2 mg\"},{\"key\":\"D\",\"text\":\"3 mg\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-19T15:05:30.573Z",
+        "updatedAt": "2026-09-19T15:05:30.573Z",
+        "folder": {
+          "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+          "name": "Newtons Laws of Motion",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "options": [
+          {
+            "key": "A",
+            "text": "6 mg"
+          },
+          {
+            "key": "B",
+            "text": "zero"
+          },
+          {
+            "key": "C",
+            "text": "2 mg"
+          },
+          {
+            "key": "D",
+            "text": "3 mg"
+          }
+        ],
+        "diagrams": []
+      },
+      {
+        "id": "55532dd3-67f9-4e76-b8c6-c6f4d2dfd000",
+        "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "2",
+        "questionText": "Two bodies of masses 4 kg and 5 kg are acted upon by the same force. If the acceleration of lighter body is 2 m/s^2, then the acceleration of the heavier body is :-",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"4.2 m/s^2\"},{\"key\":\"B\",\"text\":\"3.6 m/s^2\"},{\"key\":\"C\",\"text\":\"2.4 m/s^2\"},{\"key\":\"D\",\"text\":\"1.6 m/s^2\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-19T15:05:30.661Z",
+        "updatedAt": "2026-09-19T15:05:30.661Z",
+        "folder": {
+          "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+          "name": "Newtons Laws of Motion",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "0dfaeaea-ca96-4aa4-b199-7dd35cb82cb7",
+        "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "3",
+        "questionText": "An object with a mass 10 kg moves at a constant velocity of 10 m/s. A constant force then acts for 4 seconds on the object giving it a speed of 2 m/s in opposite direction. The acceleration produced is :-",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"3 m/s^2\"},{\"key\":\"B\",\"text\":\"-3 m/s^2\"},{\"key\":\"C\",\"text\":\"0.3 m/s^2\"},{\"key\":\"D\",\"text\":\"-0.3 m/s^2\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-19T15:05:30.705Z",
+        "updatedAt": "2026-09-19T15:05:30.705Z",
+        "folder": {
+          "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+          "name": "Newtons Laws of Motion",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "c799bf9c-6431-4603-82f1-fc964964a9e0",
+        "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "4",
+        "questionText": "A ship of mass 3 $\\times$  107 kg initially at rest is pulled by a force of 5 $\\times$  104 N through a distance of 3m. Neglecting friction, the speed of the ship at this moment is :",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"3.0 m/s\"},{\"key\":\"B\",\"text\":\"1.5 m/s\"},{\"key\":\"C\",\"text\":\"0.1 m/s\"},{\"key\":\"D\",\"text\":\"2 m/s\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-19T15:05:30.753Z",
+        "updatedAt": "2026-09-19T15:05:30.753Z",
+        "folder": {
+          "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+          "name": "Newtons Laws of Motion",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "a87f57a5-f13b-482e-9df7-dc972687e962",
+        "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "5",
+        "questionText": "In Newton's second Law = r r F ma (for constant mass m), ra is the acceleration of the mass m with respect to",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"any observer\"},{\"key\":\"B\",\"text\":\"any inertial observer\"},{\"key\":\"C\",\"text\":\"an observer at rest only\"},{\"key\":\"D\",\"text\":\"an observer moving with uniform speed only\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-19T15:05:30.798Z",
+        "updatedAt": "2026-09-19T15:05:30.798Z",
+        "folder": {
+          "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+          "name": "Newtons Laws of Motion",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "9a4c09ef-5fa8-4738-b292-897d9ae4ecb1",
+        "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "6",
+        "questionText": "A balloon of mass M is descending with a constant acceleration g/3. When a mass m is released from the balloon it starts rising with the same acceleration g/3. The value of m is (Assuming that its volume does not change) :-",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"M 2\"},{\"key\":\"B\",\"text\":\"M 4\"},{\"key\":\"C\",\"text\":\"4M\"},{\"key\":\"D\",\"text\":\"2M\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-19T15:05:30.841Z",
+        "updatedAt": "2026-09-19T15:05:30.841Z",
+        "folder": {
+          "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+          "name": "Newtons Laws of Motion",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "8679b15a-e0a9-4253-bbaa-4937af83fe78",
+        "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "7",
+        "questionText": "Gravel is dropped onto a conveyer belt at a rate of 0.5 kg/s. The extra force required in newton to keep the belt moving at 2 m/s is :-",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"1 N\"},{\"key\":\"B\",\"text\":\"2 N\"},{\"key\":\"C\",\"text\":\"4 N\"},{\"key\":\"D\",\"text\":\"0.5 N\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-19T15:05:30.887Z",
+        "updatedAt": "2026-09-19T15:05:30.887Z",
+        "folder": {
+          "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+          "name": "Newtons Laws of Motion",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "a2c895db-7725-4b0a-ad56-4fc65d985958",
+        "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "8",
+        "questionText": "A block of metal weighing 2 kg is resting on a frictionless plane. It is struck by a jet releasing water at a rate of 1 kg/s with a speed of 5 m/s. The initial acceleration of the block will be :-",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"2.5 m/s^2\"},{\"key\":\"B\",\"text\":\"5 m/s^2\"},{\"key\":\"C\",\"text\":\"10 m/s^2\"},{\"key\":\"D\",\"text\":\"15 m/s^2\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-19T15:05:30.933Z",
+        "updatedAt": "2026-09-19T15:05:30.933Z",
+        "folder": {
+          "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+          "name": "Newtons Laws of Motion",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      }
+    ],
+    "settings": {
+      "className": "Class 12",
+      "subjectName": "Physics",
+      "fontFamily": "serif",
+      "fontSize": "12pt",
+      "lineSpacing": "tight",
+      "pageColumns": 1,
+      "spacingPreset": "zero",
+      "pageMargin": "normal",
+      "marginTop": 15,
+      "marginBottom": 15,
+      "marginLeft": 18,
+      "marginRight": 18,
+      "borderStyle": "none",
+      "optionLayout": "inline",
+      "imageAlignment": "inline",
+      "imageBorderStyle": "none",
+      "imageCustomHeight": 15,
+      "autoMatchText": true,
+      "showWatermark": false,
+      "watermarkText": "CONFIDENTIAL",
+      "showCandidateBox": false,
+      "rollNoStyle": "boxes",
+      "schoolLogoUrl": null,
+      "schoolLogoWidth": 75,
+      "schoolLogoHeight": 75,
+      "schoolLogoPosition": "left",
+      "customHeaderFields": [
+        {
+          "id": "f_class",
+          "label": "CLASS",
+          "value": "11"
+        },
+        {
+          "id": "f_sub",
+          "label": "SUBJECT",
+          "value": "Physics"
+        },
+        {
+          "id": "hf_1789830379366",
+          "label": "DPP",
+          "value": "1"
+        }
+      ],
+      "customCandidateFields": [],
+      "showHeaderMeta": true,
+      "showExamCode": false,
+      "showTime": false,
+      "showMaxMarks": false,
+      "showSchoolName": true,
+      "showExamTitle": false,
+      "showCandidateName": true,
+      "showRollNo": true,
+      "showInstructions": true,
+      "schoolNameSize": 18,
+      "examTitleSize": 13,
+      "candidateBoxFontSize": 11,
+      "baseFontSizePt": 12,
+      "showQuestionMarks": false,
+      "hideAllOptions": false,
+      "hideAllSections": true
+    }
+  },
+  "questions": [
+    {
+      "id": "0437a92f-4777-41b1-9fa1-21c695feced8",
+      "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "1",
+      "questionText": "Three blocks with masses m, 2m and 3m are connected by strings, as shown in the figure. After an upward force F is applied on block m, the masses move upward at constant speed v. What is the net force on the block of mass 2m? (g is the acceleration due to gravity) m 2m 3m v F",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"6 mg\"},{\"key\":\"B\",\"text\":\"zero\"},{\"key\":\"C\",\"text\":\"2 mg\"},{\"key\":\"D\",\"text\":\"3 mg\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-19T15:05:30.573Z",
+      "updatedAt": "2026-09-19T15:05:30.573Z",
+      "folder": {
+        "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "name": "Newtons Laws of Motion",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "options": [
+        {
+          "key": "A",
+          "text": "6 mg"
+        },
+        {
+          "key": "B",
+          "text": "zero"
+        },
+        {
+          "key": "C",
+          "text": "2 mg"
+        },
+        {
+          "key": "D",
+          "text": "3 mg"
+        }
+      ],
+      "diagrams": []
+    },
+    {
+      "id": "55532dd3-67f9-4e76-b8c6-c6f4d2dfd000",
+      "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "2",
+      "questionText": "Two bodies of masses 4 kg and 5 kg are acted upon by the same force. If the acceleration of lighter body is 2 m/s^2, then the acceleration of the heavier body is :-",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"4.2 m/s^2\"},{\"key\":\"B\",\"text\":\"3.6 m/s^2\"},{\"key\":\"C\",\"text\":\"2.4 m/s^2\"},{\"key\":\"D\",\"text\":\"1.6 m/s^2\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-19T15:05:30.661Z",
+      "updatedAt": "2026-09-19T15:05:30.661Z",
+      "folder": {
+        "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "name": "Newtons Laws of Motion",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "0dfaeaea-ca96-4aa4-b199-7dd35cb82cb7",
+      "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "3",
+      "questionText": "An object with a mass 10 kg moves at a constant velocity of 10 m/s. A constant force then acts for 4 seconds on the object giving it a speed of 2 m/s in opposite direction. The acceleration produced is :-",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"3 m/s^2\"},{\"key\":\"B\",\"text\":\"-3 m/s^2\"},{\"key\":\"C\",\"text\":\"0.3 m/s^2\"},{\"key\":\"D\",\"text\":\"-0.3 m/s^2\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-19T15:05:30.705Z",
+      "updatedAt": "2026-09-19T15:05:30.705Z",
+      "folder": {
+        "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "name": "Newtons Laws of Motion",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "c799bf9c-6431-4603-82f1-fc964964a9e0",
+      "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "4",
+      "questionText": "A ship of mass 3 $\\times$  107 kg initially at rest is pulled by a force of 5 $\\times$  104 N through a distance of 3m. Neglecting friction, the speed of the ship at this moment is :",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"3.0 m/s\"},{\"key\":\"B\",\"text\":\"1.5 m/s\"},{\"key\":\"C\",\"text\":\"0.1 m/s\"},{\"key\":\"D\",\"text\":\"2 m/s\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-19T15:05:30.753Z",
+      "updatedAt": "2026-09-19T15:05:30.753Z",
+      "folder": {
+        "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "name": "Newtons Laws of Motion",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "a87f57a5-f13b-482e-9df7-dc972687e962",
+      "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "5",
+      "questionText": "In Newton's second Law = r r F ma (for constant mass m), ra is the acceleration of the mass m with respect to",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"any observer\"},{\"key\":\"B\",\"text\":\"any inertial observer\"},{\"key\":\"C\",\"text\":\"an observer at rest only\"},{\"key\":\"D\",\"text\":\"an observer moving with uniform speed only\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-19T15:05:30.798Z",
+      "updatedAt": "2026-09-19T15:05:30.798Z",
+      "folder": {
+        "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "name": "Newtons Laws of Motion",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "9a4c09ef-5fa8-4738-b292-897d9ae4ecb1",
+      "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "6",
+      "questionText": "A balloon of mass M is descending with a constant acceleration g/3. When a mass m is released from the balloon it starts rising with the same acceleration g/3. The value of m is (Assuming that its volume does not change) :-",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"M 2\"},{\"key\":\"B\",\"text\":\"M 4\"},{\"key\":\"C\",\"text\":\"4M\"},{\"key\":\"D\",\"text\":\"2M\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-19T15:05:30.841Z",
+      "updatedAt": "2026-09-19T15:05:30.841Z",
+      "folder": {
+        "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "name": "Newtons Laws of Motion",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "8679b15a-e0a9-4253-bbaa-4937af83fe78",
+      "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "7",
+      "questionText": "Gravel is dropped onto a conveyer belt at a rate of 0.5 kg/s. The extra force required in newton to keep the belt moving at 2 m/s is :-",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"1 N\"},{\"key\":\"B\",\"text\":\"2 N\"},{\"key\":\"C\",\"text\":\"4 N\"},{\"key\":\"D\",\"text\":\"0.5 N\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-19T15:05:30.887Z",
+      "updatedAt": "2026-09-19T15:05:30.887Z",
+      "folder": {
+        "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "name": "Newtons Laws of Motion",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "a2c895db-7725-4b0a-ad56-4fc65d985958",
+      "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "8",
+      "questionText": "A block of metal weighing 2 kg is resting on a frictionless plane. It is struck by a jet releasing water at a rate of 1 kg/s with a speed of 5 m/s. The initial acceleration of the block will be :-",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"2.5 m/s^2\"},{\"key\":\"B\",\"text\":\"5 m/s^2\"},{\"key\":\"C\",\"text\":\"10 m/s^2\"},{\"key\":\"D\",\"text\":\"15 m/s^2\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-19T15:05:30.933Z",
+      "updatedAt": "2026-09-19T15:05:30.933Z",
+      "folder": {
+        "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "name": "Newtons Laws of Motion",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    }
+  ],
+  "updatedAt": "2026-09-19T15:08:41.895Z"
+}

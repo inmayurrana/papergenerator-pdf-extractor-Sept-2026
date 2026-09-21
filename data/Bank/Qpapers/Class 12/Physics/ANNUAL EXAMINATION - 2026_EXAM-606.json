@@ -1,0 +1,180 @@
+{
+  "id": "bfa41afd-c6b4-4d89-8bd5-e3ec73d93140",
+  "title": "ANNUAL EXAMINATION - 2026",
+  "examCode": "EXAM-606",
+  "schoolName": "DELHI PUBLIC SCHOOL",
+  "className": "Class 12",
+  "subjectName": "Physics",
+  "maxMarks": 70,
+  "durationMinutes": 180,
+  "examDate": "2026-09-20",
+  "examTime": "09:00 AM - 12:00 PM",
+  "instructions": "1. All questions are compulsory.\n2. Section A contains 1-mark MCQs.\n3. Section B contains short answer questions.\n4. Use of calculators is not permitted.",
+  "status": "DRAFT",
+  "canvasLayout": {
+    "questions": [
+      {
+        "id": "8b75389a-ac82-4e2b-9d1e-560344c305c0",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "11",
+        "questionText": "Three blocks A, B and C of masses 4 kg, 2 kg and\n1 kg respectively, are in contact on a frictionless\nsurface, as shown. If a force of 14 N is applied on\nthe 4 kg block, then the contact force between A\nand B is :",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"6 N\"},{\"key\":\"B\",\"text\":\"8 N\"},{\"key\":\"C\",\"text\":\"18 N\"},{\"key\":\"D\",\"text\":\"2 N\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[{\"diagram_id\":\"diag_aa25b43b\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"bbox\":[971,438,327,90],\"width\":281,\"height\":54,\"labels\":[],\"alignment\":\"right\",\"offsetX\":337,\"offsetY\":-22}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T00:37:57.264Z",
+        "updatedAt": "2026-09-20T00:37:57.264Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "diagrams": [
+          {
+            "diagram_id": "diag_aa25b43b",
+            "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
+            "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
+            "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
+            "bbox": [
+              971,
+              438,
+              327,
+              90
+            ],
+            "width": 281,
+            "height": 54,
+            "labels": [],
+            "alignment": "right",
+            "offsetX": 337,
+            "offsetY": -22
+          }
+        ]
+      }
+    ],
+    "settings": {
+      "className": "Class 12",
+      "subjectName": "Physics",
+      "fontFamily": "serif",
+      "fontSize": "10pt",
+      "lineSpacing": "tight",
+      "pageColumns": 1,
+      "spacingPreset": "zero",
+      "pageMargin": "narrow",
+      "marginTop": 8,
+      "marginBottom": 8,
+      "marginLeft": 10,
+      "marginRight": 10,
+      "borderStyle": "divider",
+      "optionLayout": "inline",
+      "imageAlignment": "inline",
+      "imageBorderStyle": "none",
+      "imageCustomHeight": 15,
+      "autoMatchText": true,
+      "showWatermark": false,
+      "watermarkText": "CONFIDENTIAL",
+      "showCandidateBox": true,
+      "rollNoStyle": "boxes",
+      "schoolLogoUrl": null,
+      "schoolLogoWidth": 75,
+      "schoolLogoHeight": 75,
+      "schoolLogoPosition": "left",
+      "customHeaderFields": [
+        {
+          "id": "f_class",
+          "label": "CLASS",
+          "value": "Class 12"
+        },
+        {
+          "id": "f_sub",
+          "label": "SUBJECT",
+          "value": "Physics"
+        }
+      ],
+      "customCandidateFields": [],
+      "showHeaderMeta": true,
+      "showExamCode": true,
+      "showTime": true,
+      "showMaxMarks": true,
+      "showSchoolName": true,
+      "showExamTitle": true,
+      "showCandidateName": true,
+      "showRollNo": true,
+      "showInstructions": true,
+      "schoolNameSize": 18,
+      "examTitleSize": 13,
+      "candidateBoxFontSize": 11,
+      "baseFontSizePt": 10,
+      "showQuestionMarks": true,
+      "hideAllOptions": false,
+      "hideAllSections": false
+    }
+  },
+  "questions": [
+    {
+      "id": "8b75389a-ac82-4e2b-9d1e-560344c305c0",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "11",
+      "questionText": "Three blocks A, B and C of masses 4 kg, 2 kg and\n1 kg respectively, are in contact on a frictionless\nsurface, as shown. If a force of 14 N is applied on\nthe 4 kg block, then the contact force between A\nand B is :",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"6 N\"},{\"key\":\"B\",\"text\":\"8 N\"},{\"key\":\"C\",\"text\":\"18 N\"},{\"key\":\"D\",\"text\":\"2 N\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[{\"diagram_id\":\"diag_aa25b43b\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"bbox\":[971,438,327,90],\"width\":281,\"height\":54,\"labels\":[],\"alignment\":\"right\",\"offsetX\":337,\"offsetY\":-22}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T00:37:57.264Z",
+      "updatedAt": "2026-09-20T00:37:57.264Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "diagrams": [
+        {
+          "diagram_id": "diag_aa25b43b",
+          "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
+          "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
+          "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
+          "bbox": [
+            971,
+            438,
+            327,
+            90
+          ],
+          "width": 281,
+          "height": 54,
+          "labels": [],
+          "alignment": "right",
+          "offsetX": 337,
+          "offsetY": -22
+        }
+      ]
+    }
+  ],
+  "updatedAt": "2026-09-20T00:55:12.533Z"
+}

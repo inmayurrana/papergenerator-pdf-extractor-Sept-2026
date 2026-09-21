@@ -1,0 +1,25 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}\\python_env\\python.exe",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}",
+    "${workspaceFolder}\\ai_service",
+    "${workspaceFolder}\\python_env\\Lib\\site-packages"
+  ],
+  "python.autoComplete.extraPaths": [
+    "${workspaceFolder}",
+    "${workspaceFolder}\\ai_service",
+    "${workspaceFolder}\\python_env\\Lib\\site-packages"
+  ],
+  "pyright.extraPaths": [
+    "${workspaceFolder}",
+    "${workspaceFolder}\\ai_service",
+    "${workspaceFolder}\\python_env\\Lib\\site-packages"
+  ],
+  "typescript.tsdk": "client\\node_modules\\typescript\\lib",
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingImports": "none",
+    "reportMissingModuleSource": "none"
+  },
+  "css.customData": [],
+  "css.lint.unknownAtRules": "ignore"
+}

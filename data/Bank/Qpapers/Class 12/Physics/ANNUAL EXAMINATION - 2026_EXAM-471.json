@@ -1,0 +1,1702 @@
+{
+  "id": "6c8599d0-d420-48f3-9d4c-5dceb523ba24",
+  "title": "ANNUAL EXAMINATION - 2026",
+  "examCode": "EXAM-471",
+  "schoolName": "cambridge international school mandi",
+  "className": "Class 12",
+  "subjectName": "Physics",
+  "maxMarks": 70,
+  "durationMinutes": 180,
+  "examDate": "2026-09-21",
+  "examTime": "09:00 AM - 12:00 PM",
+  "instructions": "1. All questions are compulsory.\n2. Section A contains 1-mark MCQs.\n3. Section B contains short answer questions.\n4. Use of calculators is not permitted.",
+  "status": "DRAFT",
+  "canvasLayout": {
+    "questions": [
+      {
+        "id": "8b75389a-ac82-4e2b-9d1e-560344c305c0",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "11",
+        "questionText": "Three blocks A, B and C of masses 4 kg, 2 kg and\n1 kg respectively, are in contact on a frictionless\nsurface, as shown. If a force of 14 N is applied on\nthe 4 kg block, then the contact force between A\nand B is :",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"6 N\"},{\"key\":\"B\",\"text\":\"8 N\"},{\"key\":\"C\",\"text\":\"18 N\"},{\"key\":\"D\",\"text\":\"2 N\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[{\"diagram_id\":\"diag_aa25b43b\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"bbox\":[971,438,327,90],\"width\":258,\"height\":36,\"labels\":[]}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T00:37:57.264Z",
+        "updatedAt": "2026-09-20T00:37:57.264Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "diagrams": [
+          {
+            "diagram_id": "diag_aa25b43b",
+            "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
+            "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
+            "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
+            "bbox": [
+              971,
+              438,
+              327,
+              90
+            ],
+            "width": 258,
+            "height": 36,
+            "labels": []
+          }
+        ]
+      },
+      {
+        "id": "74dcdff5-a6a9-4bb9-abd7-fd9c2fe7308f",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "1",
+        "questionText": "\nA 0.5 kg ball moving with a speed of 12 m/s strikes\na hard wall at an angle of $30^\\circ$ with the wall. It is\nreflected with the same speed and at the same angle.\nIf the ball is in contact with the wall for 0.25 seconds,\nthe average force acting on the wall is :-\n",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"48 N\"},{\"key\":\"B\",\"text\":\"24 N\"},{\"key\":\"C\",\"text\":\"12 N\"},{\"key\":\"D\",\"text\":\"96 N\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"AIPMT 2006\\n1 .\\nA 0.5 kg ball moving with a speed of 12 m/s strikes\\na hard wall at an angle of $30^\\\\circ$ with the wall. It is\\nreflected with the same speed and at the same angle.\\nIf the ball is in contact with the wall for 0.25 seconds,\\nthe average force acting on the wall is :-\"},{\"type\":\"MATH\",\"raw\":\"NL0122\\nAIPMT 2009^2.\\nA body, under the action of a force \\n=\\n-\\n+\\nr\\nˆ\\nˆ\\nˆ\\nF\\n6i\\n8j\\n10k  ,\"},{\"type\":\"MATH\",\"raw\":\"acquires an acceleration of 1m/s^2 . The mass of this\\nbody must be :-\"},{\"type\":\"MATH\",\"raw\":\"AIPMT 2010^3.\\nA block of mass m is in contact with the cart C as\\nshown in the figure. The coefficient of static friction\\nbetween the block and the cart is µ. The acceleration\\na  of the cart that will prevent the block from falling\"},{\"type\":\"MATH\",\"raw\":\"AIPMT 2011^4.\\nA person of mass 60 kg is inside a lift of mass\\n940 kg and presses the button on control panel.\\nThen lift starts moving upwards with an acceleration\\n1.0m/s^2 . If $g = 10$ m/s^2  , the tension in the\\nsupporting cable is :\\n(1) 8600 N\\n(2) 9680 N\\n(3) 11000 N\\n(4)1200 N\"}]",
+        "diagramsJson": "[{\"relative_url\":\"/data/snips/snip_bc06c1b9.png\",\"label\":\"Question Screenshot / Diagram\"}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T01:25:41.829Z",
+        "updatedAt": "2026-09-20T01:25:41.829Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "9929b5b8-c2a0-4d7a-9fe1-2d4ca4f36aa3",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "118",
+        "questionText": "The coefficient of static friction,  m s , between block\nA of mass 2 kg and the table as shown in the figure\nis 0.2. What would be the maximum mass value of\nblock B so that the two blocks do not move ? The\nstring and the pulley are assumed to be smooth\nand massless. ($g = 10$ m/s^2 )",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"2\",\"text\":\"4.0 kg\"},{\"key\":\"3\",\"text\":\"0.2 kg\"},{\"key\":\"4\",\"text\":\"0.4 kg\"},{\"key\":\"4\",\"text\":\"2.0 kg\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[{\"relative_url\":\"/data/snips/snip_944ffabb.png\",\"label\":\"Question Screenshot / Diagram\",\"width\":148,\"height\":39}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T01:49:52.269Z",
+        "updatedAt": "2026-09-20T01:49:52.269Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "diagrams": [
+          {
+            "relative_url": "/data/snips/snip_944ffabb.png",
+            "label": "Question Screenshot / Diagram",
+            "width": 148,
+            "height": 39
+          }
+        ]
+      },
+      {
+        "id": "cde8ca15-0a39-4931-9f24-a9bfb28b6150",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "108",
+        "questionText": "A block of mass 0.1 kg. is pressed against a wall with a horizontal force of  5N as shown in the figure. If the coefficient of friction between the wall and the block\nis 0.5 then the frictional force acting on the block\nwill be ($g = 9.8$ m/s^2 ) :-",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"9.8 N\"},{\"key\":\"B\",\"text\":\"2.5 N\"},{\"key\":\"C\",\"text\":\"0.98 N\"},{\"key\":\"D\",\"text\":\"0.49 N\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[{\"diagram_id\":\"diag_226e3b34\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_226e3b34.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_226e3b34.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_226e3b34.png\",\"bbox\":[356,971,275,298],\"width\":275,\"height\":90,\"labels\":[]}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T02:37:13.502Z",
+        "updatedAt": "2026-09-20T02:37:13.502Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "diagrams": [
+          {
+            "diagram_id": "diag_226e3b34",
+            "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_226e3b34.png",
+            "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_226e3b34.png",
+            "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_226e3b34.png",
+            "bbox": [
+              356,
+              971,
+              275,
+              298
+            ],
+            "width": 275,
+            "height": 90,
+            "labels": []
+          }
+        ]
+      },
+      {
+        "id": "20d48112-eaef-4e66-93f2-ce2e36985e22",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "113",
+        "questionText": "Adjoining figure shows two blocks A and B pushed\nagainst the wall with a force F. The wall is smooth\nbut the surfaces in contact of A and B are rough.\nWhich of the following is true for the system of blocks\nto be at rest against the wall ?",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"F should be be more than the weight of A and B\"},{\"key\":\"B\",\"text\":\"F should be equal to the weight of A and B\"},{\"key\":\"C\",\"text\":\"F should be less than the weight of A and B\"},{\"key\":\"D\",\"text\":\"system cannot be in equilibrium\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$Z:\\\\NODE02\\\\B0B0-BA\\\\TARGET\\\\PHY\\\\ENG\\\\MODULE_01\\\\04-NLM\\\\04-NLM_EXERCISE.P65$\"}]",
+        "diagramsJson": "[{\"diagram_id\":\"diag_a5acafb1\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_a5acafb1.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_a5acafb1.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_a5acafb1.png\",\"bbox\":[1003,1365,215,166],\"width\":192,\"height\":72,\"labels\":[]}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T02:38:17.625Z",
+        "updatedAt": "2026-09-20T02:38:17.625Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "diagrams": [
+          {
+            "diagram_id": "diag_a5acafb1",
+            "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_a5acafb1.png",
+            "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_a5acafb1.png",
+            "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_a5acafb1.png",
+            "bbox": [
+              1003,
+              1365,
+              215,
+              166
+            ],
+            "width": 192,
+            "height": 72,
+            "labels": []
+          }
+        ]
+      },
+      {
+        "id": "9d93398e-d79f-411d-bf24-9653e75d5587",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "104",
+        "questionText": "Two blocks (A) 2 kg and (B) 5 kg rest one over the other on a smooth horizontal plane. The coefficient of static and dynamic friction between (A) and (B) is the same and equal to 0.60. The maximum horizontal force F that can be applied to (B) in order that both (A) and (B) do not have any relative motion is :\n2 kg 5 kg",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\" 42 N\"},{\"key\":\"B\",\"text\":\"42 kgf\"},{\"key\":\"3\",\"text\":\"5.4 kgf\"},{\"key\":\"4\",\"text\":\"1.2 N\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[{\"relative_url\":\"/data/snips/snip_55909b67.png\",\"label\":\"Question Screenshot / Diagram\",\"width\":156,\"height\":57}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T02:42:16.287Z",
+        "updatedAt": "2026-09-20T02:42:16.287Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "diagrams": [
+          {
+            "relative_url": "/data/snips/snip_55909b67.png",
+            "label": "Question Screenshot / Diagram",
+            "width": 156,
+            "height": 57
+          }
+        ]
+      },
+      {
+        "id": "0536f495-48aa-46cb-94d4-63a300554848",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "98",
+        "questionText": "The coefficient of static friction between two surfaces\ndepend on\nNL0098",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"the nature of surface\"},{\"key\":\"B\",\"text\":\"the shape of the surface in contact\"},{\"key\":\"C\",\"text\":\"the area of contact\"},{\"key\":\"D\",\"text\":\"all of the above\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T02:42:37.103Z",
+        "updatedAt": "2026-09-20T02:42:37.103Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "ed549e58-2c91-4324-a1de-93be66d80aa9",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "105",
+        "questionText": "A body is placed on an inclined place and has to be\npushed down in order to make it move. The angle\nmade by the normal reaction with the vertical will be :-",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"Equal to angle of repose\"},{\"key\":\"B\",\"text\":\"Equal to the angle of friction\"},{\"key\":\"C\",\"text\":\"Less than the angle of repose\"},{\"key\":\"D\",\"text\":\"More than the angle of friction\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T02:45:26.594Z",
+        "updatedAt": "2026-09-20T02:45:26.594Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "f7272c37-f0e4-4473-a61f-da3f86179499",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "100",
+        "questionText": "The frictional force of the air on a body of mass 0.25 kg, falling with an accleration of 9.2 m/s^2 , will be :",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"1\",\"text\":\"1.0 N\"},{\"key\":\"2\",\"text\":\"0.55 N\"},{\"key\":\"3\",\"text\":\"0.25 N\"},{\"key\":\"4\",\"text\":\" 0.15 N\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T02:46:52.848Z",
+        "updatedAt": "2026-09-20T02:46:52.848Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "0d004e02-1118-4003-9d43-498f22de729f",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "90",
+        "questionText": "Two masses of 10 kg 42 N 5 kg are suspended from\na fixed support as shown in figure. The system is\npulled down with a force of 150 N attached to the\nlower mass. The string attached to the support\nbreaks 42 N the system accelerates dowards. If the\ndownward force continues to act, what is the\nacceleration of the system ?",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"20 m/s^2\"},{\"key\":\"B\",\"text\":\"10 m/s^2\"},{\"key\":\"C\",\"text\":\"5 m/s^2\"},{\"key\":\"D\",\"text\":\"zero\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[{\"diagram_id\":\"diag_2334e45d\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_2334e45d.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_2334e45d.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_2334e45d.png\",\"bbox\":[343,1094,199,306],\"width\":176,\"height\":72,\"labels\":[]}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T02:48:11.222Z",
+        "updatedAt": "2026-09-20T02:48:11.222Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "diagrams": [
+          {
+            "diagram_id": "diag_2334e45d",
+            "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_2334e45d.png",
+            "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_2334e45d.png",
+            "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_2334e45d.png",
+            "bbox": [
+              343,
+              1094,
+              199,
+              306
+            ],
+            "width": 176,
+            "height": 72,
+            "labels": []
+          }
+        ]
+      },
+      {
+        "id": "ded624ca-5b20-498d-9a9d-58d3f9aa076d",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "89",
+        "questionText": "Two blocks of masses 6 kg 42 N 4 kg connected\nby a rope of  mass 2 kg are resting on a frictionless\nfloor as shown in the following figure. If a constant\nforce of 60 N is applied to 6 kg block, then the\ntension in the rope at points A, B and C are\nrespectively given by:",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"60 N, 60 N, 60 N\"},{\"key\":\"B\",\"text\":\"30 N, 25 N, 20 N\"},{\"key\":\"C\",\"text\":\"20 N, 25 N, 30 N\"},{\"key\":\"D\",\"text\":\"20 N, 20 N, 20 N\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[{\"diagram_id\":\"diag_407c9299\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_407c9299.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_407c9299.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_407c9299.png\",\"bbox\":[255,448,380,92],\"width\":311,\"height\":36,\"labels\":[]}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T02:49:22.848Z",
+        "updatedAt": "2026-09-20T02:49:22.848Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "diagrams": [
+          {
+            "diagram_id": "diag_407c9299",
+            "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_407c9299.png",
+            "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_407c9299.png",
+            "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_407c9299.png",
+            "bbox": [
+              255,
+              448,
+              380,
+              92
+            ],
+            "width": 311,
+            "height": 36,
+            "labels": []
+          }
+        ]
+      },
+      {
+        "id": "2b23e8cb-bc9e-48c2-9773-41e911aef6b4",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "92",
+        "questionText": "In the fig. mass $M = 10$ g. is placed on an inclined\nplane. In order to keep it at rest, the value of mass\nm will be:",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"5 g\"},{\"key\":\"B\",\"text\":\"$10\\\\sqrt{3}$ g\"},{\"key\":\"C\",\"text\":\"0.10 g\"},{\"key\":\"D\",\"text\":\"$\\\\sqrt{3}$ g\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$^\\\\circ$\"}]",
+        "diagramsJson": "[{\"diagram_id\":\"diag_f4ddbb6f\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_f4ddbb6f.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_f4ddbb6f.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_f4ddbb6f.png\",\"bbox\":[897,298,450,180],\"width\":404,\"height\":54,\"labels\":[]}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T08:28:20.011Z",
+        "updatedAt": "2026-09-20T08:28:20.011Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "diagrams": [
+          {
+            "diagram_id": "diag_f4ddbb6f",
+            "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_f4ddbb6f.png",
+            "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_f4ddbb6f.png",
+            "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_f4ddbb6f.png",
+            "bbox": [
+              897,
+              298,
+              450,
+              180
+            ],
+            "width": 404,
+            "height": 54,
+            "labels": []
+          }
+        ]
+      },
+      {
+        "id": "f9f09d1a-34dd-451a-9a91-febed52b3a37",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "83",
+        "questionText": "Two blocks each having a mass M are placed as\nshown in the figure. The acceleration of the\nsystem is :-",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"0\"},{\"key\":\"B\",\"text\":\"$\\\\frac{g\\\\sin\\\\theta}{2}$\"},{\"key\":\"C\",\"text\":\"$g\\\\sin\\\\theta$\"},{\"key\":\"D\",\"text\":\"$2g\\\\sin\\\\theta$\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$M $\\\\theta$\\nM$\"}]",
+        "diagramsJson": "[{\"diagram_id\":\"diag_affebe94\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_affebe94.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_affebe94.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_affebe94.png\",\"bbox\":[276,300,340,151],\"width\":294,\"height\":54,\"labels\":[]}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T14:01:13.955Z",
+        "updatedAt": "2026-09-20T14:01:13.955Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "diagrams": [
+          {
+            "diagram_id": "diag_affebe94",
+            "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_affebe94.png",
+            "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_affebe94.png",
+            "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_affebe94.png",
+            "bbox": [
+              276,
+              300,
+              340,
+              151
+            ],
+            "width": 294,
+            "height": 54,
+            "labels": []
+          }
+        ]
+      },
+      {
+        "id": "b0c6f653-c071-49f1-b904-7d3e05ef006f",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "84",
+        "questionText": "Two masses of 10 kg and 20 kg respectively are\nconnected by a massless spring as shown in the\nfigure. A force of 200 N acts on the 20 kg mass.\nAt the instant shown the 10 kg mass has an\nacceleration 4 m/s^2  rightwards. What is the\nacceleration of 20 kg mass ?",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"Zero\"},{\"key\":\"B\",\"text\":\"10 m/s^2\"},{\"key\":\"C\",\"text\":\"4 m/s^2\"},{\"key\":\"D\",\"text\":\"8 m/s^2\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[{\"diagram_id\":\"diag_6e9b451b\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_6e9b451b.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_6e9b451b.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_6e9b451b.png\",\"bbox\":[202,901,485,134],\"width\":439,\"height\":54,\"labels\":[]}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T14:01:36.243Z",
+        "updatedAt": "2026-09-20T14:01:36.243Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "diagrams": [
+          {
+            "diagram_id": "diag_6e9b451b",
+            "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_6e9b451b.png",
+            "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_6e9b451b.png",
+            "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_6e9b451b.png",
+            "bbox": [
+              202,
+              901,
+              485,
+              134
+            ],
+            "width": 439,
+            "height": 54,
+            "labels": []
+          }
+        ]
+      },
+      {
+        "id": "7171284c-b50e-41f7-9c80-110992f95c25",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "87",
+        "questionText": "Three masses of 1 kg, 6 kg and 3 kg are connected\nto each other with threads and are placed on a\ntable as shown in figure. What is the acceleration\nwith which the system is moving ?\n(Take $g = 10$ m/s^2 )",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"Zero\"},{\"key\":\"B\",\"text\":\"2 m/s^2\"},{\"key\":\"C\",\"text\":\"4 m/s^2\"},{\"key\":\"D\",\"text\":\"3 m/s^2\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[{\"diagram_id\":\"diag_781ebb72\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_781ebb72.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_781ebb72.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_781ebb72.png\",\"bbox\":[879,1054,441,234],\"width\":395,\"height\":54,\"labels\":[]}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T14:02:11.769Z",
+        "updatedAt": "2026-09-20T14:02:11.769Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "diagrams": [
+          {
+            "diagram_id": "diag_781ebb72",
+            "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_781ebb72.png",
+            "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_781ebb72.png",
+            "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_781ebb72.png",
+            "bbox": [
+              879,
+              1054,
+              441,
+              234
+            ],
+            "width": 395,
+            "height": 54,
+            "labels": []
+          }
+        ]
+      },
+      {
+        "id": "b06d6607-01e8-49cb-8517-c2e6c60105be",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "88",
+        "questionText": "The surface is frictionless, the ratio of T 1  and T 2  is :-",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"$\\\\sqrt{3}$ : 1\"},{\"key\":\"B\",\"text\":\"1 :$\\\\sqrt{3}$\"},{\"key\":\"C\",\"text\":\"1 : 5\"},{\"key\":\"D\",\"text\":\"5 : 1\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$3 kg\\n12 kg\\n15 kg\\n$30^\\\\circ$$\"}]",
+        "diagramsJson": "[{\"diagram_id\":\"diag_3955f81a\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_3955f81a.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_3955f81a.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_3955f81a.png\",\"bbox\":[865,1543,485,150],\"width\":439,\"height\":54,\"labels\":[]}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T14:02:43.183Z",
+        "updatedAt": "2026-09-20T14:02:43.183Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "diagrams": [
+          {
+            "diagram_id": "diag_3955f81a",
+            "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_3955f81a.png",
+            "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_3955f81a.png",
+            "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_3955f81a.png",
+            "bbox": [
+              865,
+              1543,
+              485,
+              150
+            ],
+            "width": 439,
+            "height": 54,
+            "labels": []
+          }
+        ]
+      },
+      {
+        "id": "403b88a9-aa52-4720-b203-7736221f7a1e",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "82",
+        "questionText": "Two blocks each of mass M are resting on a\nfrictionless inclined planes as shown in fig. then",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"The block A moves down the plane\"},{\"key\":\"B\",\"text\":\"The block B moves down the plane\"},{\"key\":\"C\",\"text\":\"Both the blocks remain at rest\"},{\"key\":\"D\",\"text\":\"Both the blocks move down the plane.\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$Z:\\\\NODE02\\\\B0B0-BA\\\\TARGET\\\\PHY\\\\ENG\\\\MODULE_01\\\\04-NLM\\\\04-NLM_EXERCISE.P65$\"}]",
+        "diagramsJson": "[{\"diagram_id\":\"diag_b06fe47e\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_b06fe47e.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_b06fe47e.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_b06fe47e.png\",\"bbox\":[924,1516,391,216],\"width\":345,\"height\":54,\"labels\":[]}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T14:03:58.000Z",
+        "updatedAt": "2026-09-20T14:03:58.000Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "diagrams": [
+          {
+            "diagram_id": "diag_b06fe47e",
+            "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_b06fe47e.png",
+            "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_b06fe47e.png",
+            "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_b06fe47e.png",
+            "bbox": [
+              924,
+              1516,
+              391,
+              216
+            ],
+            "width": 345,
+            "height": 54,
+            "labels": []
+          }
+        ]
+      },
+      {
+        "id": "7b3b276e-8f08-45c4-8072-d3ac8e4c4a59",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "77",
+        "questionText": "Two blocks of masses 2 kg and 1 kg are in contact\nwith each other on a frictionless table. When a\nhorizontal force of 3.0 N is applied to the block of\nmass 2 kg the value of the force of contact between\nthe two blocks is -",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"4 N\"},{\"key\":\"B\",\"text\":\"3 N\"},{\"key\":\"C\",\"text\":\"5 N\"},{\"key\":\"D\",\"text\":\"1 N\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T14:04:38.495Z",
+        "updatedAt": "2026-09-20T14:04:38.495Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "467179da-2d72-47f7-9100-1075aaa600f4",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "78",
+        "questionText": "Three blocks are connected as shown in fig. on a\nhorizontal frictionless table if m 1  = 1 kg,\nm^2  = 8 kg, m^3  = 27 kg and T 3  = 36N, T 2  will be :-",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"18 N\"},{\"key\":\"B\",\"text\":\"9 N\"},{\"key\":\"C\",\"text\":\"3.375 N\"},{\"key\":\"D\",\"text\":\"1.75 N\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[{\"diagram_id\":\"diag_3293dacf\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_3293dacf.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_3293dacf.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_3293dacf.png\",\"bbox\":[173,1087,545,117],\"width\":499,\"height\":54,\"labels\":[]}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T14:05:00.194Z",
+        "updatedAt": "2026-09-20T14:05:00.194Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "diagrams": [
+          {
+            "diagram_id": "diag_3293dacf",
+            "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_3293dacf.png",
+            "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_3293dacf.png",
+            "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_3293dacf.png",
+            "bbox": [
+              173,
+              1087,
+              545,
+              117
+            ],
+            "width": 499,
+            "height": 54,
+            "labels": []
+          }
+        ]
+      }
+    ],
+    "settings": {
+      "className": "Class 12",
+      "subjectName": "Physics",
+      "fontFamily": "serif",
+      "fontSize": "10pt",
+      "lineSpacing": "tight",
+      "pageColumns": 1,
+      "spacingPreset": "zero",
+      "pageMargin": "normal",
+      "marginTop": 15,
+      "marginBottom": 15,
+      "marginLeft": 18,
+      "marginRight": 18,
+      "borderStyle": "divider",
+      "optionLayout": "inline",
+      "wrapOptionsBesideDiagram": true,
+      "imageAlignment": "inline",
+      "imageBorderStyle": "none",
+      "imageCustomHeight": 15,
+      "autoMatchText": true,
+      "showWatermark": false,
+      "watermarkText": "CONFIDENTIAL",
+      "showCandidateBox": false,
+      "rollNoStyle": "boxes",
+      "schoolLogoUrl": null,
+      "schoolLogoWidth": 75,
+      "schoolLogoHeight": 75,
+      "schoolLogoPosition": "left",
+      "customHeaderFields": [
+        {
+          "id": "f_class",
+          "label": "CLASS",
+          "value": "11"
+        },
+        {
+          "id": "f_sub",
+          "label": "SUBJECT",
+          "value": "Physics"
+        },
+        {
+          "id": "hf_1789970542269",
+          "label": "DPP",
+          "value": "1"
+        }
+      ],
+      "customCandidateFields": [],
+      "showHeaderMeta": true,
+      "showExamCode": false,
+      "showTime": false,
+      "showMaxMarks": false,
+      "showSchoolName": true,
+      "showExamTitle": false,
+      "showCandidateName": true,
+      "showRollNo": true,
+      "showInstructions": true,
+      "schoolNameSize": 18,
+      "examTitleSize": 13,
+      "candidateBoxFontSize": 11,
+      "baseFontSizePt": 10,
+      "showQuestionMarks": false,
+      "hideAllOptions": false,
+      "hideAllSections": false
+    }
+  },
+  "questions": [
+    {
+      "id": "8b75389a-ac82-4e2b-9d1e-560344c305c0",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "11",
+      "questionText": "Three blocks A, B and C of masses 4 kg, 2 kg and\n1 kg respectively, are in contact on a frictionless\nsurface, as shown. If a force of 14 N is applied on\nthe 4 kg block, then the contact force between A\nand B is :",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"6 N\"},{\"key\":\"B\",\"text\":\"8 N\"},{\"key\":\"C\",\"text\":\"18 N\"},{\"key\":\"D\",\"text\":\"2 N\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[{\"diagram_id\":\"diag_aa25b43b\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"bbox\":[971,438,327,90],\"width\":258,\"height\":36,\"labels\":[]}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T00:37:57.264Z",
+      "updatedAt": "2026-09-20T00:37:57.264Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "diagrams": [
+        {
+          "diagram_id": "diag_aa25b43b",
+          "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
+          "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
+          "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
+          "bbox": [
+            971,
+            438,
+            327,
+            90
+          ],
+          "width": 258,
+          "height": 36,
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "74dcdff5-a6a9-4bb9-abd7-fd9c2fe7308f",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "1",
+      "questionText": "\nA 0.5 kg ball moving with a speed of 12 m/s strikes\na hard wall at an angle of $30^\\circ$ with the wall. It is\nreflected with the same speed and at the same angle.\nIf the ball is in contact with the wall for 0.25 seconds,\nthe average force acting on the wall is :-\n",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"48 N\"},{\"key\":\"B\",\"text\":\"24 N\"},{\"key\":\"C\",\"text\":\"12 N\"},{\"key\":\"D\",\"text\":\"96 N\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"AIPMT 2006\\n1 .\\nA 0.5 kg ball moving with a speed of 12 m/s strikes\\na hard wall at an angle of $30^\\\\circ$ with the wall. It is\\nreflected with the same speed and at the same angle.\\nIf the ball is in contact with the wall for 0.25 seconds,\\nthe average force acting on the wall is :-\"},{\"type\":\"MATH\",\"raw\":\"NL0122\\nAIPMT 2009^2.\\nA body, under the action of a force \\n=\\n-\\n+\\nr\\nˆ\\nˆ\\nˆ\\nF\\n6i\\n8j\\n10k  ,\"},{\"type\":\"MATH\",\"raw\":\"acquires an acceleration of 1m/s^2 . The mass of this\\nbody must be :-\"},{\"type\":\"MATH\",\"raw\":\"AIPMT 2010^3.\\nA block of mass m is in contact with the cart C as\\nshown in the figure. The coefficient of static friction\\nbetween the block and the cart is µ. The acceleration\\na  of the cart that will prevent the block from falling\"},{\"type\":\"MATH\",\"raw\":\"AIPMT 2011^4.\\nA person of mass 60 kg is inside a lift of mass\\n940 kg and presses the button on control panel.\\nThen lift starts moving upwards with an acceleration\\n1.0m/s^2 . If $g = 10$ m/s^2  , the tension in the\\nsupporting cable is :\\n(1) 8600 N\\n(2) 9680 N\\n(3) 11000 N\\n(4)1200 N\"}]",
+      "diagramsJson": "[{\"relative_url\":\"/data/snips/snip_bc06c1b9.png\",\"label\":\"Question Screenshot / Diagram\"}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T01:25:41.829Z",
+      "updatedAt": "2026-09-20T01:25:41.829Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "9929b5b8-c2a0-4d7a-9fe1-2d4ca4f36aa3",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "118",
+      "questionText": "The coefficient of static friction,  m s , between block\nA of mass 2 kg and the table as shown in the figure\nis 0.2. What would be the maximum mass value of\nblock B so that the two blocks do not move ? The\nstring and the pulley are assumed to be smooth\nand massless. ($g = 10$ m/s^2 )",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"2\",\"text\":\"4.0 kg\"},{\"key\":\"3\",\"text\":\"0.2 kg\"},{\"key\":\"4\",\"text\":\"0.4 kg\"},{\"key\":\"4\",\"text\":\"2.0 kg\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[{\"relative_url\":\"/data/snips/snip_944ffabb.png\",\"label\":\"Question Screenshot / Diagram\",\"width\":148,\"height\":39}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T01:49:52.269Z",
+      "updatedAt": "2026-09-20T01:49:52.269Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "diagrams": [
+        {
+          "relative_url": "/data/snips/snip_944ffabb.png",
+          "label": "Question Screenshot / Diagram",
+          "width": 148,
+          "height": 39
+        }
+      ]
+    },
+    {
+      "id": "cde8ca15-0a39-4931-9f24-a9bfb28b6150",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "108",
+      "questionText": "A block of mass 0.1 kg. is pressed against a wall with a horizontal force of  5N as shown in the figure. If the coefficient of friction between the wall and the block\nis 0.5 then the frictional force acting on the block\nwill be ($g = 9.8$ m/s^2 ) :-",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"9.8 N\"},{\"key\":\"B\",\"text\":\"2.5 N\"},{\"key\":\"C\",\"text\":\"0.98 N\"},{\"key\":\"D\",\"text\":\"0.49 N\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[{\"diagram_id\":\"diag_226e3b34\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_226e3b34.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_226e3b34.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_226e3b34.png\",\"bbox\":[356,971,275,298],\"width\":275,\"height\":90,\"labels\":[]}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T02:37:13.502Z",
+      "updatedAt": "2026-09-20T02:37:13.502Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "diagrams": [
+        {
+          "diagram_id": "diag_226e3b34",
+          "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_226e3b34.png",
+          "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_226e3b34.png",
+          "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_226e3b34.png",
+          "bbox": [
+            356,
+            971,
+            275,
+            298
+          ],
+          "width": 275,
+          "height": 90,
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "20d48112-eaef-4e66-93f2-ce2e36985e22",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "113",
+      "questionText": "Adjoining figure shows two blocks A and B pushed\nagainst the wall with a force F. The wall is smooth\nbut the surfaces in contact of A and B are rough.\nWhich of the following is true for the system of blocks\nto be at rest against the wall ?",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"F should be be more than the weight of A and B\"},{\"key\":\"B\",\"text\":\"F should be equal to the weight of A and B\"},{\"key\":\"C\",\"text\":\"F should be less than the weight of A and B\"},{\"key\":\"D\",\"text\":\"system cannot be in equilibrium\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$Z:\\\\NODE02\\\\B0B0-BA\\\\TARGET\\\\PHY\\\\ENG\\\\MODULE_01\\\\04-NLM\\\\04-NLM_EXERCISE.P65$\"}]",
+      "diagramsJson": "[{\"diagram_id\":\"diag_a5acafb1\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_a5acafb1.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_a5acafb1.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_a5acafb1.png\",\"bbox\":[1003,1365,215,166],\"width\":192,\"height\":72,\"labels\":[]}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T02:38:17.625Z",
+      "updatedAt": "2026-09-20T02:38:17.625Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "diagrams": [
+        {
+          "diagram_id": "diag_a5acafb1",
+          "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_a5acafb1.png",
+          "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_a5acafb1.png",
+          "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p16_diag_a5acafb1.png",
+          "bbox": [
+            1003,
+            1365,
+            215,
+            166
+          ],
+          "width": 192,
+          "height": 72,
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "9d93398e-d79f-411d-bf24-9653e75d5587",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "104",
+      "questionText": "Two blocks (A) 2 kg and (B) 5 kg rest one over the other on a smooth horizontal plane. The coefficient of static and dynamic friction between (A) and (B) is the same and equal to 0.60. The maximum horizontal force F that can be applied to (B) in order that both (A) and (B) do not have any relative motion is :\n2 kg 5 kg",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\" 42 N\"},{\"key\":\"B\",\"text\":\"42 kgf\"},{\"key\":\"3\",\"text\":\"5.4 kgf\"},{\"key\":\"4\",\"text\":\"1.2 N\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[{\"relative_url\":\"/data/snips/snip_55909b67.png\",\"label\":\"Question Screenshot / Diagram\",\"width\":156,\"height\":57}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T02:42:16.287Z",
+      "updatedAt": "2026-09-20T02:42:16.287Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "diagrams": [
+        {
+          "relative_url": "/data/snips/snip_55909b67.png",
+          "label": "Question Screenshot / Diagram",
+          "width": 156,
+          "height": 57
+        }
+      ]
+    },
+    {
+      "id": "0536f495-48aa-46cb-94d4-63a300554848",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "98",
+      "questionText": "The coefficient of static friction between two surfaces\ndepend on\nNL0098",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"the nature of surface\"},{\"key\":\"B\",\"text\":\"the shape of the surface in contact\"},{\"key\":\"C\",\"text\":\"the area of contact\"},{\"key\":\"D\",\"text\":\"all of the above\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T02:42:37.103Z",
+      "updatedAt": "2026-09-20T02:42:37.103Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "ed549e58-2c91-4324-a1de-93be66d80aa9",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "105",
+      "questionText": "A body is placed on an inclined place and has to be\npushed down in order to make it move. The angle\nmade by the normal reaction with the vertical will be :-",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"Equal to angle of repose\"},{\"key\":\"B\",\"text\":\"Equal to the angle of friction\"},{\"key\":\"C\",\"text\":\"Less than the angle of repose\"},{\"key\":\"D\",\"text\":\"More than the angle of friction\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T02:45:26.594Z",
+      "updatedAt": "2026-09-20T02:45:26.594Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "f7272c37-f0e4-4473-a61f-da3f86179499",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "100",
+      "questionText": "The frictional force of the air on a body of mass 0.25 kg, falling with an accleration of 9.2 m/s^2 , will be :",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"1\",\"text\":\"1.0 N\"},{\"key\":\"2\",\"text\":\"0.55 N\"},{\"key\":\"3\",\"text\":\"0.25 N\"},{\"key\":\"4\",\"text\":\" 0.15 N\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T02:46:52.848Z",
+      "updatedAt": "2026-09-20T02:46:52.848Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "0d004e02-1118-4003-9d43-498f22de729f",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "90",
+      "questionText": "Two masses of 10 kg 42 N 5 kg are suspended from\na fixed support as shown in figure. The system is\npulled down with a force of 150 N attached to the\nlower mass. The string attached to the support\nbreaks 42 N the system accelerates dowards. If the\ndownward force continues to act, what is the\nacceleration of the system ?",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"20 m/s^2\"},{\"key\":\"B\",\"text\":\"10 m/s^2\"},{\"key\":\"C\",\"text\":\"5 m/s^2\"},{\"key\":\"D\",\"text\":\"zero\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[{\"diagram_id\":\"diag_2334e45d\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_2334e45d.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_2334e45d.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_2334e45d.png\",\"bbox\":[343,1094,199,306],\"width\":176,\"height\":72,\"labels\":[]}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T02:48:11.222Z",
+      "updatedAt": "2026-09-20T02:48:11.222Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "diagrams": [
+        {
+          "diagram_id": "diag_2334e45d",
+          "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_2334e45d.png",
+          "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_2334e45d.png",
+          "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_2334e45d.png",
+          "bbox": [
+            343,
+            1094,
+            199,
+            306
+          ],
+          "width": 176,
+          "height": 72,
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "ded624ca-5b20-498d-9a9d-58d3f9aa076d",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "89",
+      "questionText": "Two blocks of masses 6 kg 42 N 4 kg connected\nby a rope of  mass 2 kg are resting on a frictionless\nfloor as shown in the following figure. If a constant\nforce of 60 N is applied to 6 kg block, then the\ntension in the rope at points A, B and C are\nrespectively given by:",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"60 N, 60 N, 60 N\"},{\"key\":\"B\",\"text\":\"30 N, 25 N, 20 N\"},{\"key\":\"C\",\"text\":\"20 N, 25 N, 30 N\"},{\"key\":\"D\",\"text\":\"20 N, 20 N, 20 N\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[{\"diagram_id\":\"diag_407c9299\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_407c9299.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_407c9299.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_407c9299.png\",\"bbox\":[255,448,380,92],\"width\":311,\"height\":36,\"labels\":[]}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T02:49:22.848Z",
+      "updatedAt": "2026-09-20T02:49:22.848Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "diagrams": [
+        {
+          "diagram_id": "diag_407c9299",
+          "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_407c9299.png",
+          "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_407c9299.png",
+          "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_407c9299.png",
+          "bbox": [
+            255,
+            448,
+            380,
+            92
+          ],
+          "width": 311,
+          "height": 36,
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "2b23e8cb-bc9e-48c2-9773-41e911aef6b4",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "92",
+      "questionText": "In the fig. mass $M = 10$ g. is placed on an inclined\nplane. In order to keep it at rest, the value of mass\nm will be:",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"5 g\"},{\"key\":\"B\",\"text\":\"$10\\\\sqrt{3}$ g\"},{\"key\":\"C\",\"text\":\"0.10 g\"},{\"key\":\"D\",\"text\":\"$\\\\sqrt{3}$ g\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$^\\\\circ$\"}]",
+      "diagramsJson": "[{\"diagram_id\":\"diag_f4ddbb6f\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_f4ddbb6f.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_f4ddbb6f.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_f4ddbb6f.png\",\"bbox\":[897,298,450,180],\"width\":404,\"height\":54,\"labels\":[]}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T08:28:20.011Z",
+      "updatedAt": "2026-09-20T08:28:20.011Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "diagrams": [
+        {
+          "diagram_id": "diag_f4ddbb6f",
+          "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_f4ddbb6f.png",
+          "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_f4ddbb6f.png",
+          "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_f4ddbb6f.png",
+          "bbox": [
+            897,
+            298,
+            450,
+            180
+          ],
+          "width": 404,
+          "height": 54,
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "f9f09d1a-34dd-451a-9a91-febed52b3a37",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "83",
+      "questionText": "Two blocks each having a mass M are placed as\nshown in the figure. The acceleration of the\nsystem is :-",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"0\"},{\"key\":\"B\",\"text\":\"$\\\\frac{g\\\\sin\\\\theta}{2}$\"},{\"key\":\"C\",\"text\":\"$g\\\\sin\\\\theta$\"},{\"key\":\"D\",\"text\":\"$2g\\\\sin\\\\theta$\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$M $\\\\theta$\\nM$\"}]",
+      "diagramsJson": "[{\"diagram_id\":\"diag_affebe94\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_affebe94.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_affebe94.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_affebe94.png\",\"bbox\":[276,300,340,151],\"width\":294,\"height\":54,\"labels\":[]}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T14:01:13.955Z",
+      "updatedAt": "2026-09-20T14:01:13.955Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "diagrams": [
+        {
+          "diagram_id": "diag_affebe94",
+          "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_affebe94.png",
+          "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_affebe94.png",
+          "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_affebe94.png",
+          "bbox": [
+            276,
+            300,
+            340,
+            151
+          ],
+          "width": 294,
+          "height": 54,
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "b0c6f653-c071-49f1-b904-7d3e05ef006f",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "84",
+      "questionText": "Two masses of 10 kg and 20 kg respectively are\nconnected by a massless spring as shown in the\nfigure. A force of 200 N acts on the 20 kg mass.\nAt the instant shown the 10 kg mass has an\nacceleration 4 m/s^2  rightwards. What is the\nacceleration of 20 kg mass ?",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"Zero\"},{\"key\":\"B\",\"text\":\"10 m/s^2\"},{\"key\":\"C\",\"text\":\"4 m/s^2\"},{\"key\":\"D\",\"text\":\"8 m/s^2\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[{\"diagram_id\":\"diag_6e9b451b\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_6e9b451b.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_6e9b451b.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_6e9b451b.png\",\"bbox\":[202,901,485,134],\"width\":439,\"height\":54,\"labels\":[]}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T14:01:36.243Z",
+      "updatedAt": "2026-09-20T14:01:36.243Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "diagrams": [
+        {
+          "diagram_id": "diag_6e9b451b",
+          "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_6e9b451b.png",
+          "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_6e9b451b.png",
+          "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_6e9b451b.png",
+          "bbox": [
+            202,
+            901,
+            485,
+            134
+          ],
+          "width": 439,
+          "height": 54,
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "7171284c-b50e-41f7-9c80-110992f95c25",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "87",
+      "questionText": "Three masses of 1 kg, 6 kg and 3 kg are connected\nto each other with threads and are placed on a\ntable as shown in figure. What is the acceleration\nwith which the system is moving ?\n(Take $g = 10$ m/s^2 )",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"Zero\"},{\"key\":\"B\",\"text\":\"2 m/s^2\"},{\"key\":\"C\",\"text\":\"4 m/s^2\"},{\"key\":\"D\",\"text\":\"3 m/s^2\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[{\"diagram_id\":\"diag_781ebb72\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_781ebb72.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_781ebb72.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_781ebb72.png\",\"bbox\":[879,1054,441,234],\"width\":395,\"height\":54,\"labels\":[]}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T14:02:11.769Z",
+      "updatedAt": "2026-09-20T14:02:11.769Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "diagrams": [
+        {
+          "diagram_id": "diag_781ebb72",
+          "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_781ebb72.png",
+          "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_781ebb72.png",
+          "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_781ebb72.png",
+          "bbox": [
+            879,
+            1054,
+            441,
+            234
+          ],
+          "width": 395,
+          "height": 54,
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "b06d6607-01e8-49cb-8517-c2e6c60105be",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "88",
+      "questionText": "The surface is frictionless, the ratio of T 1  and T 2  is :-",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"$\\\\sqrt{3}$ : 1\"},{\"key\":\"B\",\"text\":\"1 :$\\\\sqrt{3}$\"},{\"key\":\"C\",\"text\":\"1 : 5\"},{\"key\":\"D\",\"text\":\"5 : 1\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$3 kg\\n12 kg\\n15 kg\\n$30^\\\\circ$$\"}]",
+      "diagramsJson": "[{\"diagram_id\":\"diag_3955f81a\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_3955f81a.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_3955f81a.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_3955f81a.png\",\"bbox\":[865,1543,485,150],\"width\":439,\"height\":54,\"labels\":[]}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T14:02:43.183Z",
+      "updatedAt": "2026-09-20T14:02:43.183Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "diagrams": [
+        {
+          "diagram_id": "diag_3955f81a",
+          "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_3955f81a.png",
+          "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_3955f81a.png",
+          "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p13_diag_3955f81a.png",
+          "bbox": [
+            865,
+            1543,
+            485,
+            150
+          ],
+          "width": 439,
+          "height": 54,
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "403b88a9-aa52-4720-b203-7736221f7a1e",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "82",
+      "questionText": "Two blocks each of mass M are resting on a\nfrictionless inclined planes as shown in fig. then",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"The block A moves down the plane\"},{\"key\":\"B\",\"text\":\"The block B moves down the plane\"},{\"key\":\"C\",\"text\":\"Both the blocks remain at rest\"},{\"key\":\"D\",\"text\":\"Both the blocks move down the plane.\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"$Z:\\\\NODE02\\\\B0B0-BA\\\\TARGET\\\\PHY\\\\ENG\\\\MODULE_01\\\\04-NLM\\\\04-NLM_EXERCISE.P65$\"}]",
+      "diagramsJson": "[{\"diagram_id\":\"diag_b06fe47e\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_b06fe47e.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_b06fe47e.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_b06fe47e.png\",\"bbox\":[924,1516,391,216],\"width\":345,\"height\":54,\"labels\":[]}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T14:03:58.000Z",
+      "updatedAt": "2026-09-20T14:03:58.000Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "diagrams": [
+        {
+          "diagram_id": "diag_b06fe47e",
+          "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_b06fe47e.png",
+          "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_b06fe47e.png",
+          "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_b06fe47e.png",
+          "bbox": [
+            924,
+            1516,
+            391,
+            216
+          ],
+          "width": 345,
+          "height": 54,
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "7b3b276e-8f08-45c4-8072-d3ac8e4c4a59",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "77",
+      "questionText": "Two blocks of masses 2 kg and 1 kg are in contact\nwith each other on a frictionless table. When a\nhorizontal force of 3.0 N is applied to the block of\nmass 2 kg the value of the force of contact between\nthe two blocks is -",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"4 N\"},{\"key\":\"B\",\"text\":\"3 N\"},{\"key\":\"C\",\"text\":\"5 N\"},{\"key\":\"D\",\"text\":\"1 N\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T14:04:38.495Z",
+      "updatedAt": "2026-09-20T14:04:38.495Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "467179da-2d72-47f7-9100-1075aaa600f4",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "78",
+      "questionText": "Three blocks are connected as shown in fig. on a\nhorizontal frictionless table if m 1  = 1 kg,\nm^2  = 8 kg, m^3  = 27 kg and T 3  = 36N, T 2  will be :-",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"18 N\"},{\"key\":\"B\",\"text\":\"9 N\"},{\"key\":\"C\",\"text\":\"3.375 N\"},{\"key\":\"D\",\"text\":\"1.75 N\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[{\"diagram_id\":\"diag_3293dacf\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_3293dacf.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_3293dacf.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_3293dacf.png\",\"bbox\":[173,1087,545,117],\"width\":499,\"height\":54,\"labels\":[]}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T14:05:00.194Z",
+      "updatedAt": "2026-09-20T14:05:00.194Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "diagrams": [
+        {
+          "diagram_id": "diag_3293dacf",
+          "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_3293dacf.png",
+          "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_3293dacf.png",
+          "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p12_diag_3293dacf.png",
+          "bbox": [
+            173,
+            1087,
+            545,
+            117
+          ],
+          "width": 499,
+          "height": 54,
+          "labels": []
+        }
+      ]
+    }
+  ],
+  "updatedAt": "2026-09-21T06:06:25.246Z"
+}

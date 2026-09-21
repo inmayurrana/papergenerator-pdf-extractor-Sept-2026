@@ -1,0 +1,17 @@
+﻿"EXAMINATION QUESTION PAPER"
+"School / Institute:","CAMBRIDGE INTERNATIONAL SCHOOL MANDI"
+"Paper Title:","EXAMINATION 2026"
+"Exam Code:","EXAM-101"
+"Class & Subject:","12 > Maths"
+"Maximum Marks:","50"
+"Duration:","120 Minutes"
+"Instructions:",""
+""
+Q#,Question Text,Option (1),Option (2),Option (3),Option (4),Correct Answer,Marks
+"Q1","The altitude of a cone is 20 cm and its semi-vertical angle is $30^\circ$. If the semi-vertical angle is increasing at the rate of $2^\circ$ per second, then the radius of the base is increasing at the rate of","30 cm/sec","$\frac{160}{3}$ cm/sec","10 cm/sec","160 cm/sec","",1
+"Q2","The distance moved by the particle in time t is given by $x = t^{3} - 12t^{2} + 6t + 8$. At the instant when its acceleration is zero, the velocity is","42","-42","48","-48","",1
+"Q3","A cylindrical vessel of radius 0.5 m is filled with oil at the rate of $0.25\pi$  m^{3}/minute. The rate at which the surface of the oil is rising, is","1 m/minute","2 m/minute","5 m/minute","1.25 m/minute","",1
+"Q4","A cone whose height is always equal to its diameter is increasing in volume at the rate of 40 cm^{3}/sec. At what rate is the radius increasing when its circular base area is 1 m^{2} ?","1 mm/sec","0.001 cm/sec","2 mm/sec","0.002 cm/sec","",1
+"Q5","The radius of a sphere is changing at the rate of 0.1 cm/sec. The rate of change of its surface area when the radius is 200 cm is","$8\pi$ cm^{2}/sec","$12\pi$ cm^{2}/sec","$160\pi$ cm^{2}/sec","200 cm^{2}/sec","",1
+"Q6","Side of an equilateral triangle expands at the rate of 2 cm/sec. The rate of increase of its area when each side is 10 cm is","$10\sqrt{2}$ cm^{2}/sec","$10\sqrt{3}$ cm^{2}/sec","10 cm^{2}/sec","5 cm^{2}/sec","",1
+"Q7","If $V = \frac{4}{3}\pi r^{3}$, at what rate in cubic units is V increasing when $r = 10$ and $\frac{dr}{dt} = 0.01$ ?","$\pi$","$4\pi$","$40\pi$","$\frac{4\pi}{3}$","",1

@@ -1,0 +1,67 @@
+{
+  "version": "1.0.0",
+  "description": "Standard Mathematical and Scientific Equations and Formulas Reference for Educational Exam Parsing",
+  "domains": {
+    "mathematics": {
+      "calculus": [
+        { "name": "Derivative Power Rule", "latex": "\\frac{d}{dx}(x^n) = n x^{n-1}" },
+        { "name": "Integral Power Rule", "latex": "\\int x^n dx = \\frac{x^{n+1}}{n+1} + C" },
+        { "name": "Rate of Change (Volume of Sphere)", "latex": "V = \\frac{4}{3}\\pi r^3 \\implies \\frac{dV}{dt} = 4\\pi r^2 \\frac{dr}{dt}" },
+        { "name": "Rate of Change (Surface Area of Sphere)", "latex": "S = 4\\pi r^2 \\implies \\frac{dS}{dt} = 8\\pi r \\frac{dr}{dt}" },
+        { "name": "Volume of Cone", "latex": "V = \\frac{1}{3}\\pi r^2 h" },
+        { "name": "Product Rule", "latex": "\\frac{d}{dx}(uv) = u \\frac{dv}{dx} + v \\frac{du}{dx}" },
+        { "name": "Quotient Rule", "latex": "\\frac{d}{dx}\\left(\\frac{u}{v}\\right) = \\frac{v \\frac{du}{dx} - u \\frac{dv}{dx}}{v^2}" },
+        { "name": "Chain Rule", "latex": "\\frac{dy}{dx} = \\frac{dy}{du} \\cdot \\frac{du}{dx}" },
+        { "name": "Integration by Parts", "latex": "\\int u dv = uv - \\int v du" }
+      ],
+      "algebra_and_quadratics": [
+        { "name": "Quadratic Formula", "latex": "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}" },
+        { "name": "Discriminant", "latex": "\\Delta = b^2 - 4ac" },
+        { "name": "Binomial Theorem", "latex": "(a + b)^n = \\sum_{k=0}^{n} \\binom{n}{k} a^{n-k} b^k" }
+      ],
+      "trigonometry": [
+        { "name": "Pythagorean Identity", "latex": "\\sin^2\\theta + \\cos^2\\theta = 1" },
+        { "name": "Double Angle Sine", "latex": "\\sin(2\\theta) = 2\\sin\\theta\\cos\\theta" },
+        { "name": "Double Angle Cosine", "latex": "\\cos(2\\theta) = \\cos^2\\theta - \\sin^2\\theta = 2\\cos^2\\theta - 1" },
+        { "name": "Tan Addition", "latex": "\\tan(A + B) = \\frac{\\tan A + \\tan B}{1 - \\tan A \\tan B}" }
+      ]
+    },
+    "physics": {
+      "kinematics_and_dynamics": [
+        { "name": "First Equation of Motion", "latex": "v = u + at" },
+        { "name": "Second Equation of Motion", "latex": "s = ut + \\frac{1}{2}at^2" },
+        { "name": "Third Equation of Motion", "latex": "v^2 = u^2 + 2as" },
+        { "name": "Newton's Second Law", "latex": "F = ma = \\frac{dp}{dt}" },
+        { "name": "Centripetal Acceleration", "latex": "a_c = \\frac{v^2}{r} = \\omega^2 r" },
+        { "name": "Work Done", "latex": "W = \\vec{F} \\cdot \\vec{s} = F s \\cos\\theta" }
+      ],
+      "electrodynamics": [
+        { "name": "Coulomb's Law", "latex": "F = \\frac{1}{4\\pi \\varepsilon_0} \\frac{|q_1 q_2|}{r^2}" },
+        { "name": "Ohm's Law", "latex": "V = IR" },
+        { "name": "Electric Potential", "latex": "V = \\frac{1}{4\\pi \\varepsilon_0} \\frac{q}{r}" },
+        { "name": "Capacitance", "latex": "C = \\frac{Q}{V} = \\frac{\\varepsilon_0 A}{d}" },
+        { "name": "Lorentz Force", "latex": "\\vec{F} = q(\\vec{E} + \\vec{v} \\times \\vec{B})" },
+        { "name": "Faraday's Law of Induction", "latex": "\\mathcal{E} = -\\frac{d\\Phi_B}{dt}" }
+      ],
+      "optics_and_modern_physics": [
+        { "name": "Snell's Law", "latex": "n_1 \\sin\\theta_1 = n_2 \\sin\\theta_2" },
+        { "name": "Lens Formula", "latex": "\\frac{1}{f} = \\frac{1}{v} - \\frac{1}{u}" },
+        { "name": "Mirror Formula", "latex": "\\frac{1}{f} = \\frac{1}{v} + \\frac{1}{u}" },
+        { "name": "Photon Energy", "latex": "E = h\\nu = \\frac{hc}{\\lambda}" },
+        { "name": "Photoelectric Equation", "latex": "h\\nu = \\Phi_0 + K_{\\max} = h\\nu_0 + \\frac{1}{2}mv^2" },
+        { "name": "de Broglie Wavelength", "latex": "\\lambda = \\frac{h}{p} = \\frac{h}{mv}" }
+      ]
+    },
+    "chemistry": {
+      "physical_chemistry": [
+        { "name": "Ideal Gas Law", "latex": "PV = nRT" },
+        { "name": "Arrhenius Equation", "latex": "k = A e^{-\\frac{E_a}{RT}}" },
+        { "name": "Nernst Equation", "latex": "E = E^\\circ - \\frac{RT}{nF} \\ln Q = E^\\circ - \\frac{0.0591}{n} \\log_{10} Q" },
+        { "name": "Gibbs Free Energy", "latex": "\\Delta G = \\Delta H - T\\Delta S" },
+        { "name": "Osmotic Pressure", "latex": "\\Pi = iCRT" },
+        { "name": "Raoult's Law", "latex": "P_A = x_A P_A^\\circ" },
+        { "name": "pH Definition", "latex": "\\text{pH} = -\\log_{10}[\\text{H}^+]" }
+      ]
+    }
+  }
+}

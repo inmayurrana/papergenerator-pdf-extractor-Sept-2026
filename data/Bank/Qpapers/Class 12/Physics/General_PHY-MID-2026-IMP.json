@@ -1,0 +1,42 @@
+{
+  "id": "94075479-2b48-440a-adad-6b3cb021fd59",
+  "title": "",
+  "examCode": "PHY-MID-2026-IMP",
+  "schoolName": "CAMBRIDGE INTERNATIONAL SCHOOL MANDI",
+  "className": "Class 12",
+  "subjectName": "Physics",
+  "maxMarks": 50,
+  "durationMinutes": 120,
+  "examDate": "2026-09-18",
+  "examTime": "10:00 AM - 01:00 PM",
+  "instructions": "",
+  "status": "DRAFT",
+  "canvasLayout": {
+    "questions": [],
+    "settings": {
+      "className": "Class 12",
+      "subjectName": "Physics",
+      "fontFamily": "serif",
+      "fontSize": "9pt",
+      "lineSpacing": "tight",
+      "pageColumns": 1,
+      "spacingPreset": "zero",
+      "borderStyle": "divider",
+      "optionLayout": "inline",
+      "imageAlignment": "inline",
+      "imageBorderStyle": "none",
+      "imageCustomHeight": 21,
+      "autoMatchText": false,
+      "showWatermark": false,
+      "watermarkText": "CONFIDENTIAL",
+      "showCandidateBox": true,
+      "rollNoStyle": "boxes",
+      "schoolLogoUrl": "",
+      "schoolLogoWidth": 75,
+      "schoolLogoHeight": 75,
+      "schoolLogoPosition": "left"
+    }
+  },
+  "questions": [],
+  "updatedAt": "2026-09-18T06:45:34.284Z"
+}

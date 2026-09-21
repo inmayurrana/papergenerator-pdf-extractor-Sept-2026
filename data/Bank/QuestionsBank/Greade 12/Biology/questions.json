@@ -1,0 +1,670 @@
+[
+  {
+    "id": "231f98aa-a842-46a2-a444-95eefd09d266",
+    "questionNumber": "1",
+    "questionText": "In there are 3.3 \\times 10^{9} bp present genome, then what would be the length the DNA of any somatic\ncell",
+    "options": [
+      {
+        "key": "A",
+        "text": "1.1 meter"
+      },
+      {
+        "key": "B",
+        "text": "2.2 meter"
+      },
+      {
+        "key": "C",
+        "text": "3.3 meter"
+      },
+      {
+        "key": "D",
+        "text": "6.6 meter"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:28:47.533Z",
+    "updatedAt": "2026-09-18T11:28:47.533Z"
+  },
+  {
+    "id": "c8012ea1-0b72-4081-b219-3f106c2048e3",
+    "questionNumber": "2",
+    "questionText": "Positive charge and basic nature of histo is due to abundance of",
+    "options": [
+      {
+        "key": "A",
+        "text": "Lysines and tryptophanes"
+      },
+      {
+        "key": "B",
+        "text": "Arginines & threonines"
+      },
+      {
+        "key": "C",
+        "text": "Lysines and arginines"
+      },
+      {
+        "key": "D",
+        "text": "Tryptophanes and threonines"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:28:47.592Z",
+    "updatedAt": "2026-09-18T11:28:47.592Z"
+  },
+  {
+    "id": "6b6f2b10-e560-4022-b459-f1921e1bd20f",
+    "questionNumber": "3",
+    "questionText": "Pre Medic of to ne nd 15. Negative charge of DNA is due to whi the following constituent",
+    "options": [
+      {
+        "key": "A",
+        "text": "Sugar"
+      },
+      {
+        "key": "B",
+        "text": "Nitrogenous base"
+      },
+      {
+        "key": "C",
+        "text": "Phosphoric acid"
+      },
+      {
+        "key": "D",
+        "text": "Hydroxyl group (-OH) present on su MI"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:28:47.642Z",
+    "updatedAt": "2026-09-18T11:28:47.642Z"
+  },
+  {
+    "id": "d3fc158d-36eb-40ad-82f8-da5f13d768b6",
+    "questionNumber": "4",
+    "questionText": "A typical nucleosome contains how m amount of DNA",
+    "options": [
+      {
+        "key": "A",
+        "text": "100 bp"
+      },
+      {
+        "key": "B",
+        "text": "146 bp"
+      },
+      {
+        "key": "C",
+        "text": "200 bp"
+      },
+      {
+        "key": "D",
+        "text": "346 bp"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:28:47.694Z",
+    "updatedAt": "2026-09-18T11:28:47.694Z"
+  },
+  {
+    "id": "90843d46-265f-4fe6-9a08-b4c72cf2e26a",
+    "questionNumber": "5",
+    "questionText": "In a mammalian somatic cell how m nucleosomes are present",
+    "options": [
+      {
+        "key": "A",
+        "text": "6.6 \\times 10^{9}"
+      },
+      {
+        "key": "B",
+        "text": "3.3 \\times 10^{9}"
+      },
+      {
+        "key": "C",
+        "text": "3.3 \\times 10^{7}"
+      },
+      {
+        "key": "D",
+        "text": "3.3 \\times 10^{5}"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:28:47.737Z",
+    "updatedAt": "2026-09-18T11:28:47.737Z"
+  },
+  {
+    "id": "dff76464-96be-4b97-9900-7965ba98653b",
+    "questionNumber": "6",
+    "questionText": "Which of the following is actual sequ of packaging of DNA in eukaryotic cells",
+    "options": [
+      {
+        "key": "A",
+        "text": "DNA $\\to$ Chromatin $\\to$ Nucleosom Chromosome"
+      },
+      {
+        "key": "B",
+        "text": "DNA Nucleosome Chromos Chromatin"
+      },
+      {
+        "key": "C",
+        "text": "DNA Nucleosome Chrom Chromosome"
+      },
+      {
+        "key": "D",
+        "text": "DNA Chromosome Chrom Nucleosome MI 19. The packaging of chromatin at higher requires additional set of proteins th known as"
+      },
+      {
+        "key": "A",
+        "text": "Histone proteins"
+      },
+      {
+        "key": "B",
+        "text": "NHC proteins"
+      },
+      {
+        "key": "C",
+        "text": "Homeotic proteins"
+      },
+      {
+        "key": "D",
+        "text": "Domain proteins"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:28:47.783Z",
+    "updatedAt": "2026-09-18T11:28:47.783Z"
+  },
+  {
+    "id": "36d40312-b987-4551-afe7-3fbd10a8fbe6",
+    "questionNumber": "7",
+    "questionText": "The mechanism that causes a gene to m from one linkage group to another is ca",
+    "options": [
+      {
+        "key": "A",
+        "text": "Translocation"
+      },
+      {
+        "key": "B",
+        "text": "Crossing-over"
+      },
+      {
+        "key": "C",
+        "text": "Inversion"
+      },
+      {
+        "key": "D",
+        "text": "Duplication"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:28:47.828Z",
+    "updatedAt": "2026-09-18T11:28:47.828Z"
+  },
+  {
+    "id": "8becd67b-ebd7-440b-ab4b-4ee66a0287e6",
+    "questionNumber": "8",
+    "questionText": "Pre Medical 20. Regarding to Meselson and Sta experiment for semi conservative nature DNA\nreplication select out the wro statement",
+    "options": [
+      {
+        "key": "A",
+        "text": "15N of 15NH4Cl was incorporated in DN and other compounds"
+      },
+      {
+        "key": "B",
+        "text": "15N & 14N can be differentiate on t basis of radioactive activity"
+      },
+      {
+        "key": "C",
+        "text": "Heavy and normal DNA molecules cou be distinguished by CsCl dens gradient centrifugation"
+      },
+      {
+        "key": "D",
+        "text": "15N used in 15NH4Cl was not radioactive isotope"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:28:47.871Z",
+    "updatedAt": "2026-09-18T11:28:47.871Z"
+  },
+  {
+    "id": "7380ecdf-3e99-4c25-8a6e-3c5fc91bca33",
+    "questionNumber": "9",
+    "questionText": "If normal E.Coli is allow to grow for minutes in 15NH4Cl medium then wh would be the proportion of\nhybrid a heavy density DNA molecules",
+    "options": [
+      {
+        "key": "A",
+        "text": "1 : 7"
+      },
+      {
+        "key": "B",
+        "text": "7 : 1"
+      },
+      {
+        "key": "C",
+        "text": "14 : 2"
+      },
+      {
+        "key": "D",
+        "text": "1 :"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:28:47.918Z",
+    "updatedAt": "2026-09-18T11:28:47.918Z"
+  },
+  {
+    "id": "23f948f1-6633-4fb1-a03d-b91ca5084185",
+    "questionNumber": "10",
+    "questionText": "Semiconservative replication of DNA chromosomes was proved by",
+    "options": [
+      {
+        "key": "A",
+        "text": "Meselson & Stahl by using 15NH4Cl"
+      },
+      {
+        "key": "B",
+        "text": "Taylor by using 15NH4Cl"
+      },
+      {
+        "key": "C",
+        "text": "Meselson & Stahl by using tritiat thymidine"
+      },
+      {
+        "key": "D",
+        "text": "Taylor by using tritiated thymidine"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:28:47.964Z",
+    "updatedAt": "2026-09-18T11:28:47.964Z"
+  },
+  {
+    "id": "77d254b6-b965-4377-b9b1-5bff3b1a40ff",
+    "questionNumber": "23",
+    "questionText": "How much duration of time required f replication of 4.6 \\times 10^{6} pb in E.coli",
+    "options": [
+      {
+        "key": "A",
+        "text": "83 minutes"
+      },
+      {
+        "key": "B",
+        "text": "18 minutes"
+      },
+      {
+        "key": "C",
+        "text": "2 minutes"
+      },
+      {
+        "key": "D",
+        "text": "3 hrs"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:29:45.161Z",
+    "updatedAt": "2026-09-18T11:29:45.161Z"
+  },
+  {
+    "id": "864540f1-12c0-4c6b-969e-14f6ef758566",
+    "questionNumber": "24",
+    "questionText": "What is the rate of polymerisation in E.co",
+    "options": [
+      {
+        "key": "A",
+        "text": "20,000 bp per second"
+      },
+      {
+        "key": "B",
+        "text": "2000 nucleotides per second"
+      },
+      {
+        "key": "C",
+        "text": "2000 bp per minute"
+      },
+      {
+        "key": "D",
+        "text": "2000 bp per second"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:29:45.206Z",
+    "updatedAt": "2026-09-18T11:29:45.206Z"
+  },
+  {
+    "id": "2c3307a0-906f-4280-a881-006f2b75c850",
+    "questionNumber": "25",
+    "questionText": "hl of ng NA h 25. During replication large amount of en get exhausted. The source of this energ",
+    "options": [
+      {
+        "key": "A",
+        "text": "Deoxy ribonucleotide triphosphoph"
+      },
+      {
+        "key": "B",
+        "text": "Deoxyribonucleoside monoplospha"
+      },
+      {
+        "key": "C",
+        "text": "Deoxyribonucleoside triphosphate"
+      },
+      {
+        "key": "D",
+        "text": "Both 1 and 2 MI"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:29:45.254Z",
+    "updatedAt": "2026-09-18T11:29:45.254Z"
+  },
+  {
+    "id": "c40a8025-cfc6-49df-9cfa-a0ab3fc09609",
+    "questionNumber": "26",
+    "questionText": "he ld ty a 90 80 26. Regarding to direction of DNA replica select out the correct one",
+    "options": [
+      {
+        "key": "A",
+        "text": "5' $\\to$ 3' Template - continuous synt"
+      },
+      {
+        "key": "B",
+        "text": "3' $\\to$ 5' Template - discontin synthesis"
+      },
+      {
+        "key": "C",
+        "text": "3' $\\to$ 5' Template - continuous synt"
+      },
+      {
+        "key": "D",
+        "text": "5' $\\to$ 3' Template - synt leadingstrand MI 1®"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:29:45.301Z",
+    "updatedAt": "2026-09-18T11:29:45.301Z"
+  },
+  {
+    "id": "26f96f97-a36e-41e4-b002-5d9714f311a9",
+    "questionNumber": "27",
+    "questionText": "80 at nd 4 91 in ed 92 or 93 27. Which of the following scheme replication fork is true",
+    "options": [
+      {
+        "key": "A",
+        "text": "3^5^5 x 3 x"
+      },
+      {
+        "key": "B",
+        "text": "3^5' 5 x 3 x"
+      },
+      {
+        "key": "C",
+        "text": "3' 5' 5 x 3 x"
+      },
+      {
+        "key": "D",
+        "text": "3' 5' 5 x 3 x MI /(1"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:29:45.366Z",
+    "updatedAt": "2026-09-18T11:29:45.366Z"
+  },
+  {
+    "id": "968b47f1-37f3-4417-a19f-f7fb452370e4",
+    "questionNumber": "28",
+    "questionText": "i 94 28. Which of the folloiwng feature of make it labile and easily degradable",
+    "options": [
+      {
+        "key": "A",
+        "text": "Single stranded nature"
+      },
+      {
+        "key": "B",
+        "text": "2'-OH group on sugar"
+      },
+      {
+        "key": "C",
+        "text": "Phosphodiester bond"
+      },
+      {
+        "key": "D",
+        "text": "Absence of Hydrogen bond MI"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:29:45.408Z",
+    "updatedAt": "2026-09-18T11:29:45.408Z"
+  },
+  {
+    "id": "2fef1780-10eb-40e6-bbeb-399a18a3b4ea",
+    "questionNumber": "29",
+    "questionText": "Regarding to RNA which of the followi feature is wrong",
+    "options": [
+      {
+        "key": "A",
+        "text": "Catalytic property"
+      },
+      {
+        "key": "B",
+        "text": "Labile and easily degradable"
+      },
+      {
+        "key": "C",
+        "text": "Absence of thymine"
+      },
+      {
+        "key": "D",
+        "text": "Presence of methylated uracil"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:29:45.453Z",
+    "updatedAt": "2026-09-18T11:29:45.453Z"
+  },
+  {
+    "id": "fd49fbfb-43d7-4862-ac57-313b2bc4a1dc",
+    "questionNumber": "30",
+    "questionText": "Which fo the folloiwng reason is suitable explain that RNA is best for expression characters",
+    "options": [
+      {
+        "key": "A",
+        "text": "It shows catalytic properties"
+      },
+      {
+        "key": "B",
+        "text": "Presence of 2'-OH group on ribo sugar"
+      },
+      {
+        "key": "C",
+        "text": "It can directly code for the synthesis protein"
+      },
+      {
+        "key": "D",
+        "text": "Presence of uracil ("
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:29:45.497Z",
+    "updatedAt": "2026-09-18T11:29:45.497Z"
+  },
+  {
+    "id": "64b0476c-20fa-4637-9048-b9b976edeb21",
+    "questionNumber": "31",
+    "questionText": "An adapter molecule that would on o hand read the code and on the other ha would bind to specific\namino acids is",
+    "options": [
+      {
+        "key": "A",
+        "text": "m-RNA"
+      },
+      {
+        "key": "B",
+        "text": "r-RNA"
+      },
+      {
+        "key": "C",
+        "text": "t-RNA"
+      },
+      {
+        "key": "D",
+        "text": "hm-RNA //("
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:29:45.544Z",
+    "updatedAt": "2026-09-18T11:29:45.544Z"
+  },
+  {
+    "id": "c549a145-bed5-4cc7-a630-4d66e12fdde2",
+    "questionNumber": "32",
+    "questionText": "Which of the following r-RNA sho structural as well as catalytic role bacteria :-",
+    "options": [
+      {
+        "key": "A",
+        "text": "16s rRNA"
+      },
+      {
+        "key": "B",
+        "text": "23s rRNA"
+      },
+      {
+        "key": "C",
+        "text": "5s rRNA"
+      },
+      {
+        "key": "D",
+        "text": "28s rRNA 33. The unequivocal proof that DNA is t genetic material came from t experiments of"
+      },
+      {
+        "key": "A",
+        "text": "Griffith"
+      },
+      {
+        "key": "B",
+        "text": "Avery, Macleod & Mccarty"
+      },
+      {
+        "key": "C",
+        "text": "Hershey and Chase"
+      },
+      {
+        "key": "D",
+        "text": "Watson and Crick 34. Radioactive (35S) was detected in"
+      },
+      {
+        "key": "A",
+        "text": "Supernatant"
+      },
+      {
+        "key": "B",
+        "text": "Sediment"
+      },
+      {
+        "key": "C",
+        "text": "Both"
+      },
+      {
+        "key": "D",
+        "text": "Either 1 or 2 $//"
+      }
+    ],
+    "correctAnswer": "",
+    "explanation": "",
+    "marks": 1,
+    "difficulty": "MEDIUM",
+    "diagrams": [],
+    "tags": [],
+    "createdAt": "2026-09-18T11:29:45.595Z",
+    "updatedAt": "2026-09-18T11:29:45.595Z"
+  }
+]

@@ -1,0 +1,160 @@
+{
+  "id": "32b5e5d2-914f-445d-9e1a-7a6fbda0edc7",
+  "title": "INTERNATIONAL SCHOOOL MANDI",
+  "examCode": "PHY-MID-2026-IMP",
+  "schoolName": "CAMBRIDGE ",
+  "className": "Class 12",
+  "subjectName": "Physics",
+  "maxMarks": 50,
+  "durationMinutes": 120,
+  "examDate": "2026-09-18",
+  "examTime": "10:00 AM - 01:00 PM",
+  "instructions": "1. Answer all questions.\n2. Calculator permitted.",
+  "status": "DRAFT",
+  "canvasLayout": {
+    "questions": [
+      {
+        "id": "q-imp-1-1789705009829",
+        "questionNumber": "1",
+        "questionText": "What is the capital of France?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Berlin"
+          },
+          {
+            "key": "B",
+            "text": "Paris"
+          },
+          {
+            "key": "C",
+            "text": "Madrid"
+          },
+          {
+            "key": "D",
+            "text": "Rome"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Paris is the capital and most populous city of France.",
+        "marks": 2,
+        "difficulty": "EASY",
+        "diagrams": [],
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"Berlin\"},{\"key\":\"B\",\"text\":\"Paris\"},{\"key\":\"C\",\"text\":\"Madrid\"},{\"key\":\"D\",\"text\":\"Rome\"}]"
+      },
+      {
+        "id": "q-imp-2-1789705009829",
+        "questionNumber": "2",
+        "questionText": "Solve for x: 2x + 6 = 14",
+        "options": [
+          {
+            "key": "A",
+            "text": "x = 2"
+          },
+          {
+            "key": "B",
+            "text": "x = 3"
+          },
+          {
+            "key": "C",
+            "text": "x = 4"
+          },
+          {
+            "key": "D",
+            "text": "x = 5"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "2x = 14 - 6 = 8, therefore x = 4.",
+        "marks": 3,
+        "difficulty": "MEDIUM",
+        "diagrams": [],
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"x = 2\"},{\"key\":\"B\",\"text\":\"x = 3\"},{\"key\":\"C\",\"text\":\"x = 4\"},{\"key\":\"D\",\"text\":\"x = 5\"}]"
+      }
+    ],
+    "settings": {
+      "className": "Class 12",
+      "subjectName": "Physics",
+      "fontFamily": "serif",
+      "fontSize": "10pt",
+      "lineSpacing": "tight",
+      "pageColumns": 1,
+      "spacingPreset": "zero",
+      "borderStyle": "divider",
+      "optionLayout": "inline",
+      "imageAlignment": "inline",
+      "imageBorderStyle": "none",
+      "imageCustomHeight": 21,
+      "autoMatchText": false,
+      "showWatermark": false,
+      "watermarkText": "CONFIDENTIAL",
+      "showCandidateBox": true,
+      "rollNoStyle": "boxes",
+      "schoolLogoUrl": "",
+      "schoolLogoWidth": 75,
+      "schoolLogoHeight": 75,
+      "schoolLogoPosition": "left"
+    }
+  },
+  "questions": [
+    {
+      "id": "q-imp-1-1789705009829",
+      "questionNumber": "1",
+      "questionText": "What is the capital of France?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Berlin"
+        },
+        {
+          "key": "B",
+          "text": "Paris"
+        },
+        {
+          "key": "C",
+          "text": "Madrid"
+        },
+        {
+          "key": "D",
+          "text": "Rome"
+        }
+      ],
+      "correctAnswer": "B",
+      "explanation": "Paris is the capital and most populous city of France.",
+      "marks": 2,
+      "difficulty": "EASY",
+      "diagrams": [],
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"Berlin\"},{\"key\":\"B\",\"text\":\"Paris\"},{\"key\":\"C\",\"text\":\"Madrid\"},{\"key\":\"D\",\"text\":\"Rome\"}]"
+    },
+    {
+      "id": "q-imp-2-1789705009829",
+      "questionNumber": "2",
+      "questionText": "Solve for x: 2x + 6 = 14",
+      "options": [
+        {
+          "key": "A",
+          "text": "x = 2"
+        },
+        {
+          "key": "B",
+          "text": "x = 3"
+        },
+        {
+          "key": "C",
+          "text": "x = 4"
+        },
+        {
+          "key": "D",
+          "text": "x = 5"
+        }
+      ],
+      "correctAnswer": "C",
+      "explanation": "2x = 14 - 6 = 8, therefore x = 4.",
+      "marks": 3,
+      "difficulty": "MEDIUM",
+      "diagrams": [],
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"x = 2\"},{\"key\":\"B\",\"text\":\"x = 3\"},{\"key\":\"C\",\"text\":\"x = 4\"},{\"key\":\"D\",\"text\":\"x = 5\"}]"
+    }
+  ],
+  "updatedAt": "2026-09-19T04:02:30.964Z"
+}

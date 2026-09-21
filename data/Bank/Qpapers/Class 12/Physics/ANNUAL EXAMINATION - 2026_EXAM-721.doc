@@ -1,0 +1,351 @@
+
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <meta charset="utf-8">
+        <title>ANNUAL EXAMINATION - 2026</title>
+        <style>
+          body { font-family: 'Times New Roman', Times, Georgia, Cambria, serif; font-size: 12pt; line-height: 1.35; color: #000; margin: 0.8in; }
+          .school-title { font-size: 18pt; font-weight: bold; text-align: center; text-transform: uppercase; margin-bottom: 3pt; }
+          .exam-title { font-size: 13pt; font-weight: bold; text-align: center; text-transform: uppercase; margin-bottom: 6pt; color: #1a365d; }
+          .meta-table { width: 100%; font-size: 10pt; font-weight: bold; margin-top: 4pt; }
+          .candidate-box { border: 1pt solid #000; padding: 8pt; margin-bottom: 14pt; font-size: 10pt; background: #fafafa; }
+          .roll-box { display: inline-block; width: 16pt; height: 16pt; border: 1pt solid #000; margin-left: 2pt; text-align: center; vertical-align: middle; }
+          .instructions { font-size: 9pt; border-top: 0.5pt solid #ccc; padding-top: 4pt; margin-top: 4pt; color: #333; }
+          .question-block { margin-bottom: 12pt; page-break-inside: avoid; border-bottom: 0.5pt solid #e2e8f0; padding-bottom: 8pt; }
+          .q-stem { font-weight: 500; font-size: 1em; margin-bottom: 4pt; }
+          .q-marks { float: right; font-weight: bold; font-family: monospace; color: #2d3748; }
+          .diagram-container { margin: 6pt 0; text-align: left; }
+          .diagram-img { max-height: 200pt; max-width: 450pt; width: auto; border: 0.5pt solid #cbd5e0; margin: 4pt 0; }
+          .options-grid { margin-left: 15pt; margin-top: 4pt; font-size: 0.95em; }
+          .opt-item { display: inline-block; min-width: 22%; margin-right: 15pt; margin-bottom: 4pt; vertical-align: top; }
+          .opt-img { max-height: 45pt; width: auto; display: block; margin-top: 2pt; }
+        </style>
+      </head>
+      <body>
+        
+        <div class="school-title">CAMBRIDGE INTERNATIONAL SCHOOL MANDI</div>
+        <div class="exam-title">ANNUAL EXAMINATION - 2026</div>
+        <table class="meta-table">
+          <tr>
+            <td><strong>CLASS & SUBJECT:</strong> Class 12 &gt; Physics</td>
+            <td style="text-align:center;"><strong>TIME:</strong> 180 MINS</td>
+            <td style="text-align:right;"><strong>MAX MARKS:</strong> 70</td>
+          </tr>
+        </table>
+        <hr style="border: 1pt solid #000; margin: 6pt 0 12pt 0;" />
+
+        <div class="candidate-box">
+          <table style="width:100%;">
+            <tr>
+              <td><strong>Candidate Name:</strong> ___________________________________</td>
+              <td style="text-align:right;">
+                <strong>Roll No:</strong>
+                <span class="roll-box"></span><span class="roll-box"></span><span class="roll-box"></span><span class="roll-box"></span><span class="roll-box"></span><span class="roll-box"></span><span class="roll-box"></span><span class="roll-box"></span>
+              </td>
+            </tr>
+          </table>
+          <div class="instructions"><strong>General Instructions:</strong><br/>1. All questions are compulsory.<br/>2. Section A contains 1-mark MCQs.<br/>3. Section B contains short answer questions.<br/>4. Use of calculators is not permitted.</div>
+        </div>
+
+        <div class="questions-container">
+          
+              <div class="question-block" >
+                <div class="q-stem">
+                  
+                  <strong>Q1.</strong> Three blocks with masses m, 2m and 3m are connected by strings, as shown in the figure. After an upward force F is applied on block m, the masses move upward at constant speed v. What is the net force on the block of mass 2m? (g is the acceleration due to gravity) m 2m 3m v F
+                </div>
+
+                
+
+                
+                  <div class="options-grid">
+                    
+                          <span class="opt-item">
+                            <strong>(A)</strong> 6 mg
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(B)</strong> zero
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(C)</strong> 2 mg
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(D)</strong> 3 mg
+                            
+                          </span>
+                        
+                  </div>
+                
+
+                
+              </div>
+            
+              <div class="question-block" >
+                <div class="q-stem">
+                  
+                  <strong>Q2.</strong> Two bodies of masses 4 kg and 5 kg are acted upon by the same force. If the acceleration of lighter body is 2 m/s^2, then the acceleration of the heavier body is :-
+                </div>
+
+                
+
+                
+                  <div class="options-grid">
+                    
+                          <span class="opt-item">
+                            <strong>(A)</strong> 4.2 m/s^2
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(B)</strong> 3.6 m/s^2
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(C)</strong> 2.4 m/s^2
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(D)</strong> 1.6 m/s^2
+                            
+                          </span>
+                        
+                  </div>
+                
+
+                
+              </div>
+            
+              <div class="question-block" >
+                <div class="q-stem">
+                  
+                  <strong>Q3.</strong> An object with a mass 10 kg moves at a constant velocity of 10 m/s. A constant force then acts for 4 seconds on the object giving it a speed of 2 m/s in opposite direction. The acceleration produced is :-
+                </div>
+
+                
+
+                
+                  <div class="options-grid">
+                    
+                          <span class="opt-item">
+                            <strong>(A)</strong> 3 m/s^2
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(B)</strong> -3 m/s^2
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(C)</strong> 0.3 m/s^2
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(D)</strong> -0.3 m/s^2
+                            
+                          </span>
+                        
+                  </div>
+                
+
+                
+              </div>
+            
+              <div class="question-block" >
+                <div class="q-stem">
+                  
+                  <strong>Q4.</strong> A ship of mass 3 $\times$  107 kg initially at rest is pulled by a force of 5 $\times$  104 N through a distance of 3m. Neglecting friction, the speed of the ship at this moment is :
+                </div>
+
+                
+
+                
+                  <div class="options-grid">
+                    
+                          <span class="opt-item">
+                            <strong>(A)</strong> 3.0 m/s
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(B)</strong> 1.5 m/s
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(C)</strong> 0.1 m/s
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(D)</strong> 2 m/s
+                            
+                          </span>
+                        
+                  </div>
+                
+
+                
+              </div>
+            
+              <div class="question-block" >
+                <div class="q-stem">
+                  
+                  <strong>Q5.</strong> In Newton's second Law = r r F ma (for constant mass m), ra is the acceleration of the mass m with respect to
+                </div>
+
+                
+
+                
+                  <div class="options-grid">
+                    
+                          <span class="opt-item">
+                            <strong>(A)</strong> any observer
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(B)</strong> any inertial observer
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(C)</strong> an observer at rest only
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(D)</strong> an observer moving with uniform speed only
+                            
+                          </span>
+                        
+                  </div>
+                
+
+                
+              </div>
+            
+              <div class="question-block" >
+                <div class="q-stem">
+                  
+                  <strong>Q6.</strong> A balloon of mass M is descending with a constant acceleration g/3. When a mass m is released from the balloon it starts rising with the same acceleration g/3. The value of m is (Assuming that its volume does not change) :-
+                </div>
+
+                
+
+                
+                  <div class="options-grid">
+                    
+                          <span class="opt-item">
+                            <strong>(A)</strong> M 2
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(B)</strong> M 4
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(C)</strong> 4M
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(D)</strong> 2M
+                            
+                          </span>
+                        
+                  </div>
+                
+
+                
+              </div>
+            
+              <div class="question-block" >
+                <div class="q-stem">
+                  
+                  <strong>Q7.</strong> Gravel is dropped onto a conveyer belt at a rate of 0.5 kg/s. The extra force required in newton to keep the belt moving at 2 m/s is :-
+                </div>
+
+                
+
+                
+                  <div class="options-grid">
+                    
+                          <span class="opt-item">
+                            <strong>(A)</strong> 1 N
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(B)</strong> 2 N
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(C)</strong> 4 N
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(D)</strong> 0.5 N
+                            
+                          </span>
+                        
+                  </div>
+                
+
+                
+              </div>
+            
+              <div class="question-block" >
+                <div class="q-stem">
+                  
+                  <strong>Q8.</strong> A block of metal weighing 2 kg is resting on a frictionless plane. It is struck by a jet releasing water at a rate of 1 kg/s with a speed of 5 m/s. The initial acceleration of the block will be :-
+                </div>
+
+                
+
+                
+                  <div class="options-grid">
+                    
+                          <span class="opt-item">
+                            <strong>(A)</strong> 2.5 m/s^2
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(B)</strong> 5 m/s^2
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(C)</strong> 10 m/s^2
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(D)</strong> 15 m/s^2
+                            
+                          </span>
+                        
+                  </div>
+                
+
+                
+              </div>
+            
+        </div>
+      </body>
+      </html>
+    

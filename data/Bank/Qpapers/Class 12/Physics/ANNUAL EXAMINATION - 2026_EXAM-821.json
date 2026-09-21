@@ -1,0 +1,264 @@
+{
+  "id": "c50efc30-e31b-4763-9652-1b55667498bc",
+  "title": "ANNUAL EXAMINATION - 2026",
+  "examCode": "EXAM-821",
+  "schoolName": "CAMBRIDGE INTERNATIONAL SCHOOL MANDI",
+  "className": "Class 12",
+  "subjectName": "Physics",
+  "maxMarks": 70,
+  "durationMinutes": 180,
+  "examDate": "2026-09-19",
+  "examTime": "09:00 AM - 12:00 PM",
+  "instructions": "1. All questions are compulsory.\n2. Section A contains 1-mark MCQs.\n3. Section B contains short answer questions.\n4. Use of calculators is not permitted.",
+  "status": "DRAFT",
+  "canvasLayout": {
+    "questions": [
+      {
+        "id": "0437a92f-4777-41b1-9fa1-21c695feced8",
+        "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "1",
+        "questionText": "Three blocks with masses m, 2m and 3m are connected by strings, as shown in the figure. After an upward force F is applied on block m, the masses move upward at constant speed v. What is the net force on the block of mass 2m? (g is the acceleration due to gravity) m 2m 3m v F",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"6 mg\"},{\"key\":\"B\",\"text\":\"zero\"},{\"key\":\"C\",\"text\":\"2 mg\"},{\"key\":\"D\",\"text\":\"3 mg\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-19T15:05:30.573Z",
+        "updatedAt": "2026-09-19T15:08:04.727Z",
+        "folder": {
+          "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+          "name": "Newtons Laws of Motion",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "55532dd3-67f9-4e76-b8c6-c6f4d2dfd000",
+        "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "2",
+        "questionText": "Two bodies of masses 4 kg and 5 kg are acted upon by the same force. If the acceleration of lighter body is 2 m/s^2, then the acceleration of the heavier body is :-",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"4.2 m/s^2\"},{\"key\":\"B\",\"text\":\"3.6 m/s^2\"},{\"key\":\"C\",\"text\":\"2.4 m/s^2\"},{\"key\":\"D\",\"text\":\"1.6 m/s^2\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-19T15:05:30.661Z",
+        "updatedAt": "2026-09-19T15:05:30.661Z",
+        "folder": {
+          "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+          "name": "Newtons Laws of Motion",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "0dfaeaea-ca96-4aa4-b199-7dd35cb82cb7",
+        "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "3",
+        "questionText": "An object with a mass 10 kg moves at a constant velocity of 10 m/s. A constant force then acts for 4 seconds on the object giving it a speed of 2 m/s in opposite direction. The acceleration produced is :-",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"3 m/s^2\"},{\"key\":\"B\",\"text\":\"-3 m/s^2\"},{\"key\":\"C\",\"text\":\"0.3 m/s^2\"},{\"key\":\"D\",\"text\":\"-0.3 m/s^2\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-19T15:05:30.705Z",
+        "updatedAt": "2026-09-19T15:05:30.705Z",
+        "folder": {
+          "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+          "name": "Newtons Laws of Motion",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      }
+    ],
+    "settings": {
+      "className": "Class 12",
+      "subjectName": "Physics",
+      "fontFamily": "serif",
+      "fontSize": "10pt",
+      "lineSpacing": "tight",
+      "pageColumns": 1,
+      "spacingPreset": "zero",
+      "pageMargin": "normal",
+      "marginTop": 15,
+      "marginBottom": 15,
+      "marginLeft": 18,
+      "marginRight": 18,
+      "borderStyle": "divider",
+      "optionLayout": "inline",
+      "imageAlignment": "inline",
+      "imageBorderStyle": "none",
+      "imageCustomHeight": 15,
+      "autoMatchText": true,
+      "showWatermark": false,
+      "watermarkText": "CONFIDENTIAL",
+      "showCandidateBox": false,
+      "rollNoStyle": "boxes",
+      "schoolLogoUrl": null,
+      "schoolLogoWidth": 75,
+      "schoolLogoHeight": 75,
+      "schoolLogoPosition": "left",
+      "customHeaderFields": [
+        {
+          "id": "f_class",
+          "label": "CLASS",
+          "value": "11"
+        },
+        {
+          "id": "f_sub",
+          "label": "SUBJECT",
+          "value": "Physics"
+        }
+      ],
+      "customCandidateFields": [],
+      "showHeaderMeta": true,
+      "showExamCode": false,
+      "showTime": false,
+      "showMaxMarks": false,
+      "showSchoolName": true,
+      "showExamTitle": false,
+      "showCandidateName": true,
+      "showRollNo": true,
+      "showInstructions": false,
+      "schoolNameSize": 18,
+      "examTitleSize": 13,
+      "candidateBoxFontSize": 11,
+      "baseFontSizePt": 10,
+      "showQuestionMarks": true,
+      "hideAllOptions": false,
+      "hideAllSections": false
+    }
+  },
+  "questions": [
+    {
+      "id": "0437a92f-4777-41b1-9fa1-21c695feced8",
+      "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "1",
+      "questionText": "Three blocks with masses m, 2m and 3m are connected by strings, as shown in the figure. After an upward force F is applied on block m, the masses move upward at constant speed v. What is the net force on the block of mass 2m? (g is the acceleration due to gravity) m 2m 3m v F",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"6 mg\"},{\"key\":\"B\",\"text\":\"zero\"},{\"key\":\"C\",\"text\":\"2 mg\"},{\"key\":\"D\",\"text\":\"3 mg\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-19T15:05:30.573Z",
+      "updatedAt": "2026-09-19T15:08:04.727Z",
+      "folder": {
+        "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "name": "Newtons Laws of Motion",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "55532dd3-67f9-4e76-b8c6-c6f4d2dfd000",
+      "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "2",
+      "questionText": "Two bodies of masses 4 kg and 5 kg are acted upon by the same force. If the acceleration of lighter body is 2 m/s^2, then the acceleration of the heavier body is :-",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"4.2 m/s^2\"},{\"key\":\"B\",\"text\":\"3.6 m/s^2\"},{\"key\":\"C\",\"text\":\"2.4 m/s^2\"},{\"key\":\"D\",\"text\":\"1.6 m/s^2\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-19T15:05:30.661Z",
+      "updatedAt": "2026-09-19T15:05:30.661Z",
+      "folder": {
+        "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "name": "Newtons Laws of Motion",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "0dfaeaea-ca96-4aa4-b199-7dd35cb82cb7",
+      "folderId": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "3",
+      "questionText": "An object with a mass 10 kg moves at a constant velocity of 10 m/s. A constant force then acts for 4 seconds on the object giving it a speed of 2 m/s in opposite direction. The acceleration produced is :-",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"3 m/s^2\"},{\"key\":\"B\",\"text\":\"-3 m/s^2\"},{\"key\":\"C\",\"text\":\"0.3 m/s^2\"},{\"key\":\"D\",\"text\":\"-0.3 m/s^2\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-19T15:05:30.705Z",
+      "updatedAt": "2026-09-19T15:05:30.705Z",
+      "folder": {
+        "id": "684a1b24-74a9-4ebb-8817-886e0183d4df",
+        "name": "Newtons Laws of Motion",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    }
+  ],
+  "updatedAt": "2026-09-19T23:50:38.860Z"
+}

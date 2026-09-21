@@ -1,0 +1,291 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  CONTENT_MANAGER
+  QUESTION_CREATOR
+  TEACHER
+  REVIEWER
+  EXAM_CREATOR
+  OMR_EVALUATOR
+  VIEWER
+  CUSTOM_ROLE
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String
+  fullName     String
+  role         Role       @default(TEACHER)
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  aclRules     AclRule[]
+  questions    Question[]
+  papers       QuestionPaper[]
+  snapshots    PaperSnapshot[]
+  evaluations  OMREvaluation[]
+  auditLogs    AuditLog[]
+}
+
+model AclRule {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resource   String   // "FOLDER" or "QUESTION"
+  resourceId String   // ID of Folder or Question
+  permission String   // "READ", "WRITE", "ADMIN"
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, resource, resourceId])
+}
+
+model Folder {
+  id        String     @id @default(uuid())
+  name      String
+  type      String     // "CLASS", "SUBJECT", "CHAPTER", "TOPIC"
+  parentId  String?
+  parent    Folder?    @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Folder[]   @relation("FolderHierarchy")
+  questions Question[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Document {
+  id            String         @id @default(uuid())
+  filename      String
+  filepath      String
+  sha256        String         @unique
+  fileSizeBytes Int
+  pageCount     Int            @default(1)
+  isDigital     Boolean        @default(false)
+  status        String         @default("UPLOADED") // UPLOADED, PROCESSING, COMPLETED, FAILED
+  profile       String         @default("BALANCED")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  pages         DocumentPage[]
+  snips         VisualSnip[]
+}
+
+model DocumentPage {
+  id           String       @id @default(uuid())
+  documentId   String
+  document     Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  pageNumber   Int
+  imageUrl     String
+  width        Int
+  height       Int
+  confidence   Float        @default(0.95)
+  needsReview  Boolean      @default(false)
+  status       String       @default("PROCESSED")
+
+  regions      PageRegion[]
+  createdAt    DateTime     @default(now())
+
+  @@unique([documentId, pageNumber])
+}
+
+model PageRegion {
+  id             String       @id @default(uuid())
+  pageId         String
+  page           DocumentPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  regionType     String       // "QUESTION", "OPTION", "MATH", "CHEM", "PHYS", "DIAGRAM", "TABLE", "HEADER", "FOOTER"
+  bboxJson       String       // "[x, y, w, h]"
+  rawText        String
+  processedText  String
+  confidence     Float        @default(0.95)
+  readingOrder   Int          @default(1)
+  source         String       @default("DIGITAL")
+  specializedJson String?
+  createdAt      DateTime     @default(now())
+}
+
+model Question {
+  id             String       @id @default(uuid())
+  folderId       String?
+  folder         Folder?      @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  creatorId      String?
+  creator        User?        @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+  questionNumber String       @default("1")
+  questionText   String
+  subquestionsJson String     @default("[]")
+  optionsJson    String       @default("[]") // [{"key": "A", "text": "..."}, ...]
+  correctAnswer  String       @default("")
+  explanation    String       @default("")
+  marks          Int          @default(1)
+  negativeMarks  Float        @default(0.0)
+  difficulty     String       @default("MEDIUM") // EASY, MEDIUM, HARD
+  tagsJson       String       @default("[]")
+  formulasJson   String       @default("[]")
+  diagramsJson   String       @default("[]")
+  isRestricted   Boolean      @default(false)
+  isApproved     Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  snips          VisualSnip[]
+}
+
+model VisualSnip {
+  id            String    @id @default(uuid())
+  documentId    String?
+  document      Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  questionId    String?
+  question      Question? @relation(fields: [questionId], references: [id], onDelete: SetNull)
+  pageNumber    Int       @default(1)
+  bboxJson      String    // "[x, y, w, h]"
+  imageUrl      String
+  extractedText String    @default("")
+  mode          String    @default("AUTO")
+  createdAt     DateTime  @default(now())
+}
+
+model QuestionPaper {
+  id              String         @id @default(uuid())
+  title           String
+  examCode        String
+  schoolName      String         @default("")
+  schoolLogoUrl   String         @default("")
+  instructions    String         @default("")
+  watermark       String         @default("")
+  maxMarks        Int            @default(100)
+  currentMarks    Int            @default(0)
+  durationMinutes Int            @default(180)
+  examDate        String         @default("")
+  examTime        String         @default("")
+  status          String         @default("DRAFT") // DRAFT, FINALIZED
+  canvasLayoutJson String        @default("{}")
+  creatorId       String?
+  creator         User?          @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  snapshots       PaperSnapshot[]
+}
+
+model PaperSnapshot {
+  id              String         @id @default(uuid())
+  paperId         String
+  paper           QuestionPaper  @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  version         Int            @default(1)
+  snapshotDataJson String        // Immutable JSON storing questions, options, formulas, marks, answer key
+  finalizedById   String?
+  finalizedBy     User?          @relation(fields: [finalizedById], references: [id], onDelete: SetNull)
+  finalizedAt     DateTime       @default(now())
+
+  omrTemplates    OMRTemplate[]
+}
+
+model OMRTemplate {
+  id                  String         @id @default(uuid())
+  snapshotId          String
+  snapshot            PaperSnapshot  @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  examCode            String
+  title               String
+  totalQuestions      Int
+  optionsPerQuestion  Int            @default(4)
+  imageUrl            String
+  templateMetadataJson String        // Corner fiducials, bubble grid coordinates
+  createdAt           DateTime       @default(now())
+
+  evaluations         OMREvaluation[]
+}
+
+model OMREvaluation {
+  id                  String         @id @default(uuid())
+  templateId          String
+  template            OMRTemplate    @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  studentName         String         @default("")
+  rollNumber          String         @default("")
+  scannedImageUrl     String
+  annotatedImageUrl   String
+  totalQuestions      Int
+  attemptedCount      Int            @default(0)
+  correctCount        Int            @default(0)
+  incorrectCount      Int            @default(0)
+  unattemptedCount    Int            @default(0)
+  invalidCount        Int            @default(0)
+  uncertainCount      Int            @default(0)
+  rawMarks            Float          @default(0.0)
+  negativeMarks       Float          @default(0.0)
+  finalScore          Float          @default(0.0)
+  maxMarks            Float          @default(0.0)
+  percentage          Float          @default(0.0)
+  detailedResultsJson String         // Detailed per-question answer breakdown
+  isReviewed          Boolean        @default(false)
+  reviewedById        String?
+  reviewedBy          User?          @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt          DateTime?
+  createdAt           DateTime       @default(now())
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action       String   // "LOGIN", "CREATE_QUESTION", "UPDATE_QUESTION", "FINALIZE_PAPER", "EVALUATE_OMR", etc.
+  resourceType String   // "QUESTION", "PAPER", "OMR", "USER", "DOCUMENT"
+  resourceId   String?
+  detailsJson  String   @default("{}")
+  timestamp    DateTime @default(now())
+}
+
+model FormulaRegion {
+  id           String               @id @default(uuid())
+  pageId       String?
+  bboxJson     String               // "[x, y, w, h]"
+  imageUrl     String
+  domain       String               @default("MATH") // MATH, PHYSICS, CHEMISTRY, DIAGRAM
+  confidence   Float                @default(0.95)
+  createdAt    DateTime             @default(now())
+
+  recognitions FormulaRecognition[]
+  symbols      FormulaSymbol[]
+}
+
+model FormulaRecognition {
+  id                   String        @id @default(uuid())
+  regionId             String
+  region               FormulaRegion @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  rawText              String
+  latex                String
+  mathml               String        @default("")
+  structuredExpression String        @default("{}")
+  confidence           Float         @default(0.95)
+  visualSimilarity     Float         @default(0.90)
+  engine               String        @default("SCIENTIFIC_SUBSYSTEM")
+  engineVersion        String        @default("1.0.0")
+  validationStatus     String        @default("VALIDATED") // VALIDATED, NEEDS_REVIEW, REJECTED
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+}
+
+model FormulaSymbol {
+  id          String        @id @default(uuid())
+  regionId    String
+  region      FormulaRegion @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  symbolType  String        // ROOT, OPERATOR, GREEK, UNIT, VARIABLE, NUMBER
+  symbolValue String
+  bboxJson    String        @default("[0,0,0,0]")
+  confidence  Float         @default(0.95)
+}
+
+model ScientificSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  valueJson String
+  updatedAt DateTime @updatedAt
+}
+

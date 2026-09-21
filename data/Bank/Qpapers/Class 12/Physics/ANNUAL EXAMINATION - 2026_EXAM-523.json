@@ -1,0 +1,265 @@
+{
+  "id": "5ef16ba7-a70e-48b1-a356-a69969b424b1",
+  "title": "ANNUAL EXAMINATION - 2026",
+  "examCode": "EXAM-523",
+  "schoolName": "DELHI PUBLIC SCHOOL",
+  "className": "Class 12",
+  "subjectName": "Physics",
+  "maxMarks": 70,
+  "durationMinutes": 180,
+  "examDate": "2026-09-20",
+  "examTime": "09:00 AM - 12:00 PM",
+  "instructions": "1. All questions are compulsory.\n2. Section A contains 1-mark MCQs.\n3. Section B contains short answer questions.\n4. Use of calculators is not permitted.",
+  "status": "DRAFT",
+  "canvasLayout": {
+    "questions": [
+      {
+        "id": "74dcdff5-a6a9-4bb9-abd7-fd9c2fe7308f",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "1",
+        "questionText": "\nA 0.5 kg ball moving with a speed of 12 m/s strikes\na hard wall at an angle of $30^\\circ$ with the wall. It is\nreflected with the same speed and at the same angle.\nIf the ball is in contact with the wall for 0.25 seconds,\nthe average force acting on the wall is :-\n",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"48 N\"},{\"key\":\"B\",\"text\":\"24 N\"},{\"key\":\"C\",\"text\":\"12 N\"},{\"key\":\"D\",\"text\":\"96 N\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"AIPMT 2006\\n1 .\\nA 0.5 kg ball moving with a speed of 12 m/s strikes\\na hard wall at an angle of $30^\\\\circ$ with the wall. It is\\nreflected with the same speed and at the same angle.\\nIf the ball is in contact with the wall for 0.25 seconds,\\nthe average force acting on the wall is :-\"},{\"type\":\"MATH\",\"raw\":\"NL0122\\nAIPMT 2009^2.\\nA body, under the action of a force \\n=\\n-\\n+\\nr\\nˆ\\nˆ\\nˆ\\nF\\n6i\\n8j\\n10k  ,\"},{\"type\":\"MATH\",\"raw\":\"acquires an acceleration of 1m/s^2 . The mass of this\\nbody must be :-\"},{\"type\":\"MATH\",\"raw\":\"AIPMT 2010^3.\\nA block of mass m is in contact with the cart C as\\nshown in the figure. The coefficient of static friction\\nbetween the block and the cart is µ. The acceleration\\na  of the cart that will prevent the block from falling\"},{\"type\":\"MATH\",\"raw\":\"AIPMT 2011^4.\\nA person of mass 60 kg is inside a lift of mass\\n940 kg and presses the button on control panel.\\nThen lift starts moving upwards with an acceleration\\n1.0m/s^2 . If $g = 10$ m/s^2  , the tension in the\\nsupporting cable is :\\n(1) 8600 N\\n(2) 9680 N\\n(3) 11000 N\\n(4)1200 N\"}]",
+        "diagramsJson": "[{\"relative_url\":\"/data/snips/snip_bc06c1b9.png\",\"label\":\"Question Screenshot / Diagram\",\"width\":66,\"height\":93,\"alignment\":\"right\",\"offsetX\":0,\"offsetY\":0}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T01:25:41.829Z",
+        "updatedAt": "2026-09-20T01:25:41.829Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "diagrams": [
+          {
+            "relative_url": "/data/snips/snip_bc06c1b9.png",
+            "label": "Question Screenshot / Diagram",
+            "width": 66,
+            "height": 93,
+            "alignment": "right",
+            "offsetX": 0,
+            "offsetY": 0
+          }
+        ]
+      },
+      {
+        "id": "8b75389a-ac82-4e2b-9d1e-560344c305c0",
+        "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "11",
+        "questionText": "Three blocks A, B and C of masses 4 kg, 2 kg and\n1 kg respectively, are in contact on a frictionless\nsurface, as shown. If a force of 14 N is applied on\nthe 4 kg block, then the contact force between A\nand B is :",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"6 N\"},{\"key\":\"B\",\"text\":\"8 N\"},{\"key\":\"C\",\"text\":\"18 N\"},{\"key\":\"D\",\"text\":\"2 N\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 1,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[{\"diagram_id\":\"diag_aa25b43b\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"bbox\":[971,438,327,90],\"width\":281,\"height\":54,\"labels\":[],\"alignment\":\"right\",\"offsetX\":0,\"offsetY\":0}]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-20T00:37:57.264Z",
+        "updatedAt": "2026-09-20T00:37:57.264Z",
+        "folder": {
+          "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+          "name": "DPP-1",
+          "type": "TOPIC"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        },
+        "diagrams": [
+          {
+            "diagram_id": "diag_aa25b43b",
+            "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
+            "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
+            "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
+            "bbox": [
+              971,
+              438,
+              327,
+              90
+            ],
+            "width": 281,
+            "height": 54,
+            "labels": [],
+            "alignment": "right",
+            "offsetX": 0,
+            "offsetY": 0
+          }
+        ]
+      }
+    ],
+    "settings": {
+      "className": "Class 12",
+      "subjectName": "Physics",
+      "fontFamily": "serif",
+      "fontSize": "10pt",
+      "lineSpacing": "tight",
+      "pageColumns": 1,
+      "spacingPreset": "zero",
+      "pageMargin": "normal",
+      "marginTop": 15,
+      "marginBottom": 15,
+      "marginLeft": 18,
+      "marginRight": 18,
+      "borderStyle": "divider",
+      "optionLayout": "inline",
+      "wrapOptionsBesideDiagram": true,
+      "imageAlignment": "inline",
+      "imageBorderStyle": "none",
+      "imageCustomHeight": 15,
+      "autoMatchText": true,
+      "showWatermark": false,
+      "watermarkText": "CONFIDENTIAL",
+      "showCandidateBox": true,
+      "rollNoStyle": "boxes",
+      "schoolLogoUrl": null,
+      "schoolLogoWidth": 75,
+      "schoolLogoHeight": 75,
+      "schoolLogoPosition": "left",
+      "customHeaderFields": [
+        {
+          "id": "f_class",
+          "label": "CLASS",
+          "value": "Class 12"
+        },
+        {
+          "id": "f_sub",
+          "label": "SUBJECT",
+          "value": "Physics"
+        }
+      ],
+      "customCandidateFields": [],
+      "showHeaderMeta": true,
+      "showExamCode": true,
+      "showTime": true,
+      "showMaxMarks": true,
+      "showSchoolName": true,
+      "showExamTitle": true,
+      "showCandidateName": true,
+      "showRollNo": true,
+      "showInstructions": true,
+      "schoolNameSize": 18,
+      "examTitleSize": 13,
+      "candidateBoxFontSize": 11,
+      "baseFontSizePt": 10,
+      "showQuestionMarks": true,
+      "hideAllOptions": false,
+      "hideAllSections": false
+    }
+  },
+  "questions": [
+    {
+      "id": "74dcdff5-a6a9-4bb9-abd7-fd9c2fe7308f",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "1",
+      "questionText": "\nA 0.5 kg ball moving with a speed of 12 m/s strikes\na hard wall at an angle of $30^\\circ$ with the wall. It is\nreflected with the same speed and at the same angle.\nIf the ball is in contact with the wall for 0.25 seconds,\nthe average force acting on the wall is :-\n",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"48 N\"},{\"key\":\"B\",\"text\":\"24 N\"},{\"key\":\"C\",\"text\":\"12 N\"},{\"key\":\"D\",\"text\":\"96 N\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[{\"type\":\"MATH\",\"raw\":\"AIPMT 2006\\n1 .\\nA 0.5 kg ball moving with a speed of 12 m/s strikes\\na hard wall at an angle of $30^\\\\circ$ with the wall. It is\\nreflected with the same speed and at the same angle.\\nIf the ball is in contact with the wall for 0.25 seconds,\\nthe average force acting on the wall is :-\"},{\"type\":\"MATH\",\"raw\":\"NL0122\\nAIPMT 2009^2.\\nA body, under the action of a force \\n=\\n-\\n+\\nr\\nˆ\\nˆ\\nˆ\\nF\\n6i\\n8j\\n10k  ,\"},{\"type\":\"MATH\",\"raw\":\"acquires an acceleration of 1m/s^2 . The mass of this\\nbody must be :-\"},{\"type\":\"MATH\",\"raw\":\"AIPMT 2010^3.\\nA block of mass m is in contact with the cart C as\\nshown in the figure. The coefficient of static friction\\nbetween the block and the cart is µ. The acceleration\\na  of the cart that will prevent the block from falling\"},{\"type\":\"MATH\",\"raw\":\"AIPMT 2011^4.\\nA person of mass 60 kg is inside a lift of mass\\n940 kg and presses the button on control panel.\\nThen lift starts moving upwards with an acceleration\\n1.0m/s^2 . If $g = 10$ m/s^2  , the tension in the\\nsupporting cable is :\\n(1) 8600 N\\n(2) 9680 N\\n(3) 11000 N\\n(4)1200 N\"}]",
+      "diagramsJson": "[{\"relative_url\":\"/data/snips/snip_bc06c1b9.png\",\"label\":\"Question Screenshot / Diagram\",\"width\":66,\"height\":93,\"alignment\":\"right\",\"offsetX\":0,\"offsetY\":0}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T01:25:41.829Z",
+      "updatedAt": "2026-09-20T01:25:41.829Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "diagrams": [
+        {
+          "relative_url": "/data/snips/snip_bc06c1b9.png",
+          "label": "Question Screenshot / Diagram",
+          "width": 66,
+          "height": 93,
+          "alignment": "right",
+          "offsetX": 0,
+          "offsetY": 0
+        }
+      ]
+    },
+    {
+      "id": "8b75389a-ac82-4e2b-9d1e-560344c305c0",
+      "folderId": "8d10f1d8-47b9-419e-be32-701b62b96506",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "11",
+      "questionText": "Three blocks A, B and C of masses 4 kg, 2 kg and\n1 kg respectively, are in contact on a frictionless\nsurface, as shown. If a force of 14 N is applied on\nthe 4 kg block, then the contact force between A\nand B is :",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"6 N\"},{\"key\":\"B\",\"text\":\"8 N\"},{\"key\":\"C\",\"text\":\"18 N\"},{\"key\":\"D\",\"text\":\"2 N\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 1,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[{\"diagram_id\":\"diag_aa25b43b\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"bbox\":[971,438,327,90],\"width\":281,\"height\":54,\"labels\":[],\"alignment\":\"right\",\"offsetX\":0,\"offsetY\":0}]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-20T00:37:57.264Z",
+      "updatedAt": "2026-09-20T00:37:57.264Z",
+      "folder": {
+        "id": "8d10f1d8-47b9-419e-be32-701b62b96506",
+        "name": "DPP-1",
+        "type": "TOPIC"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      },
+      "diagrams": [
+        {
+          "diagram_id": "diag_aa25b43b",
+          "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
+          "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
+          "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
+          "bbox": [
+            971,
+            438,
+            327,
+            90
+          ],
+          "width": 281,
+          "height": 54,
+          "labels": [],
+          "alignment": "right",
+          "offsetX": 0,
+          "offsetY": 0
+        }
+      ]
+    }
+  ],
+  "updatedAt": "2026-09-20T01:35:25.609Z"
+}

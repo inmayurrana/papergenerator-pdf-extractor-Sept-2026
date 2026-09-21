@@ -1,0 +1,550 @@
+{
+  "id": "5d078318-b36f-488f-bd2c-cbd2e41c80ba",
+  "title": "ANNUAL EXAMINATION 2026",
+  "examCode": "EXAM-710",
+  "schoolName": "CAMBRIDGE INTERNATIONAL SCHOOL MANDI",
+  "className": "Class 12",
+  "subjectName": "Physics",
+  "maxMarks": 70,
+  "durationMinutes": 180,
+  "examDate": "2026-09-19",
+  "examTime": "10:00 AM - 01:00 PM",
+  "instructions": "1. All questions are compulsory.\n2. Section A contains 1-mark MCQs.\n3. Section B contains short answer questions.\n4. Use of calculators is not permitted.",
+  "status": "DRAFT",
+  "canvasLayout": {
+    "questions": [
+      {
+        "id": "db4c5f37-b5f6-463b-ab0b-3772e8341fa8",
+        "folderId": "3475d3d9-a774-446d-95c7-b464c2414c86",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "1",
+        "questionText": "If $V = \\frac{4}{3}\\pi r^{3}$, at what rate in cubic units is V increasing when $r = 10$ and $\\frac{dr}{dt} = 0.01$ ?",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"$\\\\pi$\"},{\"key\":\"B\",\"text\":\"$4\\\\pi$\"},{\"key\":\"C\",\"text\":\"$40\\\\pi$\"},{\"key\":\"D\",\"text\":\"$\\\\frac{4\\\\pi}{3}$\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 0,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-18T11:27:13.888Z",
+        "updatedAt": "2026-09-18T11:27:13.888Z",
+        "folder": {
+          "id": "3475d3d9-a774-446d-95c7-b464c2414c86",
+          "name": "Maths",
+          "type": "SUBJECT"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "07155ef7-a44f-4edf-95f3-38e443bf241c",
+        "folderId": "3475d3d9-a774-446d-95c7-b464c2414c86",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "2",
+        "questionText": "Side of an equilateral triangle expands at the rate of 2 cm/sec. The rate of increase of its area when\neach side is 10 cm is",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"$10\\\\sqrt{2}$ cm^{2}/sec\"},{\"key\":\"B\",\"text\":\"$10\\\\sqrt{3}$ cm^{2}/sec\"},{\"key\":\"C\",\"text\":\"10 cm^{2}/sec\"},{\"key\":\"D\",\"text\":\"5 cm^{2}/sec\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 0,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-18T11:27:13.937Z",
+        "updatedAt": "2026-09-18T11:27:13.937Z",
+        "folder": {
+          "id": "3475d3d9-a774-446d-95c7-b464c2414c86",
+          "name": "Maths",
+          "type": "SUBJECT"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "050d7e96-4e0f-4218-8818-010e7a893fe8",
+        "folderId": "3475d3d9-a774-446d-95c7-b464c2414c86",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "3",
+        "questionText": "The radius of a sphere is changing at the rate of 0.1 cm/sec. The rate of change of its surface area\nwhen the radius is 200 cm is",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"$8\\\\pi$ cm^{2}/sec\"},{\"key\":\"B\",\"text\":\"$12\\\\pi$ cm^{2}/sec\"},{\"key\":\"C\",\"text\":\"$160\\\\pi$ cm^{2}/sec\"},{\"key\":\"D\",\"text\":\"200 cm^{2}/sec\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 0,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-18T11:27:13.984Z",
+        "updatedAt": "2026-09-18T11:27:13.984Z",
+        "folder": {
+          "id": "3475d3d9-a774-446d-95c7-b464c2414c86",
+          "name": "Maths",
+          "type": "SUBJECT"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "26081c0e-c9ae-4051-b890-43d71e006fc0",
+        "folderId": "3475d3d9-a774-446d-95c7-b464c2414c86",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "4",
+        "questionText": "A cone whose height is always equal to its diameter is increasing in volume at the rate of 40 cm^{3}/sec.\nAt what rate is the radius increasing when its circular base area is 1 m^{2} ?",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"1 mm/sec\"},{\"key\":\"B\",\"text\":\"0.001 cm/sec\"},{\"key\":\"C\",\"text\":\"2 mm/sec\"},{\"key\":\"D\",\"text\":\"0.002 cm/sec\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 0,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-18T11:27:14.033Z",
+        "updatedAt": "2026-09-18T11:27:14.033Z",
+        "folder": {
+          "id": "3475d3d9-a774-446d-95c7-b464c2414c86",
+          "name": "Maths",
+          "type": "SUBJECT"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "e29e7ab5-fd3f-4819-8f43-3321d23ea62a",
+        "folderId": "3475d3d9-a774-446d-95c7-b464c2414c86",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "5",
+        "questionText": "A cylindrical vessel of radius 0.5 m is filled with oil at the rate of $0.25\\pi$  m^{3}/minute. The rate at which the\nsurface of the oil is rising, is",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"1 m/minute\"},{\"key\":\"B\",\"text\":\"2 m/minute\"},{\"key\":\"C\",\"text\":\"5 m/minute\"},{\"key\":\"D\",\"text\":\"1.25 m/minute\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 0,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-18T11:27:14.079Z",
+        "updatedAt": "2026-09-18T11:27:14.079Z",
+        "folder": {
+          "id": "3475d3d9-a774-446d-95c7-b464c2414c86",
+          "name": "Maths",
+          "type": "SUBJECT"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "5391bcc9-04d2-447b-ba9a-e8ca50bbedbd",
+        "folderId": "3475d3d9-a774-446d-95c7-b464c2414c86",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "6",
+        "questionText": "The distance moved by the particle in time t is given by $x = t^{3} - 12t^{2} + 6t + 8$. At the instant when its\nacceleration is zero, the velocity is",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"42\"},{\"key\":\"B\",\"text\":\"-42\"},{\"key\":\"C\",\"text\":\"48\"},{\"key\":\"D\",\"text\":\"-48\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 0,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-18T11:27:14.124Z",
+        "updatedAt": "2026-09-18T11:27:14.124Z",
+        "folder": {
+          "id": "3475d3d9-a774-446d-95c7-b464c2414c86",
+          "name": "Maths",
+          "type": "SUBJECT"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "f2be9c70-76c1-40f0-816e-bb13dd78b8a1",
+        "folderId": "3475d3d9-a774-446d-95c7-b464c2414c86",
+        "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "questionNumber": "7",
+        "questionText": "The altitude of a cone is 20 cm and its semi-vertical angle is $30^\\circ$. If the semi-vertical angle is increasing\nat the rate of $2^\\circ$ per second, then the radius of the base is increasing at the rate of",
+        "subquestionsJson": "[]",
+        "optionsJson": "[{\"key\":\"A\",\"text\":\"30 cm/sec\"},{\"key\":\"B\",\"text\":\"$\\\\frac{160}{3}$ cm/sec\"},{\"key\":\"C\",\"text\":\"10 cm/sec\"},{\"key\":\"D\",\"text\":\"160 cm/sec\"}]",
+        "correctAnswer": "",
+        "explanation": "",
+        "marks": 0,
+        "negativeMarks": 0,
+        "difficulty": "MEDIUM",
+        "tagsJson": "[]",
+        "formulasJson": "[]",
+        "diagramsJson": "[]",
+        "isRestricted": false,
+        "isApproved": true,
+        "createdAt": "2026-09-18T11:27:14.171Z",
+        "updatedAt": "2026-09-18T11:27:14.171Z",
+        "folder": {
+          "id": "3475d3d9-a774-446d-95c7-b464c2414c86",
+          "name": "Maths",
+          "type": "SUBJECT"
+        },
+        "creator": {
+          "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+          "fullName": "Mayur Rana",
+          "email": "mayur@cambridgemandi.com"
+        }
+      },
+      {
+        "id": "space_1789791785933_984",
+        "type": "space",
+        "height": 60,
+        "spaceStyle": "blank"
+      },
+      {
+        "id": "space_1789791788173_136",
+        "type": "space",
+        "height": 60,
+        "spaceStyle": "blank"
+      },
+      {
+        "id": "space_1789791788812_469",
+        "type": "space",
+        "height": 60,
+        "spaceStyle": "blank"
+      }
+    ],
+    "settings": {
+      "className": "Class 12",
+      "subjectName": "Physics",
+      "fontFamily": "serif",
+      "fontSize": "10pt",
+      "lineSpacing": "normal",
+      "pageColumns": 1,
+      "spacingPreset": "standard",
+      "pageMargin": "normal",
+      "marginTop": 15,
+      "marginBottom": 15,
+      "marginLeft": 18,
+      "marginRight": 18,
+      "borderStyle": "divider",
+      "optionLayout": "inline",
+      "imageAlignment": "inline",
+      "imageBorderStyle": "none",
+      "imageCustomHeight": 15,
+      "autoMatchText": true,
+      "showWatermark": false,
+      "watermarkText": "CONFIDENTIAL",
+      "showCandidateBox": false,
+      "rollNoStyle": "boxes",
+      "schoolLogoUrl": null,
+      "schoolLogoWidth": 75,
+      "schoolLogoHeight": 75,
+      "schoolLogoPosition": "left",
+      "customHeaderFields": [
+        {
+          "id": "f_class",
+          "label": "CLASS",
+          "value": "12"
+        },
+        {
+          "id": "f_sub",
+          "label": "SUBJECT",
+          "value": "Maths"
+        },
+        {
+          "id": "hf_1789791687030",
+          "label": "DPP",
+          "value": "1"
+        }
+      ],
+      "customCandidateFields": [],
+      "showHeaderMeta": true,
+      "showExamCode": false,
+      "showTime": false,
+      "showMaxMarks": false,
+      "showSchoolName": true,
+      "showExamTitle": false,
+      "showCandidateName": true,
+      "showRollNo": true,
+      "showInstructions": true,
+      "schoolNameSize": 18,
+      "examTitleSize": 13,
+      "candidateBoxFontSize": 11,
+      "baseFontSizePt": 10
+    }
+  },
+  "questions": [
+    {
+      "id": "db4c5f37-b5f6-463b-ab0b-3772e8341fa8",
+      "folderId": "3475d3d9-a774-446d-95c7-b464c2414c86",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "1",
+      "questionText": "If $V = \\frac{4}{3}\\pi r^{3}$, at what rate in cubic units is V increasing when $r = 10$ and $\\frac{dr}{dt} = 0.01$ ?",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"$\\\\pi$\"},{\"key\":\"B\",\"text\":\"$4\\\\pi$\"},{\"key\":\"C\",\"text\":\"$40\\\\pi$\"},{\"key\":\"D\",\"text\":\"$\\\\frac{4\\\\pi}{3}$\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 0,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-18T11:27:13.888Z",
+      "updatedAt": "2026-09-18T11:27:13.888Z",
+      "folder": {
+        "id": "3475d3d9-a774-446d-95c7-b464c2414c86",
+        "name": "Maths",
+        "type": "SUBJECT"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "07155ef7-a44f-4edf-95f3-38e443bf241c",
+      "folderId": "3475d3d9-a774-446d-95c7-b464c2414c86",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "2",
+      "questionText": "Side of an equilateral triangle expands at the rate of 2 cm/sec. The rate of increase of its area when\neach side is 10 cm is",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"$10\\\\sqrt{2}$ cm^{2}/sec\"},{\"key\":\"B\",\"text\":\"$10\\\\sqrt{3}$ cm^{2}/sec\"},{\"key\":\"C\",\"text\":\"10 cm^{2}/sec\"},{\"key\":\"D\",\"text\":\"5 cm^{2}/sec\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 0,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-18T11:27:13.937Z",
+      "updatedAt": "2026-09-18T11:27:13.937Z",
+      "folder": {
+        "id": "3475d3d9-a774-446d-95c7-b464c2414c86",
+        "name": "Maths",
+        "type": "SUBJECT"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "050d7e96-4e0f-4218-8818-010e7a893fe8",
+      "folderId": "3475d3d9-a774-446d-95c7-b464c2414c86",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "3",
+      "questionText": "The radius of a sphere is changing at the rate of 0.1 cm/sec. The rate of change of its surface area\nwhen the radius is 200 cm is",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"$8\\\\pi$ cm^{2}/sec\"},{\"key\":\"B\",\"text\":\"$12\\\\pi$ cm^{2}/sec\"},{\"key\":\"C\",\"text\":\"$160\\\\pi$ cm^{2}/sec\"},{\"key\":\"D\",\"text\":\"200 cm^{2}/sec\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 0,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-18T11:27:13.984Z",
+      "updatedAt": "2026-09-18T11:27:13.984Z",
+      "folder": {
+        "id": "3475d3d9-a774-446d-95c7-b464c2414c86",
+        "name": "Maths",
+        "type": "SUBJECT"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "26081c0e-c9ae-4051-b890-43d71e006fc0",
+      "folderId": "3475d3d9-a774-446d-95c7-b464c2414c86",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "4",
+      "questionText": "A cone whose height is always equal to its diameter is increasing in volume at the rate of 40 cm^{3}/sec.\nAt what rate is the radius increasing when its circular base area is 1 m^{2} ?",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"1 mm/sec\"},{\"key\":\"B\",\"text\":\"0.001 cm/sec\"},{\"key\":\"C\",\"text\":\"2 mm/sec\"},{\"key\":\"D\",\"text\":\"0.002 cm/sec\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 0,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-18T11:27:14.033Z",
+      "updatedAt": "2026-09-18T11:27:14.033Z",
+      "folder": {
+        "id": "3475d3d9-a774-446d-95c7-b464c2414c86",
+        "name": "Maths",
+        "type": "SUBJECT"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "e29e7ab5-fd3f-4819-8f43-3321d23ea62a",
+      "folderId": "3475d3d9-a774-446d-95c7-b464c2414c86",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "5",
+      "questionText": "A cylindrical vessel of radius 0.5 m is filled with oil at the rate of $0.25\\pi$  m^{3}/minute. The rate at which the\nsurface of the oil is rising, is",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"1 m/minute\"},{\"key\":\"B\",\"text\":\"2 m/minute\"},{\"key\":\"C\",\"text\":\"5 m/minute\"},{\"key\":\"D\",\"text\":\"1.25 m/minute\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 0,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-18T11:27:14.079Z",
+      "updatedAt": "2026-09-18T11:27:14.079Z",
+      "folder": {
+        "id": "3475d3d9-a774-446d-95c7-b464c2414c86",
+        "name": "Maths",
+        "type": "SUBJECT"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "5391bcc9-04d2-447b-ba9a-e8ca50bbedbd",
+      "folderId": "3475d3d9-a774-446d-95c7-b464c2414c86",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "6",
+      "questionText": "The distance moved by the particle in time t is given by $x = t^{3} - 12t^{2} + 6t + 8$. At the instant when its\nacceleration is zero, the velocity is",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"42\"},{\"key\":\"B\",\"text\":\"-42\"},{\"key\":\"C\",\"text\":\"48\"},{\"key\":\"D\",\"text\":\"-48\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 0,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-18T11:27:14.124Z",
+      "updatedAt": "2026-09-18T11:27:14.124Z",
+      "folder": {
+        "id": "3475d3d9-a774-446d-95c7-b464c2414c86",
+        "name": "Maths",
+        "type": "SUBJECT"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "f2be9c70-76c1-40f0-816e-bb13dd78b8a1",
+      "folderId": "3475d3d9-a774-446d-95c7-b464c2414c86",
+      "creatorId": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+      "questionNumber": "7",
+      "questionText": "The altitude of a cone is 20 cm and its semi-vertical angle is $30^\\circ$. If the semi-vertical angle is increasing\nat the rate of $2^\\circ$ per second, then the radius of the base is increasing at the rate of",
+      "subquestionsJson": "[]",
+      "optionsJson": "[{\"key\":\"A\",\"text\":\"30 cm/sec\"},{\"key\":\"B\",\"text\":\"$\\\\frac{160}{3}$ cm/sec\"},{\"key\":\"C\",\"text\":\"10 cm/sec\"},{\"key\":\"D\",\"text\":\"160 cm/sec\"}]",
+      "correctAnswer": "",
+      "explanation": "",
+      "marks": 0,
+      "negativeMarks": 0,
+      "difficulty": "MEDIUM",
+      "tagsJson": "[]",
+      "formulasJson": "[]",
+      "diagramsJson": "[]",
+      "isRestricted": false,
+      "isApproved": true,
+      "createdAt": "2026-09-18T11:27:14.171Z",
+      "updatedAt": "2026-09-18T11:27:14.171Z",
+      "folder": {
+        "id": "3475d3d9-a774-446d-95c7-b464c2414c86",
+        "name": "Maths",
+        "type": "SUBJECT"
+      },
+      "creator": {
+        "id": "99b91318-5ecd-44ae-b498-a84f0afc7918",
+        "fullName": "Mayur Rana",
+        "email": "mayur@cambridgemandi.com"
+      }
+    },
+    {
+      "id": "space_1789791785933_984",
+      "type": "space",
+      "height": 60,
+      "spaceStyle": "blank"
+    },
+    {
+      "id": "space_1789791788173_136",
+      "type": "space",
+      "height": 60,
+      "spaceStyle": "blank"
+    },
+    {
+      "id": "space_1789791788812_469",
+      "type": "space",
+      "height": 60,
+      "spaceStyle": "blank"
+    }
+  ],
+  "updatedAt": "2026-09-19T04:23:22.373Z"
+}

@@ -1,0 +1,339 @@
+
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <meta charset="utf-8">
+        <title>ANNUAL EXAMINATION 2026</title>
+        <style>
+          body { font-family: 'Calibri', 'Times New Roman', 'Arial', sans-serif; font-size: 11pt; line-height: 1.35; color: #000; margin: 0.8in; }
+          .school-title { font-size: 18pt; font-weight: bold; text-align: center; text-transform: uppercase; margin-bottom: 3pt; }
+          .exam-title { font-size: 13pt; font-weight: bold; text-align: center; text-transform: uppercase; margin-bottom: 6pt; color: #1a365d; }
+          .meta-table { width: 100%; font-size: 10pt; font-weight: bold; margin-top: 4pt; }
+          .candidate-box { border: 1pt solid #000; padding: 8pt; margin-bottom: 14pt; font-size: 10pt; background: #fafafa; }
+          .roll-box { display: inline-block; width: 16pt; height: 16pt; border: 1pt solid #000; margin-left: 2pt; text-align: center; vertical-align: middle; }
+          .instructions { font-size: 9pt; border-top: 0.5pt solid #ccc; padding-top: 4pt; margin-top: 4pt; color: #333; }
+          .question-block { margin-bottom: 12pt; page-break-inside: avoid; border-bottom: 0.5pt solid #e2e8f0; padding-bottom: 8pt; }
+          .q-stem { font-weight: 500; font-size: 11pt; margin-bottom: 4pt; }
+          .q-marks { float: right; font-weight: bold; font-family: monospace; color: #2d3748; }
+          .diagram-container { margin: 6pt 0; text-align: left; }
+          .diagram-img { max-height: 200pt; max-width: 450pt; width: auto; border: 0.5pt solid #cbd5e0; margin: 4pt 0; }
+          .options-grid { margin-left: 15pt; margin-top: 4pt; font-size: 10.5pt; }
+          .opt-item { display: inline-block; min-width: 22%; margin-right: 15pt; margin-bottom: 4pt; vertical-align: top; }
+          .opt-img { max-height: 45pt; width: auto; display: block; margin-top: 2pt; }
+        </style>
+      </head>
+      <body>
+        
+        <div class="school-title">CAMBRIDGE INTERNATIONAL SCHOOL MANDI</div>
+        <div class="exam-title">ANNUAL EXAMINATION 2026</div>
+        <table class="meta-table">
+          <tr>
+            <td><strong>CLASS & SUBJECT:</strong> Class 12 &gt; Physics</td>
+            <td style="text-align:center;"><strong>TIME:</strong> 180 MINS</td>
+            <td style="text-align:right;"><strong>MAX MARKS:</strong> 70</td>
+          </tr>
+        </table>
+        <hr style="border: 1pt solid #000; margin: 6pt 0 12pt 0;" />
+
+        <div class="candidate-box">
+          <table style="width:100%;">
+            <tr>
+              <td><strong>Candidate Name:</strong> ___________________________________</td>
+              <td style="text-align:right;">
+                <strong>Roll No:</strong>
+                <span class="roll-box"></span><span class="roll-box"></span><span class="roll-box"></span><span class="roll-box"></span><span class="roll-box"></span><span class="roll-box"></span><span class="roll-box"></span><span class="roll-box"></span>
+              </td>
+            </tr>
+          </table>
+          <div class="instructions"><strong>General Instructions:</strong><br/>1. All questions are compulsory.<br/>2. Section A contains 1-mark MCQs.<br/>3. Section B contains short answer questions.<br/>4. Use of calculators is not permitted.</div>
+        </div>
+
+        <div class="questions-container">
+          
+              <div class="question-block">
+                <div class="q-stem">
+                  <span class="q-marks">[1 Mark]</span>
+                  <strong>Q1.</strong> If $V = \frac{4}{3}\pi r^{3}$, at what rate in cubic units is V increasing when $r = 10$ and $\frac{dr}{dt} = 0.01$ ?
+                </div>
+
+                
+
+                
+                  <div class="options-grid">
+                    
+                          <span class="opt-item">
+                            <strong>(A)</strong> $\pi$
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(B)</strong> $4\pi$
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(C)</strong> $40\pi$
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(D)</strong> $\frac{4\pi}{3}$
+                            
+                          </span>
+                        
+                  </div>
+                
+              </div>
+            
+              <div class="question-block">
+                <div class="q-stem">
+                  <span class="q-marks">[1 Mark]</span>
+                  <strong>Q2.</strong> Side of an equilateral triangle expands at the rate of 2 cm/sec. The rate of increase of its area when
+each side is 10 cm is
+                </div>
+
+                
+
+                
+                  <div class="options-grid">
+                    
+                          <span class="opt-item">
+                            <strong>(A)</strong> $10\sqrt{2}$ cm^{2}/sec
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(B)</strong> $10\sqrt{3}$ cm^{2}/sec
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(C)</strong> 10 cm^{2}/sec
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(D)</strong> 5 cm^{2}/sec
+                            
+                          </span>
+                        
+                  </div>
+                
+              </div>
+            
+              <div class="question-block">
+                <div class="q-stem">
+                  <span class="q-marks">[1 Mark]</span>
+                  <strong>Q3.</strong> The radius of a sphere is changing at the rate of 0.1 cm/sec. The rate of change of its surface area
+when the radius is 200 cm is
+                </div>
+
+                
+
+                
+                  <div class="options-grid">
+                    
+                          <span class="opt-item">
+                            <strong>(A)</strong> $8\pi$ cm^{2}/sec
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(B)</strong> $12\pi$ cm^{2}/sec
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(C)</strong> $160\pi$ cm^{2}/sec
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(D)</strong> 200 cm^{2}/sec
+                            
+                          </span>
+                        
+                  </div>
+                
+              </div>
+            
+              <div class="question-block">
+                <div class="q-stem">
+                  <span class="q-marks">[1 Mark]</span>
+                  <strong>Q4.</strong> A cone whose height is always equal to its diameter is increasing in volume at the rate of 40 cm^{3}/sec.
+At what rate is the radius increasing when its circular base area is 1 m^{2} ?
+                </div>
+
+                
+
+                
+                  <div class="options-grid">
+                    
+                          <span class="opt-item">
+                            <strong>(A)</strong> 1 mm/sec
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(B)</strong> 0.001 cm/sec
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(C)</strong> 2 mm/sec
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(D)</strong> 0.002 cm/sec
+                            
+                          </span>
+                        
+                  </div>
+                
+              </div>
+            
+              <div class="question-block">
+                <div class="q-stem">
+                  <span class="q-marks">[1 Mark]</span>
+                  <strong>Q5.</strong> A cylindrical vessel of radius 0.5 m is filled with oil at the rate of $0.25\pi$  m^{3}/minute. The rate at which the
+surface of the oil is rising, is
+                </div>
+
+                
+
+                
+                  <div class="options-grid">
+                    
+                          <span class="opt-item">
+                            <strong>(A)</strong> 1 m/minute
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(B)</strong> 2 m/minute
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(C)</strong> 5 m/minute
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(D)</strong> 1.25 m/minute
+                            
+                          </span>
+                        
+                  </div>
+                
+              </div>
+            
+              <div class="question-block">
+                <div class="q-stem">
+                  <span class="q-marks">[1 Mark]</span>
+                  <strong>Q6.</strong> The distance moved by the particle in time t is given by $x = t^{3} - 12t^{2} + 6t + 8$. At the instant when its
+acceleration is zero, the velocity is
+                </div>
+
+                
+
+                
+                  <div class="options-grid">
+                    
+                          <span class="opt-item">
+                            <strong>(A)</strong> 42
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(B)</strong> -42
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(C)</strong> 48
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(D)</strong> -48
+                            
+                          </span>
+                        
+                  </div>
+                
+              </div>
+            
+              <div class="question-block">
+                <div class="q-stem">
+                  <span class="q-marks">[1 Mark]</span>
+                  <strong>Q7.</strong> The altitude of a cone is 20 cm and its semi-vertical angle is $30^\circ$. If the semi-vertical angle is increasing
+at the rate of $2^\circ$ per second, then the radius of the base is increasing at the rate of
+                </div>
+
+                
+
+                
+                  <div class="options-grid">
+                    
+                          <span class="opt-item">
+                            <strong>(A)</strong> 30 cm/sec
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(B)</strong> $\frac{160}{3}$ cm/sec
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(C)</strong> 10 cm/sec
+                            
+                          </span>
+                        
+                          <span class="opt-item">
+                            <strong>(D)</strong> 160 cm/sec
+                            
+                          </span>
+                        
+                  </div>
+                
+              </div>
+            
+              <div class="question-block">
+                <div class="q-stem">
+                  <span class="q-marks">[1 Mark]</span>
+                  <strong>Q8.</strong> 
+                </div>
+
+                
+
+                
+              </div>
+            
+              <div class="question-block">
+                <div class="q-stem">
+                  <span class="q-marks">[1 Mark]</span>
+                  <strong>Q9.</strong> 
+                </div>
+
+                
+
+                
+              </div>
+            
+              <div class="question-block">
+                <div class="q-stem">
+                  <span class="q-marks">[1 Mark]</span>
+                  <strong>Q10.</strong> 
+                </div>
+
+                
+
+                
+              </div>
+            
+        </div>
+      </body>
+      </html>
+    
