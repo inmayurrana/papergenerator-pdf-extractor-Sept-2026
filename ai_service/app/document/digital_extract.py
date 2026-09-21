@@ -4,6 +4,9 @@ import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import pymupdf  # type: ignore
+
+Rect = getattr(pymupdf, "Rect", None)
+pdf_open = getattr(pymupdf, "open", None)
 from .learning_memory import learning_memory_engine
 from ..core.config import config
 from ..engines.specialized_math import specialized_math
@@ -420,7 +423,7 @@ def _detect_fraction_drawings(page: Any, page_dict: Dict[str, Any]) -> List[Dict
                 # uvicorn is launched from a different working directory via .bat
                 crop_dir = config.STORAGE_FORMULAS / "extracted"
                 crop_dir.mkdir(parents=True, exist_ok=True)
-                crop_rect = pymupdf.Rect(max(0, frac_x0 - 2), max(0, fy - 16.0), frac_x1 + 2, fy + 16.0)
+                crop_rect = Rect(max(0, frac_x0 - 2), max(0, fy - 16.0), frac_x1 + 2, fy + 16.0)
                 pix = page.get_pixmap(clip=crop_rect, dpi=150)
                 crop_file = crop_dir / f"{f_id}.png"
                 pix.save(str(crop_file))
@@ -465,7 +468,7 @@ class DigitalTextExtractor:
         from ..engines.specialized_math import specialized_math
 
         spans = []
-        doc = pymupdf.open(str(pdf_path))
+        doc = pdf_open(str(pdf_path))
         if page_number < 1 or page_number > len(doc):
             doc.close()
             return spans
