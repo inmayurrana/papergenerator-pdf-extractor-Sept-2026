@@ -4,9 +4,7 @@ import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import pymupdf  # type: ignore
-
-Rect = getattr(pymupdf, "Rect", None)
-pdf_open = getattr(pymupdf, "open", None)
+from pymupdf import Rect, open as pdf_open  # type: ignore
 from .learning_memory import learning_memory_engine
 from ..core.config import config
 from ..engines.specialized_math import specialized_math
