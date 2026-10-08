@@ -34,6 +34,38 @@ class StorageSyncService {
     static sanitize(str = "") {
         return str.replace(/[\\/:*?"<>|]/g, "_").trim() || "General";
     }
+    /**
+     * Recursively strips any hardcoded machine absolute_path fields to keep storage portable
+     */
+    static stripHardcodedPaths(obj) {
+        if (obj === null || obj === undefined)
+            return obj;
+        if (typeof obj === "string") {
+            if (obj.includes("absolute_path")) {
+                try {
+                    const parsed = JSON.parse(obj);
+                    return JSON.stringify(this.stripHardcodedPaths(parsed));
+                }
+                catch {
+                    return obj;
+                }
+            }
+            return obj;
+        }
+        if (Array.isArray(obj)) {
+            return obj.map((item) => this.stripHardcodedPaths(item));
+        }
+        if (typeof obj === "object") {
+            const cleanObj = {};
+            for (const [k, v] of Object.entries(obj)) {
+                if (k === "absolute_path")
+                    continue;
+                cleanObj[k] = this.stripHardcodedPaths(v);
+            }
+            return cleanObj;
+        }
+        return obj;
+    }
     static resolveImageToBase64(imgUrl) {
         if (!imgUrl || typeof imgUrl !== "string")
             return null;
@@ -48,19 +80,16 @@ class StorageSyncService {
             const candidates = [
                 path_1.default.resolve(config_1.config.DATA_DIR, cleanPath),
                 path_1.default.resolve(config_1.config.DATA_DIR, "diagrams", path_1.default.basename(cleanPath)),
+                path_1.default.resolve(config_1.config.DATA_DIR, "snips", path_1.default.basename(cleanPath)),
                 path_1.default.resolve(config_1.config.DATA_DIR, "uploads", path_1.default.basename(cleanPath)),
                 path_1.default.resolve(process.cwd(), "data", cleanPath),
                 path_1.default.resolve(process.cwd(), "data", "diagrams", path_1.default.basename(cleanPath)),
+                path_1.default.resolve(process.cwd(), "data", "snips", path_1.default.basename(cleanPath)),
                 path_1.default.resolve(process.cwd(), "data", "uploads", path_1.default.basename(cleanPath)),
                 path_1.default.resolve(process.cwd(), "..", "data", cleanPath),
                 path_1.default.resolve(process.cwd(), "..", "data", "diagrams", path_1.default.basename(cleanPath)),
+                path_1.default.resolve(process.cwd(), "..", "data", "snips", path_1.default.basename(cleanPath)),
                 path_1.default.resolve(process.cwd(), "..", "data", "uploads", path_1.default.basename(cleanPath)),
-                path_1.default.resolve("D:/Recovered_school_app/PAPERGENERATOR/data", cleanPath),
-                path_1.default.resolve("D:/Recovered_school_app/PAPERGENERATOR/data/diagrams", path_1.default.basename(cleanPath)),
-                path_1.default.resolve("D:/Recovered_school_app/PAPERGENERATOR/data/uploads", path_1.default.basename(cleanPath)),
-                path_1.default.resolve("D:/Recovered_school_app/PAPERGENERATOR/server/data", cleanPath),
-                path_1.default.resolve("D:/Recovered_school_app/PAPERGENERATOR/server/data/diagrams", path_1.default.basename(cleanPath)),
-                path_1.default.resolve("D:/Recovered_school_app/PAPERGENERATOR/server/data/uploads", path_1.default.basename(cleanPath)),
             ];
             for (const cand of candidates) {
                 if (fs_1.default.existsSync(cand) && fs_1.default.statSync(cand).isFile()) {
@@ -110,7 +139,7 @@ class StorageSyncService {
         }
     }
     /**
-     * Sync all Questions from Database to D:\Recovered_school_app\PAPERGENERATOR\data\Bank\QuestionsBank\<Class>\<Subject>\
+     * Sync all Questions from Database to data/Bank/QuestionsBank/<Class>/<Subject>/
      */
     static async syncAllQuestionsToDisk() {
         const questions = await prisma_1.prisma.question.findMany({
@@ -133,8 +162,8 @@ class StorageSyncService {
             if (!fs_1.default.existsSync(targetDir)) {
                 fs_1.default.mkdirSync(targetDir, { recursive: true });
             }
-            // 1. Write structured JSON
-            const jsonExport = groupQs.map((q) => ({
+            // 1. Write structured JSON (clean of any local absolute paths)
+            const jsonExport = groupQs.map((q) => this.stripHardcodedPaths({
                 id: q.id,
                 questionNumber: q.questionNumber,
                 questionText: q.questionText,
@@ -177,7 +206,7 @@ class StorageSyncService {
         };
     }
     /**
-     * Sync a single Question Paper to D:\Recovered_school_app\PAPERGENERATOR\data\Bank\Qpapers\<Class>\<Subject>\
+     * Sync a single Question Paper to data/Bank/Qpapers/<Class>/<Subject>/
      */
     static async syncPaperToDisk(paperId) {
         const paper = await prisma_1.prisma.questionPaper.findUnique({ where: { id: paperId } });
@@ -195,8 +224,8 @@ class StorageSyncService {
         const safeTitle = this.sanitize(paper.title);
         const safeExamCode = this.sanitize(paper.examCode);
         const baseFileName = `${safeTitle}_${safeExamCode}`;
-        // 1. Write structured JSON
-        const jsonPayload = {
+        // 1. Write structured JSON (clean of any local absolute paths)
+        const jsonPayload = this.stripHardcodedPaths({
             id: paper.id,
             title: paper.title,
             examCode: paper.examCode,
@@ -212,7 +241,7 @@ class StorageSyncService {
             canvasLayout: layout,
             questions,
             updatedAt: paper.updatedAt,
-        };
+        });
         fs_1.default.writeFileSync(path_1.default.join(targetDir, `${baseFileName}.json`), JSON.stringify(jsonPayload, null, 2), "utf8");
         // 2. Write CSV / Excel
         const escapeCsv = (str = "") => `"${str.replace(/"/g, '""').replace(/\r?\n/g, " ")}"`;
@@ -293,7 +322,7 @@ class StorageSyncService {
             <img src="${schoolLogoB64}" style="max-height: 60pt; max-width: 150pt; width: auto;" alt="School Logo" />
           </div>
         ` : ''}
-        <div class="school-title">${paper.schoolName || "DELHI PUBLIC SCHOOL"}</div>
+        <div class="school-title">${paper.schoolName || "CAMBRIDGE INTERNATIONAL SCHOOL MANDI"}</div>
         <div class="exam-title">${paper.title}</div>
         <table class="meta-table">
           <tr>
@@ -433,7 +462,7 @@ class StorageSyncService {
         return path_1.default.join(targetDir, baseFileName);
     }
     /**
-     * Sync all Question Papers from Database to D:\Recovered_school_app\PAPERGENERATOR\data\Bank\Qpapers\<Class>\<Subject>\
+     * Sync all Question Papers from Database to data/Bank/Qpapers/<Class>/<Subject>/
      */
     static async syncAllPapersToDisk() {
         const papers = await prisma_1.prisma.questionPaper.findMany();
@@ -459,7 +488,7 @@ class StorageSyncService {
     }
     /**
      * Automatically import and restore any existing Question Papers found on physical disk
-     * (D:\Recovered_school_app\PAPERGENERATOR\data\Bank\Qpapers\...) into the Database if table is empty.
+     * (data/Bank/Qpapers/...) into the Database if table is empty.
      */
     static async restorePapersFromDiskIfEmpty() {
         try {
@@ -500,7 +529,7 @@ class StorageSyncService {
                             data: {
                                 title,
                                 examCode,
-                                schoolName: content.schoolName || "DELHI PUBLIC SCHOOL",
+                                schoolName: content.schoolName || "CAMBRIDGE INTERNATIONAL SCHOOL MANDI",
                                 maxMarks: Number(content.maxMarks) || 70,
                                 currentMarks: Number(content.currentMarks) || 0,
                                 durationMinutes: Number(content.durationMinutes) || 180,

@@ -28,10 +28,13 @@ class LearningMemoryEngine:
                 with open(self.data_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     loaded_rules = data.get("rules", [])
-                    # Guard: Filter out any corrupt or dangerous syntax/delimiter rules
+                    # Guard: Filter out any corrupt or dangerous syntax/delimiter rules or stopwords
+                    bad_patterns = [r"\}\{", "}{", r"\{", r"\}", "{", "}", r"\$\n\$", "42\\ N", "and", "do not have any relative motion is :"]
                     self.rules = [
                         r for r in loaded_rules
-                        if r.get("raw_pattern") not in [r"\}\{", "}{", r"\{", r"\}", "{", "}", r"\$\n\$"]
+                        if r.get("raw_pattern") not in bad_patterns
+                        and r.get("raw_pattern") != "and"
+                        and r.get("replacement") != "and"
                         and "dr/dt}}" not in r.get("raw_pattern", "")
                         and r.get("id") != "diff_767843"
                     ]
@@ -153,6 +156,22 @@ class LearningMemoryEngine:
                     continue
                 # Reject unbalanced braces
                 if raw_s.count("{") != raw_s.count("}") or corr_s.count("{") != corr_s.count("}"):
+                    continue
+
+                # Guard: Reject common English stopwords and physical quantities with units
+                STOPWORDS = {
+                    "and", "the", "of", "to", "in", "is", "for", "with", "on", "at", "by", "from",
+                    "as", "or", "an", "be", "are", "were", "was", "has", "have", "had", "not", "but",
+                    "if", "then", "so", "that", "this", "these", "those", "which", "what", "where"
+                }
+                raw_lower = raw_token.strip().lower()
+                corr_lower = corr_token.strip().lower()
+                if raw_lower in STOPWORDS or corr_lower in STOPWORDS:
+                    continue
+                # Reject physical quantities or numeric values (e.g. "42 N", "5 kg")
+                if re.match(r"^\d+(?:\.\d+)?\s*(?:N|kg|g|m|cm|mm|s|J|V|A|W|Pa|Hz|kgf)\b", raw_token.strip(), re.IGNORECASE):
+                    continue
+                if re.match(r"^\d+(?:\.\d+)?\s*(?:N|kg|g|m|cm|mm|s|J|V|A|W|Pa|Hz|kgf)\b", corr_token.strip(), re.IGNORECASE):
                     continue
 
                 # If token is short (e.g. ´ -> \times or 2 -> ^2)

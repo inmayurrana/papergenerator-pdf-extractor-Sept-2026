@@ -16,10 +16,10 @@ export default defineConfig({
         target: 'http://127.0.0.1:5010',
         changeOrigin: true,
       },
-      // /storage is served by the AI service (FastAPI) on port 8001
+      // /storage is served by the AI service (FastAPI) on port 8010
       // It hosts formula crop images, snips, OMR images, etc.
       '/storage': {
-        target: 'http://127.0.0.1:8001',
+        target: 'http://127.0.0.1:8010',
         changeOrigin: true,
       },
     },

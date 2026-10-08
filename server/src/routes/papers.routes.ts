@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import { prisma } from "../prisma";
 import { config } from "../config";
-import { authenticateJwt, AuthRequest } from "../middleware/auth";
+import { authenticateJwt, AuthRequest, checkPaperAccess } from "../middleware/auth";
 import { logAuditAction } from "../middleware/audit";
 import { StorageSyncService } from "../services/storageSync.service";
 
@@ -145,9 +145,28 @@ router.put("/:id", async (req: AuthRequest, res: Response) => {
       data.canvasLayoutJson = JSON.stringify(layoutObj);
     }
 
+    const existing = await prisma.questionPaper.findUnique({ where: { id } });
+
     const paper = await prisma.questionPaper.update({
       where: { id },
       data,
+    });
+
+    const changes: Record<string, { from: any; to: any }> = {};
+    for (const key of Object.keys(data)) {
+      if (key === "canvasLayoutJson") continue;
+      const oldVal = (existing as any)?.[key];
+      const newVal = data[key];
+      if (oldVal !== newVal) {
+        changes[key] = { from: oldVal, to: newVal };
+      }
+    }
+
+    await logAuditAction(req.user!.id, "UPDATE_PAPER", "PAPER", paper.id, {
+      title: paper.title,
+      examCode: paper.examCode,
+      changes,
+      updatedFields: Object.keys(changes),
     });
 
     const syncPath = await StorageSyncService.syncPaperToDisk(paper.id);
@@ -249,8 +268,13 @@ router.post("/:id/finalize", async (req: AuthRequest, res: Response) => {
 router.delete("/:id", async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+    const sourcePaper = await prisma.questionPaper.findUnique({ where: { id } });
     await prisma.questionPaper.delete({ where: { id } });
-    await logAuditAction(req.user!.id, "DELETE_PAPER", "PAPER", id);
+    await logAuditAction(req.user!.id, "DELETE_PAPER", "PAPER", id, {
+      title: sourcePaper?.title,
+      examCode: sourcePaper?.examCode,
+      maxMarks: sourcePaper?.maxMarks,
+    });
     res.json({ message: "Question paper deleted successfully" });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -299,7 +323,7 @@ router.post("/:id/clone", async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Sync all Question Papers & Question Bank to Physical Disk Storage (D:\Recovered_school_app\PAPERGENERATOR\data\Bank)
+// Sync all Question Papers & Question Bank to Physical Disk Storage (data/Bank)
 router.post("/sync-storage", async (req: AuthRequest, res: Response) => {
   try {
     const summary = await StorageSyncService.syncAllToDisk();
@@ -320,6 +344,11 @@ router.get("/:id/export/excel", async (req: AuthRequest, res: Response) => {
     const paper = await prisma.questionPaper.findUnique({ where: { id } });
     if (!paper) {
       res.status(404).json({ error: "Question paper not found" });
+      return;
+    }
+
+    if (!(await checkPaperAccess(req.user!.id, req.user!.role, paper, "EXPORT"))) {
+      res.status(403).json({ error: "Forbidden: You do not have permission to download, export, or print this question paper. It must be assigned to your account." });
       return;
     }
 
@@ -407,14 +436,6 @@ function resolveImageToBase64(imgUrl?: string | null): string | null {
       path.resolve(process.cwd(), "..", "data", "diagrams", path.basename(cleanPath)),
       path.resolve(process.cwd(), "..", "data", "snips", path.basename(cleanPath)),
       path.resolve(process.cwd(), "..", "data", "uploads", path.basename(cleanPath)),
-      path.resolve("D:/Recovered_school_app/PAPERGENERATOR/data", cleanPath),
-      path.resolve("D:/Recovered_school_app/PAPERGENERATOR/data/diagrams", path.basename(cleanPath)),
-      path.resolve("D:/Recovered_school_app/PAPERGENERATOR/data/snips", path.basename(cleanPath)),
-      path.resolve("D:/Recovered_school_app/PAPERGENERATOR/data/uploads", path.basename(cleanPath)),
-      path.resolve("D:/Recovered_school_app/PAPERGENERATOR/server/data", cleanPath),
-      path.resolve("D:/Recovered_school_app/PAPERGENERATOR/server/data/diagrams", path.basename(cleanPath)),
-      path.resolve("D:/Recovered_school_app/PAPERGENERATOR/server/data/snips", path.basename(cleanPath)),
-      path.resolve("D:/Recovered_school_app/PAPERGENERATOR/server/data/uploads", path.basename(cleanPath)),
     ];
 
     for (const cand of candidates) {
@@ -439,6 +460,11 @@ router.get("/:id/export/word", async (req: AuthRequest, res: Response) => {
     const paper = await prisma.questionPaper.findUnique({ where: { id } });
     if (!paper) {
       res.status(404).json({ error: "Question paper not found" });
+      return;
+    }
+
+    if (!(await checkPaperAccess(req.user!.id, req.user!.role, paper, "EXPORT"))) {
+      res.status(403).json({ error: "Forbidden: You do not have permission to download, export, or print this question paper. It must be assigned to your account." });
       return;
     }
 
@@ -532,12 +558,22 @@ router.get("/:id/export/word", async (req: AuthRequest, res: Response) => {
       </head>
       <body>
         <div class="Section1">
+        ${settings.showWatermark ? `
+          <div style="position: absolute; top: 35%; left: 5%; width: 90%; text-align: center; font-size: 46pt; color: #e2e8f0; text-transform: uppercase; font-weight: bold; transform: rotate(-30deg); z-index: -1000; opacity: 0.20; font-family: sans-serif; pointer-events: none;">
+            ${settings.watermarkText || paper.schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI'}
+          </div>
+        ` : ''}
+        ${settings.showPageHeader && settings.customPageHeader ? `
+          <div style="font-size: 8.5pt; color: #64748b; border-bottom: 0.5pt solid #cbd5e1; padding-bottom: 3pt; margin-bottom: 8pt; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">
+            ${settings.customPageHeader.replace('{SCHOOL}', paper.schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI').replace('{CODE}', paper.examCode || '')}
+          </div>
+        ` : ''}
         ${schoolLogoB64 ? `
           <div style="text-align: center; margin-bottom: 8pt;">
             <img src="${schoolLogoB64}" style="max-height: 60pt; max-width: 150pt; width: auto;" alt="School Logo" />
           </div>
         ` : ''}
-        <div class="school-title">${paper.schoolName || 'DELHI PUBLIC SCHOOL'}</div>
+        <div class="school-title">${paper.schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI'}</div>
         <div class="exam-title">${paper.title}</div>
         <table class="meta-table">
           <tr>
@@ -708,6 +744,11 @@ router.get("/:id/export/word", async (req: AuthRequest, res: Response) => {
             </div>
           </div>
         `).join('')}
+        ${settings.showPageFooter && settings.customPageFooter ? `
+          <div style="font-size: 8pt; color: #64748b; border-top: 0.5pt solid #cbd5e1; padding-top: 4pt; margin-top: 15pt; text-align: center;">
+            ${settings.customPageFooter.replace('{SCHOOL}', paper.schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI').replace('{CODE}', paper.examCode || '')}
+          </div>
+        ` : ''}
         </div>
       </body>
       </html>
@@ -733,6 +774,11 @@ router.get("/:id/export/json", async (req: AuthRequest, res: Response) => {
 
     if (!paper) {
       res.status(404).json({ error: "Question paper not found" });
+      return;
+    }
+
+    if (!(await checkPaperAccess(req.user!.id, req.user!.role, paper, "EXPORT"))) {
+      res.status(403).json({ error: "Forbidden: You do not have permission to download, export, or print this question paper. It must be assigned to your account." });
       return;
     }
 
@@ -789,6 +835,11 @@ router.get("/:id/export/pdf", async (req: AuthRequest, res: Response) => {
 
     if (!paper) {
       res.status(404).json({ error: "Question paper not found" });
+      return;
+    }
+
+    if (!(await checkPaperAccess(req.user!.id, req.user!.role, paper, "EXPORT"))) {
+      res.status(403).json({ error: "Forbidden: You do not have permission to download, export, or print this question paper. It must be assigned to your account." });
       return;
     }
 
@@ -867,7 +918,7 @@ router.post("/import/json", async (req: AuthRequest, res: Response) => {
       data: {
         title: pData.title.endsWith("(Imported)") ? pData.title : `${pData.title} (Imported)`,
         examCode,
-        schoolName: pData.schoolName || "DELHI PUBLIC SCHOOL",
+        schoolName: pData.schoolName || "CAMBRIDGE INTERNATIONAL SCHOOL MANDI",
         schoolLogoUrl: pData.schoolLogoUrl || "",
         instructions: pData.instructions || "1. Answer all questions.",
         watermark: pData.watermark || "",

@@ -30,24 +30,24 @@ export const ThemePreferencesModal: React.FC = () => {
 
       {/* Modal Content */}
       <div
-        className="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] z-10 animate-scaleUp"
+        className="relative w-full max-w-2xl bg-white border border-classic-border rounded-lg shadow-classic-md overflow-hidden flex flex-col max-h-[85vh] z-10"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/60">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-classic-border-light bg-classic-surface-muted">
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
-              <Palette className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-md bg-classic-navy text-white flex items-center justify-center shadow-classic">
+              <Palette className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white flex items-center space-x-2">
+              <h2 className="text-base font-bold text-classic-text-primary flex items-center space-x-2">
                 <span>Visual Themes & Preferences</span>
-                <span className="text-[10px] bg-indigo-950 text-indigo-300 font-mono px-2 py-0.5 rounded-full border border-indigo-500/40 font-semibold">
+                <span className="text-[10px] bg-slate-200 text-classic-navy font-mono px-2 py-0.5 rounded border border-classic-border font-semibold">
                   {AVAILABLE_THEMES.length} Themes
                 </span>
               </h2>
-              <p className="text-xs text-slate-400">
-                Choose from curated internet developer & examination themes
+              <p className="text-xs text-classic-text-muted">
+                Enterprise document management themes & visual modes
               </p>
             </div>
           </div>
@@ -55,32 +55,44 @@ export const ThemePreferencesModal: React.FC = () => {
           <button
             type="button"
             onClick={closePreferences}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
+            className="p-1.5 text-classic-text-muted hover:text-classic-text-primary hover:bg-classic-surface-muted rounded-md transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Category Filters */}
-        <div className="px-6 py-3 border-b border-slate-800/80 bg-slate-950/30 flex items-center space-x-2 overflow-x-auto">
+        <div className="px-6 py-3 border-b border-classic-border-light bg-white flex items-center space-x-2 overflow-x-auto">
           <button
             type="button"
             onClick={() => setSelectedCategory('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
               selectedCategory === 'all'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                ? 'bg-classic-navy text-white shadow-classic'
+                : 'text-classic-text-secondary hover:text-classic-text-primary hover:bg-classic-surface-muted'
             }`}
           >
             🌟 All Themes
           </button>
           <button
             type="button"
+            onClick={() => setSelectedCategory('light')}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center space-x-1.5 transition-colors ${
+              selectedCategory === 'light'
+                ? 'bg-classic-navy text-white shadow-classic'
+                : 'text-classic-text-secondary hover:text-classic-text-primary hover:bg-classic-surface-muted'
+            }`}
+          >
+            <Sun className="w-3.5 h-3.5" />
+            <span>Classic Light (Standard)</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setSelectedCategory('dark')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all ${
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center space-x-1.5 transition-colors ${
               selectedCategory === 'dark'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                ? 'bg-classic-navy text-white shadow-classic'
+                : 'text-classic-text-secondary hover:text-classic-text-primary hover:bg-classic-surface-muted'
             }`}
           >
             <Moon className="w-3.5 h-3.5" />
@@ -89,53 +101,41 @@ export const ThemePreferencesModal: React.FC = () => {
           <button
             type="button"
             onClick={() => setSelectedCategory('neon')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all ${
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center space-x-1.5 transition-colors ${
               selectedCategory === 'neon'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                ? 'bg-classic-navy text-white shadow-classic'
+                : 'text-classic-text-secondary hover:text-classic-text-primary hover:bg-classic-surface-muted'
             }`}
           >
-            <Zap className="w-3.5 h-3.5 text-amber-400" />
+            <Zap className="w-3.5 h-3.5" />
             <span>Cyberpunk & Neon</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedCategory('light')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all ${
-              selectedCategory === 'light'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <Sun className="w-3.5 h-3.5 text-amber-300" />
-            <span>Clean Paper / Light</span>
           </button>
         </div>
 
         {/* Themes Grid */}
-        <div className="p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
+        <div className="p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 bg-classic-background">
           {filteredThemes.map((theme: ThemeOption) => {
             const isActive = currentTheme === theme.id;
             return (
               <div
                 key={theme.id}
                 onClick={() => setTheme(theme.id)}
-                className={`group relative p-4 rounded-2xl border cursor-pointer transition-all duration-200 ${
+                className={`group relative p-4 rounded-md border cursor-pointer transition-colors ${
                   isActive
-                    ? 'border-indigo-500 bg-indigo-950/30 ring-2 ring-indigo-500/40 shadow-xl shadow-indigo-500/10'
-                    : 'border-slate-800 bg-slate-950/60 hover:border-slate-700 hover:bg-slate-900/90'
+                    ? 'border-classic-navy bg-white ring-2 ring-classic-navy shadow-classic'
+                    : 'border-classic-border bg-white hover:border-classic-border-dark'
                 }`}
               >
                 {/* Active Indicator Badge */}
                 {isActive && (
-                  <div className="absolute top-3 right-3 flex items-center space-x-1 bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
-                    <Check className="w-3 h-3" />
-                    <span>ACTIVE</span>
+                  <div className="absolute top-3 right-3 flex items-center space-x-1 bg-classic-navy text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">
+                    <Check className="w-3 h-3 text-white" />
+                    <span className="text-white">ACTIVE</span>
                   </div>
                 )}
 
                 {/* Color Palette Preview Bar */}
-                <div className="h-10 rounded-xl overflow-hidden flex border border-white/10 mb-3 shadow-inner">
+                <div className="h-9 rounded overflow-hidden flex border border-classic-border mb-3 shadow-inner">
                   <div
                     className="flex-1 h-full"
                     style={{ backgroundColor: theme.previewColors.bg }}
@@ -170,18 +170,18 @@ export const ThemePreferencesModal: React.FC = () => {
 
                 {/* Title & Tagline */}
                 <div>
-                  <h3 className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors flex items-center space-x-1.5">
+                  <h3 className="text-sm font-bold text-classic-text-primary group-hover:text-classic-navy transition-colors flex items-center space-x-1.5">
                     <span>{theme.name}</span>
                   </h3>
-                  <p className="text-[11px] text-slate-400 mt-1 leading-snug">
+                  <p className="text-[11px] text-classic-text-secondary mt-1 leading-snug">
                     {theme.description}
                   </p>
                 </div>
 
                 {/* Bottom Color Chips */}
-                <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400">
+                <div className="mt-3 pt-2.5 border-t border-classic-border-light flex items-center justify-between text-[10px] text-classic-text-muted">
                   <span className="capitalize font-mono">{theme.category} mode</span>
-                  <span className="font-mono text-[10px] text-slate-500">
+                  <span className="font-mono text-[10px] text-classic-text-secondary">
                     {theme.previewColors.accent}
                   </span>
                 </div>
@@ -191,20 +191,20 @@ export const ThemePreferencesModal: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3.5 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between">
+        <div className="px-6 py-3.5 border-t border-classic-border-light bg-white flex items-center justify-between">
           <button
             type="button"
-            onClick={() => setTheme('midnight')}
-            className="text-xs text-slate-400 hover:text-slate-200 flex items-center space-x-1.5 transition-colors"
+            onClick={() => setTheme('navy-academic')}
+            className="text-xs text-classic-navy hover:underline flex items-center space-x-1.5 font-semibold transition-colors"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset to Default (Midnight)</span>
+            <span>Reset to Standard (Classic Navy)</span>
           </button>
 
           <button
             type="button"
             onClick={closePreferences}
-            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-600/20"
+            className="classic-button classic-button-primary !text-xs !py-1.5 !px-5"
           >
             Done
           </button>

@@ -59,17 +59,27 @@ import {
   User,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Stamp,
   BookOpen,
   Bookmark,
   Tag,
+  Pin,
+  PinOff,
+  FolderPlus,
+  Settings,
 } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useAuthStore } from '../lib/authStore';
 import { MathRenderer } from '../components/common/MathRenderer';
 import { ResizableImage } from '../components/common/ResizableImage';
+import { triggerFileDownload, extractErrorMessage } from '../lib/downloadHelper';
 
 export const PaperDesigner: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedPaperId = searchParams.get('id');
 
@@ -81,7 +91,7 @@ export const PaperDesigner: React.FC = () => {
   // Paper Metadata Settings
   const [title, setTitle] = useState('ANNUAL EXAMINATION - 2026');
   const [examCode, setExamCode] = useState('PHY-101');
-  const [schoolName, setSchoolName] = useState('DELHI PUBLIC SCHOOL');
+  const [schoolName, setSchoolName] = useState('CAMBRIDGE INTERNATIONAL SCHOOL MANDI');
   const [className, setClassName] = useState('Class 12');
   const [subjectName, setSubjectName] = useState('Physics');
   const [maxMarks, setMaxMarks] = useState(70);
@@ -93,12 +103,135 @@ export const PaperDesigner: React.FC = () => {
   );
 
   // MS Word-like Layout & Styling State
+  const [activeRibbonTab, setActiveRibbonTab] = useState<'ALL' | 'HOME' | 'LAYOUT' | 'INSERT' | 'REVIEW' | 'FILE' | 'VIEW'>('ALL');
+  const [isRibbonPinned, setIsRibbonPinned] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('pg_ribbon_pinned') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [isRibbonMinimized, setIsRibbonMinimized] = useState<boolean>(() => {
+    try {
+      const pinned = localStorage.getItem('pg_ribbon_pinned') === 'true';
+      if (pinned) return false;
+      return true; // By default minimize all ribbon options
+    } catch {
+      return true;
+    }
+  });
+  const ribbonAutoHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isRibbonHoveredRef = useRef(false);
+
+  const clearRibbonAutoHide = () => {
+    if (ribbonAutoHideTimerRef.current) {
+      clearTimeout(ribbonAutoHideTimerRef.current);
+      ribbonAutoHideTimerRef.current = null;
+    }
+  };
+
+  const startRibbonAutoHide = (delayMs = 5000) => {
+    clearRibbonAutoHide();
+    if (isRibbonPinned || isRibbonHoveredRef.current) return;
+    ribbonAutoHideTimerRef.current = setTimeout(() => {
+      if (!isRibbonPinned && !isRibbonHoveredRef.current) {
+        setIsRibbonMinimized(true);
+      }
+    }, delayMs);
+  };
+
+  useEffect(() => {
+    if (!isRibbonPinned && !isRibbonMinimized) {
+      startRibbonAutoHide(5000);
+    }
+    return () => clearRibbonAutoHide();
+  }, [isRibbonPinned, isRibbonMinimized]);
+
+  // Canvas Toolbar Auto-Hide in 5s & Pin Controls
+  const [isCanvasToolbarPinned, setIsCanvasToolbarPinned] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('pg_canvas_toolbar_pinned') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [isCanvasToolbarMinimized, setIsCanvasToolbarMinimized] = useState<boolean>(() => {
+    try {
+      const pinned = localStorage.getItem('pg_canvas_toolbar_pinned') === 'true';
+      if (pinned) return false;
+      return true; // By default minimize canvas toolbar options
+    } catch {
+      return true;
+    }
+  });
+  const canvasToolbarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isCanvasToolbarHoveredRef = useRef(false);
+
+  const clearCanvasToolbarTimer = () => {
+    if (canvasToolbarTimerRef.current) {
+      clearTimeout(canvasToolbarTimerRef.current);
+      canvasToolbarTimerRef.current = null;
+    }
+  };
+
+  const startCanvasToolbarAutoHide = (delayMs = 5000) => {
+    clearCanvasToolbarTimer();
+    if (isCanvasToolbarPinned || isCanvasToolbarHoveredRef.current) return;
+    canvasToolbarTimerRef.current = setTimeout(() => {
+      if (!isCanvasToolbarPinned && !isCanvasToolbarHoveredRef.current) {
+        setIsCanvasToolbarMinimized(true);
+      }
+    }, delayMs);
+  };
+
+  useEffect(() => {
+    if (!isCanvasToolbarPinned && !isCanvasToolbarMinimized) {
+      startCanvasToolbarAutoHide(5000);
+    }
+    return () => clearCanvasToolbarTimer();
+  }, [isCanvasToolbarPinned, isCanvasToolbarMinimized]);
+
+  // Selected question on the paper canvas (contextual ribbon options display when selected, hide when not selected)
+  const [selectedCanvasQuestionIdx, setSelectedCanvasQuestionIdx] = useState<number | null>(null);
+  const [savingCanvasQToBank, setSavingCanvasQToBank] = useState<boolean>(false);
+
+  const handleSaveCanvasQuestionToBank = async (qIndex: number) => {
+    const q = selectedPaperQuestions[qIndex];
+    if (!q) return;
+    setSavingCanvasQToBank(true);
+    try {
+      const options = typeof q.optionsJson === 'string' ? JSON.parse(q.optionsJson) : q.options || [];
+      const diagrams = typeof q.diagramsJson === 'string' ? JSON.parse(q.diagramsJson) : q.diagrams || [];
+      await api.post('/questions', {
+        questionText: q.questionText || q.text || '',
+        marks: Number(q.marks) || 1,
+        negativeMarks: Number(q.negativeMarks) || 0,
+        difficulty: q.difficulty || 'MEDIUM',
+        options: options,
+        correctAnswer: q.correctAnswer || '',
+        explanation: q.explanation || '',
+        diagrams: diagrams,
+      });
+      showToast(`✓ Question Q${qIndex + 1} saved to Question Bank!`);
+    } catch (err: any) {
+      alert(`Failed to save question to bank: ${err.message}`);
+    } finally {
+      setSavingCanvasQToBank(false);
+    }
+  };
+
+  const handleDeleteCanvasQuestion = (idx: number) => {
+    const updated = selectedPaperQuestions.filter((_, i) => i !== idx);
+    setSelectedPaperQuestions(updated);
+    savePaperLayout(updated);
+    showToast(`Removed question from canvas`);
+  };
   const [fontFamily, setFontFamily] = useState<string>('serif');
   const [fontSize, setFontSize] = useState<string>('10pt');
-  const [lineSpacing, setLineSpacing] = useState<'none' | 'compact' | 'tight' | 'normal' | 'relaxed'>('tight');
+  const [lineSpacing, setLineSpacing] = useState<'none' | 'compact' | 'tight' | 'normal' | 'relaxed'>('none');
   const [pageColumns, setPageColumns] = useState<1 | 2>(1);
   const [spacingPreset, setSpacingPreset] = useState<'zero' | 'compact' | 'standard'>('zero');
-  const [pageMargin, setPageMargin] = useState<'zero' | 'narrow' | 'normal' | 'wide' | 'custom'>('normal');
+  const [pageMargin, setPageMargin] = useState<'zero' | 'narrow' | 'normal' | 'wide' | 'custom'>('zero');
   const [marginTop, setMarginTop] = useState<number>(15);
   const [marginBottom, setMarginBottom] = useState<number>(15);
   const [marginLeft, setMarginLeft] = useState<number>(18);
@@ -112,8 +245,42 @@ export const PaperDesigner: React.FC = () => {
   const [imageBorderStyle, setImageBorderStyle] = useState<'none' | 'subtle'>('none');
   const [imageCustomHeight, setImageCustomHeight] = useState<number>(15);
   const [autoMatchText, setAutoMatchText] = useState(true);
-  const [showWatermark, setShowWatermark] = useState(false);
-  const [watermarkText, setWatermarkText] = useState('CONFIDENTIAL');
+  const [showWatermark, setShowWatermark] = useState<boolean>(true);
+  const [watermarkType, setWatermarkType] = useState<'school' | 'custom_text' | 'image'>('school');
+  const [watermarkText, setWatermarkText] = useState<string>('CAMBRIDGE INTERNATIONAL SCHOOL MANDI');
+  const [watermarkImageUrl, setWatermarkImageUrl] = useState<string | null>(null);
+  const [watermarkSize, setWatermarkSize] = useState<number>(64);
+  const [watermarkOpacity, setWatermarkOpacity] = useState<number>(0.06);
+  const [watermarkRotation, setWatermarkRotation] = useState<number>(-30);
+  const watermarkFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleWatermarkImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image size exceeds 5MB limit');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setWatermarkImageUrl(result);
+      setWatermarkType('image');
+      setWatermarkSize(280);
+      savePaperLayout(selectedPaperQuestions, {
+        watermarkType: 'image',
+        watermarkImageUrl: result,
+        watermarkSize: 280,
+      });
+      showToast('✓ Watermark image uploaded successfully');
+    };
+    reader.readAsDataURL(file);
+  };
+  const [showPageHeader, setShowPageHeader] = useState(false);
+  const [showPageFooter, setShowPageFooter] = useState(true);
+  const [customPageHeader, setCustomPageHeader] = useState('');
+  const [customPageFooter, setCustomPageFooter] = useState('{SCHOOL} | {EXAM} | Page {PAGE}');
+  const [isHeaderFooterModalOpen, setIsHeaderFooterModalOpen] = useState(false);
   const [showCandidateBox, setShowCandidateBox] = useState(true);
 
   // Roll Number Style & Logo Customization
@@ -143,6 +310,7 @@ export const PaperDesigner: React.FC = () => {
   const [bankDifficultyFilter, setBankDifficultyFilter] = useState<string>('all');
   const [modalSelectedQIds, setModalSelectedQIds] = useState<Set<string>>(new Set());
   const [modalQuestionMarksMap, setModalQuestionMarksMap] = useState<Record<string, number>>({});
+  const [modalExpandedOptionIds, setModalExpandedOptionIds] = useState<Set<string>>(new Set());
 
   // Studio UI View Mode: 'split' (Side-by-Side) | 'editor' (Interactive Canvas) | 'a4_preview' (Realistic White Sheet)
   const [viewMode, setViewMode] = useState<'split' | 'editor' | 'a4_preview'>('split');
@@ -289,7 +457,12 @@ export const PaperDesigner: React.FC = () => {
         imageCustomHeight,
         autoMatchText,
         showWatermark,
+        watermarkType,
         watermarkText,
+        watermarkImageUrl,
+        watermarkSize,
+        watermarkOpacity,
+        watermarkRotation,
         showCandidateBox,
         rollNoStyle,
         schoolLogoUrl,
@@ -314,6 +487,10 @@ export const PaperDesigner: React.FC = () => {
         showQuestionMarks,
         hideAllOptions,
         hideAllSections,
+        showPageHeader,
+        showPageFooter,
+        customPageHeader,
+        customPageFooter,
       };
 
       let savedPaper: any = null;
@@ -321,7 +498,7 @@ export const PaperDesigner: React.FC = () => {
         const res = await api.post('/papers', {
           title: saveModalTitle,
           examCode: saveModalExamCode,
-          schoolName: schoolName || 'DELHI PUBLIC SCHOOL',
+          schoolName: schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI',
           className: saveModalClass,
           subjectName: saveModalSubject,
           maxMarks: parseInt(maxMarks.toString(), 10) || 70,
@@ -364,7 +541,7 @@ export const PaperDesigner: React.FC = () => {
 
       setIsSaveModalOpen(false);
       const qCount = selectedPaperQuestions.filter((q) => q.type !== 'section' && q.type !== 'note' && q.type !== 'space').length;
-      const physicalStoragePath = `D:\\Recovered_school_app\\PAPERGENERATOR\\data\\Bank\\Qpapers\\${saveModalClass}\\${saveModalSubject}\\`;
+      const physicalStoragePath = `data/Bank/Qpapers/${saveModalClass}/${saveModalSubject}/`;
 
       showToast(`💾 Saved & Synced: ${saveModalTitle} (${qCount} Questions)`);
 
@@ -384,12 +561,24 @@ export const PaperDesigner: React.FC = () => {
     }
   };
 
+  const canPrintOrExport = () => {
+    if (!user) return false;
+    if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') return true;
+    if (!activePaper || !activePaper.id) return true;
+    return activePaper.creatorId === user.id;
+  };
+
   const handleQuickSaveWithPopup = async () => {
+    if (!activePaper) {
+      // Must prompt for file name / title before saving!
+      openSaveModal();
+      return;
+    }
     try {
       await savePaperLayout(selectedPaperQuestions);
       const totalMarks = selectedPaperQuestions.reduce((sum, q) => sum + (q.type === 'section' || q.type === 'note' || q.type === 'space' ? 0 : (Number(q.marks) || 1)), 0);
       const qCount = selectedPaperQuestions.filter((q) => q.type !== 'section' && q.type !== 'note' && q.type !== 'space').length;
-      const physicalStoragePath = `D:\\Recovered_school_app\\PAPERGENERATOR\\data\\Bank\\Qpapers\\${className || 'Class 12'}\\${subjectName || 'Physics'}\\`;
+      const physicalStoragePath = `data/Bank/Qpapers/${className || 'Class 12'}/${subjectName || 'Physics'}/`;
 
       setSavedPopupInfo({
         isOpen: true,
@@ -408,37 +597,80 @@ export const PaperDesigner: React.FC = () => {
 
   const handleExportWord = async () => {
     if (!activePaper) return;
+    if (!canPrintOrExport()) {
+      alert('🔒 Permission Denied: Exporting this paper requires assigned permissions or administrative privileges.');
+      return;
+    }
     try {
+      showToast('📄 Preparing Microsoft Word export...');
       const res = await api.get(`/papers/${activePaper.id}/export/word`, { responseType: 'blob' });
       const blob = new Blob([res.data], { type: 'application/msword; charset=utf-8;' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
       const safeTitle = (title || activePaper.title || 'Question_Paper').replace(/[^a-zA-Z0-9_-]/g, '_');
-      link.download = `${safeTitle}.doc`;
-      link.click();
-      window.URL.revokeObjectURL(url);
+      triggerFileDownload(blob, `${safeTitle}.doc`);
       showToast('📄 Exported question paper as Microsoft Word document (.doc)!');
     } catch (err: any) {
-      alert(`Word Export failed: ${err.message}`);
+      const msg = await extractErrorMessage(err);
+      alert(`Word Export failed: ${msg}`);
     }
   };
 
   const handleExportExcel = async () => {
     if (!activePaper) return;
+    if (!canPrintOrExport()) {
+      alert('🔒 Permission Denied: Exporting this paper requires assigned permissions or administrative privileges.');
+      return;
+    }
     try {
+      showToast('📊 Preparing Excel CSV export...');
       const res = await api.get(`/papers/${activePaper.id}/export/excel`, { responseType: 'blob' });
       const blob = new Blob([res.data], { type: 'text/csv; charset=utf-8;' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
       const safeTitle = (title || activePaper.title || 'Question_Paper').replace(/[^a-zA-Z0-9_-]/g, '_');
-      link.download = `${safeTitle}.csv`;
-      link.click();
-      window.URL.revokeObjectURL(url);
+      triggerFileDownload(blob, `${safeTitle}.csv`);
       showToast('📊 Exported question paper as Excel CSV (.csv)!');
     } catch (err: any) {
-      alert(`Excel Export failed: ${err.message}`);
+      const msg = await extractErrorMessage(err);
+      alert(`Excel Export failed: ${msg}`);
+    }
+  };
+
+  const handleExportPdf = async (withAnswers = false) => {
+    if (!activePaper) return;
+    if (!canPrintOrExport()) {
+      alert('🔒 Permission Denied: Exporting this paper requires assigned permissions or administrative privileges.');
+      return;
+    }
+    try {
+      showToast(`📄 Generating official A4 PDF ${withAnswers ? 'with Marking Scheme' : ''}...`);
+      const res = await api.get(`/papers/${activePaper.id}/export/pdf?withAnswers=${withAnswers}`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const safeTitle = (title || activePaper.title || 'Question_Paper').replace(/[^a-zA-Z0-9_-]/g, '_');
+      triggerFileDownload(blob, `${safeTitle}${withAnswers ? '_With_Answers' : ''}.pdf`);
+      showToast(`📄 Downloaded official PDF ${withAnswers ? 'with Marking Scheme' : ''}!`);
+    } catch (err: any) {
+      console.warn('Backend PDF endpoint error, falling back to print view:', err.message);
+      handlePrintPaper();
+    }
+  };
+
+  const handleExportJson = async () => {
+    if (!activePaper) return;
+    if (!canPrintOrExport()) {
+      alert('🔒 Permission Denied: Exporting this paper requires assigned permissions or administrative privileges.');
+      return;
+    }
+    try {
+      showToast('📦 Preparing portable JSON export...');
+      const res = await api.get(`/papers/${activePaper.id}/export/json`);
+      const jsonStr = JSON.stringify(res.data, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json; charset=utf-8;' });
+      const safeTitle = (title || activePaper.title || 'Question_Paper').replace(/[^a-zA-Z0-9_-]/g, '_');
+      triggerFileDownload(blob, `${safeTitle}.json`);
+      showToast('📦 Exported question paper as portable JSON (.json)!');
+    } catch (err: any) {
+      const msg = await extractErrorMessage(err);
+      alert(`JSON Export failed: ${msg}`);
     }
   };
 
@@ -446,7 +678,7 @@ export const PaperDesigner: React.FC = () => {
     setActivePaper(paper);
     setTitle(paper.title || 'EXAMINATION 2026');
     setExamCode(paper.examCode || 'EXAM-101');
-    setSchoolName(paper.schoolName || 'DELHI PUBLIC SCHOOL');
+    setSchoolName(paper.schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI');
     setMaxMarks(Number.isFinite(Number(paper.maxMarks)) ? Number(paper.maxMarks) : 70);
     setDuration(Number.isFinite(Number(paper.durationMinutes)) ? Number(paper.durationMinutes) : 180);
     setExamDate(paper.examDate || new Date().toISOString().split('T')[0]);
@@ -475,7 +707,12 @@ export const PaperDesigner: React.FC = () => {
         if (layout.settings.imageCustomHeight) setImageCustomHeight(layout.settings.imageCustomHeight);
         if (layout.settings.autoMatchText !== undefined) setAutoMatchText(layout.settings.autoMatchText);
         if (layout.settings.showWatermark !== undefined) setShowWatermark(layout.settings.showWatermark);
+        if (layout.settings.watermarkType) setWatermarkType(layout.settings.watermarkType);
         if (layout.settings.watermarkText) setWatermarkText(layout.settings.watermarkText);
+        if (layout.settings.watermarkImageUrl !== undefined) setWatermarkImageUrl(layout.settings.watermarkImageUrl);
+        if (layout.settings.watermarkSize) setWatermarkSize(layout.settings.watermarkSize);
+        if (layout.settings.watermarkOpacity !== undefined) setWatermarkOpacity(layout.settings.watermarkOpacity);
+        if (layout.settings.watermarkRotation !== undefined) setWatermarkRotation(layout.settings.watermarkRotation);
         if (layout.settings.showCandidateBox !== undefined) setShowCandidateBox(layout.settings.showCandidateBox);
         if (layout.settings.rollNoStyle) setRollNoStyle(layout.settings.rollNoStyle);
         if (layout.settings.schoolLogoUrl !== undefined) setSchoolLogoUrl(layout.settings.schoolLogoUrl);
@@ -502,6 +739,10 @@ export const PaperDesigner: React.FC = () => {
         if (layout.settings.showQuestionMarks !== undefined) setShowQuestionMarks(layout.settings.showQuestionMarks);
         if (layout.settings.hideAllOptions !== undefined) setHideAllOptions(layout.settings.hideAllOptions);
         if (layout.settings.hideAllSections !== undefined) setHideAllSections(layout.settings.hideAllSections);
+        if (layout.settings.showPageHeader !== undefined) setShowPageHeader(layout.settings.showPageHeader);
+        if (layout.settings.showPageFooter !== undefined) setShowPageFooter(layout.settings.showPageFooter);
+        if (layout.settings.customPageHeader !== undefined) setCustomPageHeader(layout.settings.customPageHeader);
+        if (layout.settings.customPageFooter !== undefined) setCustomPageFooter(layout.settings.customPageFooter);
       }
     } catch {
       setSelectedPaperQuestions([]);
@@ -514,7 +755,7 @@ export const PaperDesigner: React.FC = () => {
     setSelectedPaperQuestions([]);
     setTitle('ANNUAL EXAMINATION - 2026');
     setExamCode(`EXAM-${Math.floor(100 + Math.random() * 900)}`);
-    setSchoolName('DELHI PUBLIC SCHOOL');
+    setSchoolName('CAMBRIDGE INTERNATIONAL SCHOOL MANDI');
     setClassName('Class 12');
     setSubjectName('Physics');
     setMaxMarks(70);
@@ -611,6 +852,10 @@ export const PaperDesigner: React.FC = () => {
   // Dedicated print handler that clears document.title during printing
   // so browser print headers (date, time, title) are NEVER printed on output file/PDF
   const handlePrintPaper = () => {
+    if (!canPrintOrExport()) {
+      alert('🔒 Permission Denied: Printing or exporting this paper requires assigned permissions or administrative privileges.');
+      return;
+    }
     const originalTitle = document.title;
     document.title = ' ';
     window.print();
@@ -650,6 +895,16 @@ export const PaperDesigner: React.FC = () => {
           target.isContentEditable)
       ) {
         return;
+      }
+
+      // Ctrl + P : Print / Export PDF with RBAC validation
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+        e.preventDefault();
+        if (!canPrintOrExport()) {
+          showToast('🔒 Access Restricted: You do not have permission to print or export this paper.');
+          return;
+        }
+        handlePrintPaper();
       }
 
       // Ctrl + [ or Ctrl + - : Decrease Text Size
@@ -736,8 +991,13 @@ export const PaperDesigner: React.FC = () => {
         imageBorderStyle,
         imageCustomHeight,
         autoMatchText,
-        showWatermark,
-        watermarkText,
+        showWatermark: customSettings?.showWatermark !== undefined ? customSettings.showWatermark : showWatermark,
+        watermarkType: customSettings?.watermarkType !== undefined ? customSettings.watermarkType : watermarkType,
+        watermarkText: customSettings?.watermarkText !== undefined ? customSettings.watermarkText : watermarkText,
+        watermarkImageUrl: customSettings?.watermarkImageUrl !== undefined ? customSettings.watermarkImageUrl : watermarkImageUrl,
+        watermarkSize: customSettings?.watermarkSize !== undefined ? customSettings.watermarkSize : watermarkSize,
+        watermarkOpacity: customSettings?.watermarkOpacity !== undefined ? customSettings.watermarkOpacity : watermarkOpacity,
+        watermarkRotation: customSettings?.watermarkRotation !== undefined ? customSettings.watermarkRotation : watermarkRotation,
         showCandidateBox,
         rollNoStyle,
         schoolLogoUrl,
@@ -762,31 +1022,17 @@ export const PaperDesigner: React.FC = () => {
         showQuestionMarks: customSettings?.showQuestionMarks !== undefined ? customSettings.showQuestionMarks : showQuestionMarks,
         hideAllOptions: customSettings?.hideAllOptions !== undefined ? customSettings.hideAllOptions : hideAllOptions,
         hideAllSections: customSettings?.hideAllSections !== undefined ? customSettings.hideAllSections : hideAllSections,
+        showPageHeader: customSettings?.showPageHeader !== undefined ? customSettings.showPageHeader : showPageHeader,
+        showPageFooter: customSettings?.showPageFooter !== undefined ? customSettings.showPageFooter : showPageFooter,
+        customPageHeader: customSettings?.customPageHeader !== undefined ? customSettings.customPageHeader : customPageHeader,
+        customPageFooter: customSettings?.customPageFooter !== undefined ? customSettings.customPageFooter : customPageFooter,
       };
       const settings = customSettings ? { ...currentSettings, ...customSettings } : currentSettings;
 
       if (!activePaper) {
-        const res = await api.post('/papers', {
-          title: title || 'ANNUAL EXAMINATION 2026',
-          examCode: examCode || `EXAM-${Math.floor(100 + Math.random() * 900)}`,
-          schoolName: schoolName || 'DELHI PUBLIC SCHOOL',
-          className: className || 'Class 12',
-          subjectName: subjectName || 'Physics',
-          maxMarks: Number.isFinite(Number(maxMarks)) ? Number(maxMarks) : 70,
-          currentMarks: totalMarks,
-          durationMinutes: Number.isFinite(Number(duration)) ? Number(duration) : 180,
-          examDate,
-          examTime,
-          instructions,
-          canvasLayout: {
-            questions: updatedQuestions,
-            settings,
-          },
-        });
-        if (res.data?.paper) {
-          setActivePaper(res.data.paper);
-          setPapers((prev) => [res.data.paper, ...prev.filter((p: any) => p.id !== res.data.paper.id)]);
-        }
+        // Do NOT silently auto-save unsaved designed pages to the database without user confirmation!
+        // The user must explicitly save via "Save & Store to Disk" or "Quick Save" to provide a file name / title.
+        return;
       } else {
         const res = await api.put(`/papers/${activePaper.id}`, {
           title,
@@ -1195,9 +1441,36 @@ export const PaperDesigner: React.FC = () => {
     showToast(nextHide ? `Hidden section "${q.title || 'Section'}" on paper` : `Restored & showing section "${q.title || 'Section'}" on paper`);
   };
 
+  // Check if a section is collapsed. By default all sections are collapsed / hidden until clicked!
+  const isSectionCollapsed = (secId: string) => {
+    return collapsedSections[secId] !== false; // defaults to true (collapsed)
+  };
+
   // Toggle collapsing questions under a section in the Canvas editor
   const handleToggleSectionCollapse = (secId: string) => {
-    setCollapsedSections((prev) => ({ ...prev, [secId]: !prev[secId] }));
+    setCollapsedSections((prev) => {
+      const isCurrentlyCollapsed = prev[secId] !== false;
+      return { ...prev, [secId]: !isCurrentlyCollapsed };
+    });
+  };
+
+  // Check if any sections are currently collapsed
+  const areAllSectionsCollapsed = selectedPaperQuestions.some(
+    (q, idx) => q.type === 'section' && collapsedSections[q.id || `section_${idx}`] !== false
+  );
+
+  // Batch toggle all sections expand / collapse
+  const handleToggleAllSectionsCollapse = () => {
+    const nextState = !areAllSectionsCollapsed;
+    const updated: Record<string, boolean> = {};
+    selectedPaperQuestions.forEach((q, idx) => {
+      if (q.type === 'section') {
+        const key = q.id || `section_${idx}`;
+        updated[key] = nextState;
+      }
+    });
+    setCollapsedSections(updated);
+    showToast(nextState ? '🙈 All sections collapsed on canvas' : '👁 All sections expanded on canvas');
   };
 
   // Set / Remove blank lines for a question
@@ -1966,12 +2239,13 @@ export const PaperDesigner: React.FC = () => {
     return true;
   });
 
-  // Preset Applicator: Zero Spacing (Eco-Compact)
+  // Preset Applicator: Zero Spacing (Eco-Compact Minimum Spacing)
   const applyZeroSpacingPreset = () => {
     setSpacingPreset('zero');
     setPageMargin('zero');
     setFontSize('10pt');
     setLineSpacing('none');
+    setOptionLayout('inline');
     setBorderStyle('divider');
     setPageColumns(2);
     setImageBorderStyle('none');
@@ -1982,12 +2256,13 @@ export const PaperDesigner: React.FC = () => {
       pageMargin: 'zero',
       fontSize: '10pt',
       lineSpacing: 'none',
+      optionLayout: 'inline',
       borderStyle: 'divider',
       pageColumns: 2,
       imageBorderStyle: 'none',
       wrapOptionsBesideDiagram: true,
     });
-    showToast('Applied Zero-Spacing (Eco-Compact) Mode: Removed spaces between text & questions!');
+    showToast('Applied Minimum Spacing: Zero-space, 4mm margins, tight lines & inline options!');
   };
 
   // Dedicated Handler: Remove Spaces Between Text
@@ -2077,8 +2352,8 @@ export const PaperDesigner: React.FC = () => {
 
   const getFontSizeClass = () => {
     const pt = parseFloat(fontSize) || baseFontSizePt || 10;
-    if (pt <= 8.5) return 'text-[10px]';
-    if (pt <= 9.5) return 'text-[11px]';
+    if (pt <= 8.5) return 'text-xs';
+    if (pt <= 9.5) return 'text-xs';
     if (pt <= 10.5) return 'text-xs';
     if (pt <= 11.5) return 'text-[13px]';
     if (pt <= 12.5) return 'text-sm';
@@ -2124,7 +2399,7 @@ export const PaperDesigner: React.FC = () => {
       <div
         className={`bg-white text-black rounded-xl shadow-2xl printable-paper relative transition-all ${getFontFamilyClass()} ${
           isSideBySide
-            ? 'w-full text-[11px] leading-snug overflow-y-auto max-h-[760px] border border-slate-300 select-text'
+            ? 'w-full text-xs leading-snug overflow-y-auto max-h-[760px] border border-slate-300 select-text'
             : 'max-w-4xl mx-auto my-6 print:m-0 print:max-w-none print:w-full print:rounded-none print:shadow-none print:border-none'
         }`}
         style={paddingStyle}
@@ -2190,6 +2465,17 @@ export const PaperDesigner: React.FC = () => {
               border: none !important;
               vertical-align: top !important;
             }
+            .watermark-print {
+              position: fixed !important;
+              inset: 0 !important;
+              width: 100vw !important;
+              height: 100vh !important;
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              z-index: 0 !important;
+              pointer-events: none !important;
+            }
           }
         `}</style>
         {/* Margin Guide Boundary Overlay (Screen Only) */}
@@ -2203,18 +2489,55 @@ export const PaperDesigner: React.FC = () => {
               right: paddingStyle.paddingRight,
             }}
           >
-            <div className="absolute -top-3 left-1.5 bg-indigo-600 text-white text-[9px] font-mono px-1.5 py-0.2 rounded shadow flex items-center space-x-1 select-none">
+            <div className="absolute -top-3 left-1.5 bg-indigo-600 text-white text-xs font-mono px-1.5 py-0.2 rounded shadow flex items-center space-x-1 select-none">
               <span>📐 Margins:</span>
               <span className="font-bold">{eff.left}L &bull; {eff.right}R &bull; {eff.top}T &bull; {eff.bottom}B mm</span>
             </div>
           </div>
         )}
-      {/* Watermark Overlay */}
+      {/* Watermark Overlay (Canvas Preview & Multi-Page Print) */}
       {showWatermark && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5 select-none rotate-[-30deg]">
-          <span className={`${isSideBySide ? 'text-5xl' : 'text-8xl'} font-black tracking-widest text-slate-950 uppercase`}>
-            {watermarkText}
-          </span>
+        <div
+          className="watermark-print absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden"
+          style={{ opacity: watermarkOpacity }}
+        >
+          {watermarkType === 'image' && watermarkImageUrl ? (
+            <img
+              src={watermarkImageUrl}
+              alt="Watermark"
+              style={{
+                width: `${isSideBySide ? Math.round(watermarkSize * 0.55) : watermarkSize}px`,
+                maxWidth: '85%',
+                transform: `rotate(${watermarkRotation}deg)`,
+                filter: 'grayscale(100%)',
+                objectFit: 'contain',
+              }}
+              className="pointer-events-none select-none"
+            />
+          ) : (
+            <span
+              style={{
+                fontSize: `${isSideBySide ? Math.max(16, Math.round(watermarkSize * 0.55)) : watermarkSize}px`,
+                transform: `rotate(${watermarkRotation}deg)`,
+              }}
+              className="font-black tracking-widest text-slate-950 uppercase text-center max-w-4xl leading-tight select-none pointer-events-none px-4"
+            >
+              {watermarkType === 'custom_text'
+                ? (watermarkText || 'CONFIDENTIAL')
+                : (schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI')}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* On-Screen Running Header Preview */}
+      {showPageHeader && customPageHeader && (
+        <div className="w-full text-center text-[8pt] text-slate-500 border-b border-slate-300 pb-1 mb-2.5 font-serif uppercase tracking-wider print:hidden">
+          {customPageHeader
+            .replace('{SCHOOL}', schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI')
+            .replace('{EXAM}', title || 'EXAMINATION')
+            .replace('{CODE}', examCode || '')
+            .replace('{PAGE}', '1')}
         </div>
       )}
 
@@ -2222,15 +2545,35 @@ export const PaperDesigner: React.FC = () => {
       <table className="w-full border-collapse print-paged-table block print:table">
         <thead className="print-paged-thead hidden print:table-header-group">
           <tr>
-            <td style={{ height: `${eff.top}mm`, padding: 0, margin: 0, border: 'none' }}>
-              <div style={{ height: `${eff.top}mm` }} />
+            <td style={{ height: `${eff.top}mm`, padding: 0, margin: 0, border: 'none', verticalAlign: 'top' }}>
+              <div style={{ height: `${eff.top}mm` }} className="flex items-center justify-between text-[8pt] text-slate-600 border-b border-slate-300 px-2 pb-1 font-serif">
+                {showPageHeader && customPageHeader ? (
+                  <span className="w-full text-center uppercase tracking-wider">
+                    {customPageHeader
+                      .replace('{SCHOOL}', schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI')
+                      .replace('{EXAM}', title || 'EXAMINATION')
+                      .replace('{CODE}', examCode || '')
+                      .replace('{PAGE}', '')}
+                  </span>
+                ) : null}
+              </div>
             </td>
           </tr>
         </thead>
         <tfoot className="print-paged-tfoot hidden print:table-footer-group">
           <tr>
-            <td style={{ height: `${eff.bottom}mm`, padding: 0, margin: 0, border: 'none' }}>
-              <div style={{ height: `${eff.bottom}mm` }} />
+            <td style={{ height: `${eff.bottom}mm`, padding: 0, margin: 0, border: 'none', verticalAlign: 'bottom' }}>
+              <div style={{ height: `${eff.bottom}mm` }} className="flex items-center justify-between text-[8pt] text-slate-600 border-t border-slate-300 px-2 pt-1 font-serif">
+                {showPageFooter && customPageFooter ? (
+                  <span className="w-full text-center tracking-wider">
+                    {customPageFooter
+                      .replace('{SCHOOL}', schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI')
+                      .replace('{EXAM}', title || 'EXAMINATION')
+                      .replace('{CODE}', examCode || '')
+                      .replace('{PAGE}', '')}
+                  </span>
+                ) : null}
+              </div>
             </td>
           </tr>
         </tfoot>
@@ -2282,7 +2625,7 @@ export const PaperDesigner: React.FC = () => {
         </div>
 
         {showHeaderMeta && (
-          <div className={`flex flex-wrap items-center justify-between ${isSideBySide ? 'text-[10px]' : 'text-xs'} pt-1.5 font-mono font-semibold gap-x-3 gap-y-1`}>
+          <div className={`flex flex-wrap items-center justify-between ${isSideBySide ? 'text-xs' : 'text-xs'} pt-1.5 font-mono font-semibold gap-x-3 gap-y-1`}>
             {showExamCode && <span>EXAM CODE: {examCode}</span>}
             {showTime && <span>TIME: {numericDuration} MINS</span>}
             {showMaxMarks && <span>MAX MARKS: {numericMaxMarks}</span>}
@@ -2307,18 +2650,18 @@ export const PaperDesigner: React.FC = () => {
             {showRollNo && (
               rollNoStyle === 'boxes' ? (
                 <div className="flex items-center space-x-1">
-                  <span className="font-mono text-[10px] mr-1">Roll No:</span>
+                  <span className="font-mono text-xs mr-1">Roll No:</span>
                   <div className="inline-flex space-x-0.5">
                     {Array.from({ length: 8 }).map((_, i) => (
                       <div
                         key={i}
-                        className="w-4 h-4 border border-black bg-white inline-flex items-center justify-center font-mono text-[9px]"
+                        className="w-4 h-4 border border-black bg-white inline-flex items-center justify-center font-mono text-xs"
                       />
                     ))}
                   </div>
                 </div>
               ) : rollNoStyle === 'blank' ? (
-                <div className="flex items-center space-x-1 font-mono text-[10px]">
+                <div className="flex items-center space-x-1 font-mono text-xs">
                   <span>Roll No:</span>
                   <span>________________</span>
                 </div>
@@ -2326,7 +2669,7 @@ export const PaperDesigner: React.FC = () => {
             )}
           </div>
           {showInstructions && instructions && (
-            <div className="text-[9px] whitespace-pre-line leading-tight text-gray-800 border-t border-gray-300 pt-0.5">
+            <div className="text-xs whitespace-pre-line leading-tight text-gray-800 border-t border-gray-300 pt-0.5">
               <strong>Instructions:</strong> <MathRenderer content={instructions} inline />
             </div>
           )}
@@ -2368,7 +2711,7 @@ export const PaperDesigner: React.FC = () => {
                     <MathRenderer content={q.title || ''} inline />
                   </div>
                   {q.subtitle && (
-                    <div className="text-[10px] font-normal text-gray-700 italic mt-0.5">
+                    <div className="text-xs font-normal text-gray-700 italic mt-0.5">
                       <MathRenderer content={q.subtitle} inline />
                     </div>
                   )}
@@ -2404,7 +2747,7 @@ export const PaperDesigner: React.FC = () => {
                   style={{ height: `${spaceH}px` }}
                 >
                   {style === 'rough' && (
-                    <span className="text-[9px] font-mono uppercase text-gray-500 tracking-widest select-none">
+                    <span className="text-xs font-mono uppercase text-gray-500 tracking-widest select-none">
                       — SPACE FOR ROUGH WORK —
                     </span>
                   )}
@@ -2656,7 +2999,7 @@ export const PaperDesigner: React.FC = () => {
 
                     {/* Marks Badge (Floated or Inline at end of question text) */}
                     {!(q.hideMarks !== undefined ? q.hideMarks : !showQuestionMarks) && Number(q.marks) > 0 && (
-                      <span className="font-mono font-bold text-[10px] ml-1.5 whitespace-nowrap inline-block">
+                      <span className="font-mono font-bold text-xs ml-1.5 whitespace-nowrap inline-block">
                         [{q.marks || 1}]
                       </span>
                     )}
@@ -2705,7 +3048,7 @@ export const PaperDesigner: React.FC = () => {
 
               {/* Teacher's Edition Answer Key & Explanation Box */}
               {isTeacherCopy && (
-                <div className="mt-1 p-1.5 rounded bg-emerald-50/90 border border-emerald-300 text-[10px] text-emerald-950">
+                <div className="mt-1 p-1.5 rounded bg-emerald-50/90 border border-emerald-300 text-xs text-emerald-950">
                   {q.correctAnswer ? (
                     <div>
                       <span className="font-bold text-emerald-800">✓ Official Answer: </span>
@@ -2738,7 +3081,7 @@ export const PaperDesigner: React.FC = () => {
                   }}
                 >
                   {q.blankSpaceStyle === 'rough' && (
-                    <span className="text-[9px] font-mono uppercase text-gray-500 tracking-widest">
+                    <span className="text-xs font-mono uppercase text-gray-500 tracking-widest">
                       — SPACE FOR ROUGH WORK —
                     </span>
                   )}
@@ -2760,6 +3103,17 @@ export const PaperDesigner: React.FC = () => {
           </tr>
         </tbody>
       </table>
+
+      {/* On-Screen Running Footer Preview */}
+      {showPageFooter && customPageFooter && (
+        <div className="w-full text-center text-[8pt] text-slate-500 border-t border-slate-300 pt-2 mt-4 font-serif print:hidden">
+          {customPageFooter
+            .replace('{SCHOOL}', schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI')
+            .replace('{EXAM}', title || 'EXAMINATION')
+            .replace('{CODE}', examCode || '')
+            .replace('{PAGE}', '1')}
+        </div>
+      )}
     </div>
   );
 };
@@ -2797,762 +3151,857 @@ export const PaperDesigner: React.FC = () => {
         </div>
       )}
 
-      {/* MS WORD STYLE TOP COMMAND RIBBON (Hidden during print) */}
-      <div className="glass-panel p-3.5 rounded-2xl space-y-3 no-print border border-slate-700/80 shadow-2xl">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
-              <FileSpreadsheet className="w-5 h-5" />
+      {/* MS WORD STYLE TOP COMMAND RIBBON (Auto-hide in 7s, Ultra-compact minimum spacing) */}
+      <div
+        onMouseEnter={() => {
+          isRibbonHoveredRef.current = true;
+          clearRibbonAutoHide();
+        }}
+        onMouseLeave={() => {
+          isRibbonHoveredRef.current = false;
+          if (!isRibbonPinned && !isRibbonMinimized) {
+            startRibbonAutoHide(5000);
+          }
+        }}
+        className="bg-white p-1.5 sm:p-2 rounded-classic space-y-1 no-print border border-classic-border shadow-classic transition-all"
+      >
+        {/* TOP TITLE BAR: Document Name & Quick Actions */}
+        <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-classic-border pb-1">
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 rounded-classic bg-classic-navy/10 text-classic-navy flex items-center justify-center border border-classic-navy/20">
+              <FileSpreadsheet className="w-3.5 h-3.5" />
             </div>
             <div>
-              <h1 className="font-bold text-sm text-white flex items-center space-x-2">
+              <h1 className="font-bold text-xs text-classic-text-primary flex items-center space-x-1.5">
                 <span>MS Word Exam Publishing Studio</span>
-                <span className="text-[10px] px-2 py-0.5 bg-indigo-500/20 text-indigo-300 rounded-full font-mono">
-                  {pageColumns}-Column Layout &bull; {selectedPaperQuestions.length} Questions
+                <span className="text-xs px-1.5 py-0.2 bg-classic-surface-muted text-classic-navy rounded-classic border border-classic-border font-mono">
+                  {pageColumns}-Col &bull; {selectedPaperQuestions.length} Qs
                 </span>
               </h1>
-              <p className="text-[11px] text-slate-400">
-                Zero-Spacing Paper Saver &bull; Seamless Borderless Images &bull; Text-Scale Matching
+              <p className="text-xs text-classic-text-muted hidden sm:block">
+                Word Ribbon &bull; Click tab to toggle &bull; {isRibbonPinned ? 'Pinned permanently' : isRibbonMinimized ? 'Minimized by default' : 'Auto-hides in 5s'}
               </p>
             </div>
           </div>
 
-          {/* Active Question Paper Controls: Open Saved, New Paper, Close Paper */}
-          <div className="flex flex-wrap items-center gap-1.5 bg-slate-900/90 border border-slate-700/80 rounded-xl p-1 shadow-inner">
-            <div className="flex items-center space-x-1.5 px-2 py-0.5">
-              <Folder className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="text-[11px] font-bold text-slate-300">Paper:</span>
-              {activePaper ? (
-                <span className="text-[10px] px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded font-semibold font-mono">
-                  OPEN
-                </span>
-              ) : (
-                <span className="text-[10px] px-1.5 py-0.2 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded font-semibold font-mono">
-                  NEW
-                </span>
-              )}
-            </div>
-
-            <select
-              value={activePaper?.id || ''}
-              onChange={(e) => {
-                if (!e.target.value) {
-                  handleStartNewPaper();
-                  return;
-                }
-                const target = papers.find((p) => p.id === e.target.value);
-                if (target) handleOpenSavedPaper(target);
-              }}
-              className="bg-slate-800 text-white text-xs font-semibold rounded-lg px-2.5 py-1 border border-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 max-w-[200px] truncate"
-              title="Select a saved paper or start a new paper"
-            >
-              <option value="">-- New Paper (Unsaved) --</option>
-              {papers.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title} ({p.examCode || 'No code'})
-                </option>
-              ))}
-            </select>
-
-            {/* 📂 Open Previous Saved Paper Modal Trigger */}
-            <button
-              type="button"
-              onClick={() => setIsOpenSavedPaperModalOpen(true)}
-              className="bg-indigo-950/60 hover:bg-indigo-900 text-indigo-300 hover:text-white text-xs font-bold px-2.5 py-1 rounded-lg border border-indigo-500/40 flex items-center space-x-1 transition-all shadow-sm"
-              title="Browse and open a previously saved question paper from Paper Bank"
-            >
-              <FolderTree className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Open Saved ({papers.length})</span>
-            </button>
-
-            {/* + New Paper Button */}
-            <button
-              type="button"
-              onClick={handleStartNewPaper}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg flex items-center space-x-1 transition-all shadow-sm"
-              title="Start a fresh blank paper canvas"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>New Paper</span>
-            </button>
-
-            {/* ✕ Close Open Paper Button */}
-            {(activePaper || selectedPaperQuestions.length > 0) && (
-              <button
-                type="button"
-                onClick={handleCloseActivePaper}
-                className="bg-rose-950/60 hover:bg-rose-900 text-rose-300 hover:text-white text-xs font-bold px-2.5 py-1 rounded-lg border border-rose-500/40 flex items-center space-x-1 transition-all shadow-sm"
-                title="Close the current open paper and clear canvas"
-              >
-                <X className="w-3.5 h-3.5 text-rose-400" />
-                <span>Close Paper</span>
-              </button>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {/* View Mode Toggle: Split Side-by-Side vs Canvas Editor vs Real A4 Preview */}
-            <div className="bg-slate-900 p-1 rounded-xl border border-slate-700 flex items-center space-x-1 text-xs font-semibold">
-              <button
-                type="button"
-                onClick={() => setViewMode('split')}
-                className={`px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition-all ${
-                  viewMode === 'split'
-                    ? 'bg-indigo-600 text-white shadow font-semibold'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-                title="View Studio Editor and Live A4 Sheet Preview side by side"
-              >
-                <Columns className="w-3.5 h-3.5" />
-                <span>Side-by-Side (Split)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('editor')}
-                className={`px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition-all ${
-                  viewMode === 'editor'
-                    ? 'bg-indigo-600 text-white shadow font-semibold'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-                title="Full Interactive Canvas Editor"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-                <span>Studio Editor</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('a4_preview')}
-                className={`px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition-all ${
-                  viewMode === 'a4_preview'
-                    ? 'bg-indigo-600 text-white shadow font-semibold'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-                title="Full A4 White Paper Preview"
-              >
-                <Eye className="w-3.5 h-3.5" />
-                <span>A4 Sheet Preview</span>
-              </button>
-            </div>
-
-            {/* Teacher's Copy (Answer Key & Solutions) Toggle Button */}
-            <button
-              type="button"
-              onClick={() => {
-                const next = !isTeacherCopy;
-                setIsTeacherCopy(next);
-                showToast(next ? '🎓 Teacher’s Copy Active (Answers & Solutions visible)' : '📄 Student Copy Active');
-              }}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-all shadow ${
-                isTeacherCopy
-                  ? 'bg-amber-500 text-slate-950 border-amber-400 font-extrabold shadow-amber-500/30 ring-2 ring-amber-400'
-                  : 'bg-slate-900 hover:bg-slate-800 text-amber-300 border-amber-500/40'
-              }`}
-              title="Toggle Teacher's Copy with answers & step-by-step solutions"
-            >
-              <Award className={`w-3.5 h-3.5 ${isTeacherCopy ? 'text-slate-950' : 'text-amber-400'}`} />
-              <span>{isTeacherCopy ? '🎓 Teacher’s Copy (ON)' : '🎓 Teacher’s Copy'}</span>
-            </button>
-
-            {/* Zero Spacing Eco-Compact Quick Button */}
-            <button
-              onClick={applyZeroSpacingPreset}
-              className="bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white text-xs font-semibold px-3 py-1.5 rounded-xl border border-emerald-500/40 flex items-center space-x-1.5 transition-all shadow-sm"
-              title="Fit maximum questions on fewer paper sheets with zero wasted gap"
-            >
-              <Zap className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Zero-Spacing</span>
-            </button>
-
-            {/* Global Marks Removal / Visibility Toggle */}
-            <button
-              type="button"
-              onClick={handleBatchToggleAllMarks}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-all shadow ${
-                showQuestionMarks
-                  ? 'bg-slate-900 hover:bg-slate-800 text-indigo-300 border-indigo-500/40'
-                  : 'bg-rose-950/90 text-rose-300 border-rose-500/60 ring-1 ring-rose-500/40'
-              }`}
-              title={showQuestionMarks ? 'Click to remove all marks from paper' : 'Click to restore marks on paper'}
-            >
-              {showQuestionMarks ? (
-                <>
-                  <Award className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Marks: On</span>
-                </>
-              ) : (
-                <>
-                  <EyeOff className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Marks: Removed</span>
-                </>
-              )}
-            </button>
-
-            {/* Global Options Hide / Unhide Toggle */}
-            <button
-              type="button"
-              onClick={handleBatchToggleAllOptions}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-all shadow ${
-                hideAllOptions
-                  ? 'bg-amber-950 text-amber-300 border-amber-500/60 ring-1 ring-amber-500/40'
-                  : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700'
-              }`}
-              title={hideAllOptions ? 'Click to unhide all MCQ options' : 'Click to hide all MCQ options (turn into subjective questions)'}
-            >
-              {hideAllOptions ? (
-                <>
-                  <EyeOff className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Options: Hidden</span>
-                </>
-              ) : (
-                <>
-                  <Eye className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Options: Visible</span>
-                </>
-              )}
-            </button>
-
-            {/* Global Sections Hide / Unhide Toggle */}
-            <button
-              type="button"
-              onClick={handleBatchToggleAllSections}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-all shadow ${
-                hideAllSections
-                  ? 'bg-amber-950 text-amber-300 border-amber-500/60 ring-1 ring-amber-500/40'
-                  : 'bg-slate-900 hover:bg-slate-800 text-violet-300 border-violet-500/40'
-              }`}
-              title={hideAllSections ? 'Click to show all section headings on paper' : 'Click to hide all section headings from paper'}
-            >
-              {hideAllSections ? (
-                <>
-                  <EyeOff className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Sections: Hidden</span>
-                </>
-              ) : (
-                <>
-                  <Eye className="w-3.5 h-3.5 text-violet-400" />
-                  <span>Sections: Visible</span>
-                </>
-              )}
-            </button>
-
-            {/* Batch Blank Lines: Add or Remove Across All Questions */}
-            <div className="bg-slate-900/90 p-0.5 rounded-xl border border-slate-700 flex items-center space-x-1">
-              <button
-                type="button"
-                onClick={() => handleBatchSetBlankLines(3, 'ruled')}
-                className="px-2 py-1 rounded-lg text-[11px] font-bold text-emerald-300 hover:text-white hover:bg-emerald-600/30 transition-all flex items-center space-x-1"
-                title="Add 3 ruled answer lines under every question"
-              >
-                <Plus className="w-3 h-3 text-emerald-400" />
-                <span>+3 Lines</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleBatchRemoveAllBlankLines}
-                className="px-2 py-1 rounded-lg text-[11px] font-bold text-rose-300 hover:text-white hover:bg-rose-900/40 transition-all flex items-center space-x-1"
-                title="Remove all blank lines from all questions"
-              >
-                <Trash2 className="w-3 h-3 text-rose-400" />
-                <span>Clear Lines</span>
-              </button>
-            </div>
-
-            {/* Save & Store Paper with Custom Name & Folder */}
-            <button
-              onClick={openSaveModal}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center space-x-1.5 transition-all shadow-md shadow-indigo-600/30"
-              title="Save question paper to physical storage"
-            >
-              <HardDrive className="w-3.5 h-3.5 text-indigo-200" />
-              <span>💾 Save & Store to Disk</span>
-            </button>
-
-            {/* Quick Save Layout Button with Popup Notification */}
+          {/* Quick Universal Actions */}
+          <div className="flex items-center space-x-1.5">
             <button
               onClick={handleQuickSaveWithPopup}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-700 flex items-center space-x-1.5 transition-colors"
-              title="Quick save changes and display save confirmation popup"
+              className="classic-button-secondary text-xs font-semibold px-2 py-0.5 rounded-classic border border-classic-border flex items-center space-x-1 h-6.5 transition-colors"
+              title="Quick save changes"
             >
-              <Save className="w-3.5 h-3.5 text-indigo-400" />
+              <Save className="w-3 h-3 text-classic-navy" />
               <span>Quick Save</span>
             </button>
 
-            {/* Direct Browser Print / PDF Export Button */}
             <button
-              onClick={handlePrintPaper}
-              className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-semibold px-4 py-1.5 rounded-xl shadow-lg shadow-indigo-600/25 flex items-center space-x-1.5 transition-all"
+              onClick={() => {
+                if (!canPrintOrExport()) {
+                  alert('🔒 Permission Denied: Printing or exporting this paper requires assigned permissions or administrative privileges.');
+                  return;
+                }
+                handlePrintPaper();
+              }}
+              className={`classic-button-primary text-xs font-semibold px-2.5 py-0.5 rounded-classic shadow-classic flex items-center space-x-1 h-6.5 transition-all ${
+                !canPrintOrExport() ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+              title={!canPrintOrExport() ? '🔒 Assigned Access Only' : 'Print or Export PDF'}
             >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print / Export PDF</span>
+              {!canPrintOrExport() ? <Lock className="w-3 h-3 text-amber-300" /> : <Printer className="w-3 h-3" />}
+              <span>{!canPrintOrExport() ? '🔒 Print' : 'Print / Export PDF'}</span>
             </button>
           </div>
         </div>
 
-        {/* MS WORD FORMATTING, BORDERLESS IMAGES & ALIGNMENT TOOLBAR */}
-        <div className="flex flex-wrap items-center gap-2.5 text-xs">
-          {/* Font Family */}
-          <div className="flex items-center space-x-1.5 bg-slate-900/90 px-2.5 py-1 rounded-xl border border-slate-700">
-            <span className="text-[11px] text-slate-400">Font:</span>
-            <select
-              value={fontFamily}
-              onChange={(e) => {
-                const val = e.target.value;
-                setFontFamily(val);
-                savePaperLayout(selectedPaperQuestions, { fontFamily: val });
-              }}
-              className="bg-transparent text-slate-200 font-semibold focus:outline-none cursor-pointer text-xs"
-            >
-              <option value="serif" className="bg-slate-900 text-white">Times New Roman (Board)</option>
-              <option value="cm" className="bg-slate-900 text-white">Computer Modern (LaTeX / STEM)</option>
-              <option value="calibri" className="bg-slate-900 text-white">Calibri (Modern Clear)</option>
-              <option value="sans" className="bg-slate-900 text-white">Arial (Clean Sans)</option>
-              <option value="cambria" className="bg-slate-900 text-white">Cambria (CBSE Math & Science)</option>
-              <option value="georgia" className="bg-slate-900 text-white">Georgia (Elegant Serif)</option>
-              <option value="garamond" className="bg-slate-900 text-white">Garamond (Classic Academic)</option>
-              <option value="verdana" className="bg-slate-900 text-white">Verdana (High Legibility)</option>
-              <option value="trebuchet" className="bg-slate-900 text-white">Trebuchet MS (Dynamic)</option>
-              <option value="bookman" className="bg-slate-900 text-white">Bookman / Antiqua (Traditional)</option>
-              <option value="dejavu" className="bg-slate-900 text-white">DejaVu / Lucida (Technical)</option>
-              <option value="monospace" className="bg-slate-900 text-white">Courier New (Monospace / CS)</option>
-            </select>
+        {/* MS WORD MENU BAR TABS (Click tab name to minimize / open / close ribbon options) */}
+        <div className="flex flex-wrap items-center justify-between gap-1 border-b border-classic-border pb-0.5">
+          <div className="flex flex-wrap items-center gap-0.5">
+            {[
+              { id: 'ALL', label: '⭐ All Options', icon: Sparkles },
+              { id: 'HOME', label: '🏠 Home', icon: Type },
+              { id: 'LAYOUT', label: '📐 Layout', icon: Columns },
+              { id: 'INSERT', label: '➕ Insert', icon: Plus },
+              { id: 'REVIEW', label: '📝 Exam & Review', icon: Award },
+              { id: 'FILE', label: '📁 File / Paper', icon: Folder },
+              { id: 'VIEW', label: '👁️ View', icon: Eye },
+            ].map((tab) => {
+              const isActive = activeRibbonTab === tab.id;
+              const isTabExpanded = isActive && !isRibbonMinimized;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    if (activeRibbonTab === tab.id) {
+                      // Clicked active tab: toggle minimize / open / close
+                      setIsRibbonMinimized((prev) => {
+                        const next = !prev;
+                        if (!next && !isRibbonPinned) startRibbonAutoHide(5000);
+                        return next;
+                      });
+                    } else {
+                      // Switch to selected tab and open it
+                      setActiveRibbonTab(tab.id as any);
+                      setIsRibbonMinimized(false);
+                      if (!isRibbonPinned) startRibbonAutoHide(5000);
+                    }
+                  }}
+                  onDoubleClick={() => {
+                    setIsRibbonPinned(prev => {
+                      const next = !prev;
+                      try { localStorage.setItem('pg_ribbon_pinned', String(next)); } catch {}
+                      if (next) clearRibbonAutoHide();
+                      else startRibbonAutoHide(5000);
+                      return next;
+                    });
+                  }}
+                  className={`px-2 py-0.5 rounded-classic text-xs font-bold transition-all flex items-center space-x-1 h-6.5 ${
+                    isTabExpanded
+                      ? 'bg-classic-navy text-white shadow-classic'
+                      : isActive && isRibbonMinimized
+                      ? 'bg-classic-surface-muted text-classic-navy border border-classic-navy rounded-classic'
+                      : 'text-classic-text-secondary hover:text-classic-text-primary hover:bg-classic-surface-muted'
+                  }`}
+                  title={
+                    isTabExpanded
+                      ? `Click ${tab.label} to minimize ribbon`
+                      : `Click ${tab.label} to open ribbon options`
+                  }
+                >
+                  <span>{tab.label}</span>
+                  {isActive && (
+                    <span className="text-xs ml-0.5 opacity-90">
+                      {isRibbonMinimized ? (
+                        <ChevronDown className="w-3 h-3 inline text-classic-navy" />
+                      ) : (
+                        <ChevronUp className="w-3 h-3 inline text-white/90" />
+                      )}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Font Size */}
-          <div className="flex items-center space-x-1.5 bg-slate-900/90 px-2.5 py-1 rounded-xl border border-slate-700">
-            <span className="text-[11px] text-slate-400">Size:</span>
-            <select
-              value={fontSize}
-              onChange={(e) => {
-                const val = e.target.value;
-                setFontSize(val);
-                const num = parseFloat(val) || 10;
-                setBaseFontSizePt(num);
-                savePaperLayout(selectedPaperQuestions, { fontSize: val, baseFontSizePt: num });
-              }}
-              className="bg-transparent text-slate-200 font-semibold focus:outline-none cursor-pointer text-xs"
-            >
-              <option value="8pt" className="bg-slate-900 text-white">8pt (Ultra Saver)</option>
-              <option value="8.5pt" className="bg-slate-900 text-white">8.5pt (Compact Saver)</option>
-              <option value="9pt" className="bg-slate-900 text-white">9pt (Micro Saver)</option>
-              <option value="9.5pt" className="bg-slate-900 text-white">9.5pt (Dense Compact)</option>
-              <option value="10pt" className="bg-slate-900 text-white">10pt (Standard Compact)</option>
-              <option value="10.5pt" className="bg-slate-900 text-white">10.5pt (CBSE Standard)</option>
-              <option value="11pt" className="bg-slate-900 text-white">11pt (Normal)</option>
-              <option value="11.5pt" className="bg-slate-900 text-white">11.5pt (Comfortable)</option>
-              <option value="12pt" className="bg-slate-900 text-white">12pt (Large)</option>
-              <option value="13pt" className="bg-slate-900 text-white">13pt (Extra Large)</option>
-              <option value="14pt" className="bg-slate-900 text-white">14pt (Senior / Primary)</option>
-              <option value="16pt" className="bg-slate-900 text-white">16pt (Primary / Large Print)</option>
-            </select>
-          </div>
-
-          {/* Image Borders: None (Seamless Default) vs Box */}
-          <div className="flex items-center space-x-1 bg-slate-900/90 p-1 rounded-xl border border-slate-700">
-            <span className="text-[11px] text-slate-400 px-1">Image Border:</span>
+          {/* Quick Ribbon Pin / Auto-Hide & Minimize Controls */}
+          <div className="flex items-center space-x-1">
             <button
+              type="button"
               onClick={() => {
-                setImageBorderStyle('none');
-                savePaperLayout(selectedPaperQuestions, { imageBorderStyle: 'none' });
+                setIsRibbonPinned(prev => {
+                  const next = !prev;
+                  try { localStorage.setItem('pg_ribbon_pinned', String(next)); } catch {}
+                  if (next) {
+                    clearRibbonAutoHide();
+                    showToast('📌 Ribbon Pinned: Will stay open permanently');
+                  } else {
+                    startRibbonAutoHide(5000);
+                    showToast('⏱️ Ribbon Unpinned: Auto-hides after 5 seconds of inactivity');
+                  }
+                  return next;
+                });
               }}
-              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                imageBorderStyle === 'none' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200'
+              className={`px-2 py-0.5 rounded-classic text-xs font-semibold border flex items-center space-x-1 transition-all h-6.5 ${
+                isRibbonPinned
+                  ? 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200'
+                  : 'classic-button-secondary'
               }`}
-              title="No border outside images - blends seamlessly into text"
+              title={
+                isRibbonPinned
+                  ? 'Pinned: Stays open permanently. Click to enable 5s auto-hide'
+                  : 'Auto-hides after 5 seconds of inactivity. Click to pin open'
+              }
             >
-              ✓ None (Seamless)
+              {isRibbonPinned ? <Pin className="w-3 h-3 text-amber-600" /> : <PinOff className="w-3 h-3 text-classic-text-muted" />}
+              <span>{isRibbonPinned ? 'Pinned' : 'Auto-Hide (5s)'}</span>
             </button>
+
             <button
+              type="button"
               onClick={() => {
-                setImageBorderStyle('subtle');
-                savePaperLayout(selectedPaperQuestions, { imageBorderStyle: 'subtle' });
+                setIsRibbonMinimized((prev) => {
+                  const next = !prev;
+                  if (!next && !isRibbonPinned) startRibbonAutoHide(5000);
+                  return next;
+                });
               }}
-              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                imageBorderStyle === 'subtle' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
+              className="px-2 py-0.5 rounded-classic text-xs font-semibold classic-button-secondary flex items-center space-x-1 transition-all h-6.5 shadow-classic"
+              title={isRibbonMinimized ? 'Click to open ribbon options' : 'Click to minimize ribbon options'}
             >
-              Box Border
-            </button>
-          </div>
-
-          {/* Precision Image Height & Auto-Match Text Size Toolbar Controls */}
-          <div className="flex items-center space-x-1.5 bg-slate-900/95 p-1 rounded-xl border border-slate-700">
-            <span className="text-[11px] text-slate-400 pl-1 font-semibold">Image Size:</span>
-
-            {/* 1-Click Auto-Match Text Size */}
-            <button
-              type="button"
-              onClick={() => handleSetAllImageHeights(15)}
-              className={`px-2 py-0.5 rounded text-[11px] font-bold flex items-center space-x-1 transition-colors ${
-                imageCustomHeight === 15
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-slate-800 text-emerald-300 hover:text-white hover:bg-slate-700'
-              }`}
-              title="Automatically match the exact font size of the question text (100% Scale)"
-            >
-              <Type className="w-3 h-3" />
-              <span>🎯 Auto-Match Text (15px)</span>
-            </button>
-
-            {/* Stepper Down [-] */}
-            <button
-              type="button"
-              onClick={() => handleSetAllImageHeights(imageCustomHeight - 2)}
-              className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs"
-              title="Decrease formula height (-2px)"
-            >
-              -
-            </button>
-
-            {/* Live Pixel Indicator */}
-            <span className="font-mono text-xs font-bold text-indigo-300 px-1 select-none">
-              {imageCustomHeight}px
-            </span>
-
-            {/* Stepper Up [+] */}
-            <button
-              type="button"
-              onClick={() => handleSetAllImageHeights(imageCustomHeight + 2)}
-              className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs"
-              title="Increase formula height (+2px)"
-            >
-              +
-            </button>
-
-            {/* Quick Size Presets */}
-            <button
-              type="button"
-              onClick={() => handleSetAllImageHeights(18)}
-              className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                imageCustomHeight === 18 ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              18px
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSetAllImageHeights(24)}
-              className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                imageCustomHeight === 24 ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              24px
+              {isRibbonMinimized ? (
+                <>
+                  <ChevronDown className="w-3 h-3 text-classic-navy" />
+                  <span>Expand</span>
+                </>
+              ) : (
+                <>
+                  <ChevronUp className="w-3 h-3 text-classic-navy" />
+                  <span>Minimize</span>
+                </>
+              )}
             </button>
           </div>
+        </div>
 
-          {/* Page Columns */}
-          <div className="flex items-center space-x-1 bg-slate-900/90 p-1 rounded-xl border border-slate-700">
-            <span className="text-[11px] text-slate-400 px-1">Cols:</span>
-            <button
-              onClick={() => {
-                setPageColumns(1);
-                savePaperLayout(selectedPaperQuestions, { pageColumns: 1 });
-              }}
-              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                pageColumns === 1 ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              1 Col
-            </button>
-            <button
-              onClick={() => {
-                setPageColumns(2);
-                savePaperLayout(selectedPaperQuestions, { pageColumns: 2 });
-              }}
-              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                pageColumns === 2 ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="2-Column Newspaper Exam Style (Saves Space)"
-            >
-              2 Col
-            </button>
-          </div>
+        {/* RIBBON TOOLBAR: Renders All Options or specific tab options (Ultra-compact minimum spacing) */}
+        {!isRibbonMinimized && (
+          <div className="flex flex-wrap items-stretch gap-1 text-xs pt-0.5 animate-fade-in transition-all">
+          {/* 1. FILE / PAPER MANAGEMENT GROUP */}
+          {(activeRibbonTab === 'ALL' || activeRibbonTab === 'FILE') && (
+            <div className="bg-white border border-classic-border rounded-classic p-1 px-1.5 flex flex-col justify-between space-y-0.5 shadow-classic">
+              <div className="flex flex-wrap items-center gap-1">
+                <div className="flex items-center space-x-1 px-0.5">
+                  <Folder className="w-3 h-3 text-classic-navy" />
+                  <span className="text-xs font-bold text-classic-text-primary">Paper:</span>
+                  {activePaper ? (
+                    <span className="text-xs px-1 py-0.1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded font-semibold font-mono">
+                      OPEN
+                    </span>
+                  ) : (
+                    <span className="text-xs px-1 py-0.1 bg-amber-100 text-amber-800 border border-amber-300 rounded font-semibold font-mono">
+                      NEW
+                    </span>
+                  )}
+                </div>
 
-          {/* Option Layout */}
-          <div className="flex items-center space-x-1 bg-slate-900/90 p-1 rounded-xl border border-slate-700">
-            <span className="text-[11px] text-slate-400 px-1">Options:</span>
-            <button
-              onClick={() => {
-                setOptionLayout('inline');
-                savePaperLayout(selectedPaperQuestions, { optionLayout: 'inline' });
-              }}
-              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                optionLayout === 'inline' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="4 Options on 1 Line (Saves maximum vertical paper space)"
-            >
-              Inline (4 Across)
-            </button>
-            <button
-              onClick={() => {
-                setOptionLayout('grid2');
-                savePaperLayout(selectedPaperQuestions, { optionLayout: 'grid2' });
-              }}
-              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                optionLayout === 'grid2' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              2x2 Grid
-            </button>
-          </div>
+                <select
+                  value={activePaper?.id || ''}
+                  onChange={(e) => {
+                    if (!e.target.value) {
+                      handleStartNewPaper();
+                      return;
+                    }
+                    const target = papers.find((p) => p.id === e.target.value);
+                    if (target) handleOpenSavedPaper(target);
+                  }}
+                  className="bg-white text-classic-text-primary text-xs font-semibold rounded-classic px-1.5 py-0 h-6 border border-classic-border focus:outline-none focus:ring-1 focus:ring-classic-navy max-w-[150px] truncate"
+                  title="Select a saved paper or start a new paper"
+                >
+                  <option value="">-- New Paper (Unsaved) --</option>
+                  {papers.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.title} ({p.examCode || 'No code'})
+                    </option>
+                  ))}
+                </select>
 
-          {/* Image Alignment (Inline with Q# / Left / Center) */}
-          <div className="flex items-center space-x-1 bg-slate-900/90 p-1 rounded-xl border border-slate-700">
-            <span className="text-[11px] text-slate-400 px-1 font-semibold">Image Align:</span>
-            <button
-              onClick={() => {
-                setImageAlignment('inline');
-                savePaperLayout(selectedPaperQuestions, { imageAlignment: 'inline' });
-              }}
-              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                imageAlignment === 'inline' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="Align image inline beside question number (eliminates empty space)"
-            >
-              ↔ Inline (Beside Q#)
-            </button>
-            <button
-              onClick={() => {
-                setImageAlignment('left');
-                savePaperLayout(selectedPaperQuestions, { imageAlignment: 'left' });
-              }}
-              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                imageAlignment === 'left' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="Left Aligned (no indent)"
-            >
-              Left
-            </button>
-            <button
-              onClick={() => {
-                setImageAlignment('center');
-                savePaperLayout(selectedPaperQuestions, { imageAlignment: 'center' });
-              }}
-              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                imageAlignment === 'center' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="Center Aligned"
-            >
-              Center
-            </button>
-          </div>
-
-          {/* Paper Spacing Density (Zero Spacing to save paper) */}
-          <div className="flex items-center space-x-1 bg-slate-900/90 p-1 rounded-xl border border-slate-700">
-            <span className="text-[11px] text-slate-400 px-1 font-semibold">Spacing:</span>
-            <button
-              onClick={applyZeroSpacingPreset}
-              className={`px-2 py-0.5 rounded text-[11px] font-bold transition-colors ${
-                spacingPreset === 'zero' ? 'bg-emerald-600 text-white' : 'text-emerald-400 hover:text-white'
-              }`}
-              title="Zero Spacing: Removes extra vertical gaps between questions, images, and options to save maximum paper"
-            >
-              ⚡ Zero Space
-            </button>
-            <button
-              onClick={() => {
-                setSpacingPreset('compact');
-                setLineSpacing('tight');
-                savePaperLayout(selectedPaperQuestions, { spacingPreset: 'compact', lineSpacing: 'tight' });
-              }}
-              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                spacingPreset === 'compact' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Compact
-            </button>
-            <button
-              onClick={() => {
-                setSpacingPreset('standard');
-                setLineSpacing('normal');
-                savePaperLayout(selectedPaperQuestions, { spacingPreset: 'standard', lineSpacing: 'normal' });
-              }}
-              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                spacingPreset === 'standard' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Normal
-            </button>
-          </div>
-
-          {/* Page Margins: Zero / Narrow / Normal / Wide */}
-          <div className="flex items-center space-x-1 bg-slate-900/90 p-1 rounded-xl border border-slate-700">
-            <span className="text-[11px] text-slate-400 px-1 font-semibold flex items-center space-x-1">
-              <Maximize2 className="w-3 h-3 text-indigo-400" />
-              <span>Margins:</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => handleSelectPresetMargin('zero')}
-              className={`px-2 py-0.5 rounded text-[11px] font-bold transition-colors ${
-                pageMargin === 'zero' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="Zero / Ultra-Eco Margins (4mm) - Maximum printable area on paper"
-            >
-              Zero (4mm)
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSelectPresetMargin('narrow')}
-              className={`px-2 py-0.5 rounded text-[11px] font-bold transition-colors ${
-                pageMargin === 'narrow' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="Narrow Margins (8mm) - Eco compact paper saver"
-            >
-              Narrow (8mm)
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSelectPresetMargin('normal')}
-              className={`px-2 py-0.5 rounded text-[11px] font-bold transition-colors ${
-                pageMargin === 'normal' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="Normal Margins (15mm) - Standard examination format"
-            >
-              Normal (15mm)
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSelectPresetMargin('wide')}
-              className={`px-2 py-0.5 rounded text-[11px] font-bold transition-colors ${
-                pageMargin === 'wide' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="Wide Margins (25mm / 1 inch)"
-            >
-              Wide (25mm)
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsCustomMarginModalOpen(true)}
-              className={`px-2 py-0.5 rounded text-[11px] font-bold transition-all flex items-center space-x-1 ${
-                pageMargin === 'custom'
-                  ? 'bg-amber-600 text-white shadow-md'
-                  : 'text-amber-300 hover:text-white hover:bg-slate-800'
-              }`}
-              title="Set custom page margins in millimeters (Top, Bottom, Left, Right)"
-            >
-              <Sliders className="w-3 h-3 text-amber-400" />
-              <span>{pageMargin === 'custom' ? `Custom (${marginLeft}mm)` : 'Set Custom...'}</span>
-            </button>
-          </div>
-
-          {/* Roll No Format Toggle */}
-          <div className="flex items-center space-x-1 bg-slate-900/90 p-1 rounded-xl border border-slate-700">
-            <span className="text-[11px] text-slate-400 px-1 font-semibold">Roll No:</span>
-            <button
-              onClick={() => {
-                setRollNoStyle('boxes');
-                savePaperLayout(selectedPaperQuestions, { rollNoStyle: 'boxes' });
-              }}
-              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                rollNoStyle === 'boxes' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="Printable Square Grid Boxes for Roll Number"
-            >
-              🔲 Boxes
-            </button>
-            <button
-              onClick={() => {
-                setRollNoStyle('blank');
-                savePaperLayout(selectedPaperQuestions, { rollNoStyle: 'blank' });
-              }}
-              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                rollNoStyle === 'blank' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="Underline Blank Space for Roll Number"
-            >
-              ➖ Line
-            </button>
-            <button
-              onClick={() => {
-                setRollNoStyle('none');
-                savePaperLayout(selectedPaperQuestions, { rollNoStyle: 'none' });
-              }}
-              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                rollNoStyle === 'none' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              None
-            </button>
-          </div>
-
-          {/* School Logo Insert & Controls */}
-          <div className="flex items-center space-x-1 bg-slate-900/90 p-1 rounded-xl border border-slate-700">
-            <span className="text-[11px] text-slate-400 px-1 font-semibold">Logo:</span>
-            {schoolLogoUrl ? (
-              <>
                 <button
                   type="button"
-                  onClick={() => logoFileInputRef.current?.click()}
-                  className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 text-[11px] font-semibold flex items-center space-x-1"
-                  title="Change school logo image"
+                  onClick={() => setIsOpenSavedPaperModalOpen(true)}
+                  className="classic-button-secondary text-xs font-bold px-1.5 py-0 h-6 rounded-classic border flex items-center space-x-1 transition-all"
+                  title="Browse and open a previously saved question paper"
+                >
+                  <FolderTree className="w-3 h-3 text-classic-navy" />
+                  <span>Open ({papers.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleStartNewPaper}
+                  className="classic-button-primary text-xs font-bold px-2 py-0 h-6 rounded-classic flex items-center space-x-1 transition-all"
+                  title="Start blank paper canvas"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>New</span>
+                </button>
+
+                {(activePaper || selectedPaperQuestions.length > 0) && (
+                  <button
+                    type="button"
+                    onClick={handleCloseActivePaper}
+                    className="bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold px-1.5 py-0 h-6 rounded-classic border border-rose-200 flex items-center space-x-1 transition-all"
+                    title="Close current paper"
+                  >
+                    <X className="w-3 h-3 text-rose-500" />
+                    <span>Close</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={openSaveModal}
+                  className="classic-button-secondary text-xs font-bold px-2 py-0 h-6 rounded-classic border border-emerald-300 text-emerald-800 hover:bg-emerald-50 flex items-center space-x-1 transition-all"
+                  title="Save question paper to physical storage"
+                >
+                  <HardDrive className="w-3 h-3 text-emerald-700" />
+                  <span>💾 Save to Disk</span>
+                </button>
+              </div>
+              <span className="text-xs uppercase tracking-wider text-classic-text-muted font-semibold block text-center select-none pt-0.5">
+                Paper & Storage
+              </span>
+            </div>
+          )}
+
+          {/* 2. HOME GROUP (Typography, Font Size, Image Border, Auto-Match, Dividers, Minimum Spacing) */}
+          {(activeRibbonTab === 'ALL' || activeRibbonTab === 'HOME') && (
+            <div className="bg-white border border-classic-border rounded-classic p-1 px-1.5 flex flex-col justify-between space-y-0.5 shadow-classic">
+              <div className="flex flex-wrap items-center gap-1">
+                {/* Font Family */}
+                <div className="flex items-center space-x-1 bg-classic-surface-muted px-1.5 py-0 h-6 rounded-classic border border-classic-border">
+                  <span className="text-xs text-classic-text-muted">Font:</span>
+                  <select
+                    value={fontFamily}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFontFamily(val);
+                      savePaperLayout(selectedPaperQuestions, { fontFamily: val });
+                    }}
+                    className="bg-transparent text-classic-text-primary font-semibold focus:outline-none cursor-pointer text-xs"
+                  >
+                    <option value="serif">Times New Roman (Board)</option>
+                    <option value="cm">Computer Modern (LaTeX)</option>
+                    <option value="calibri">Calibri (Modern Clear)</option>
+                    <option value="sans">Arial (Clean Sans)</option>
+                    <option value="cambria">Cambria (CBSE Math)</option>
+                    <option value="georgia">Georgia (Serif)</option>
+                    <option value="garamond">Garamond (Academic)</option>
+                    <option value="verdana">Verdana (Legible)</option>
+                    <option value="monospace">Courier New (Mono)</option>
+                  </select>
+                </div>
+
+                {/* Font Size */}
+                <div className="flex items-center space-x-1 bg-classic-surface-muted px-1.5 py-0 h-6 rounded-classic border border-classic-border">
+                  <span className="text-xs text-classic-text-muted">Size:</span>
+                  <select
+                    value={fontSize}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFontSize(val);
+                      const num = parseFloat(val) || 10;
+                      setBaseFontSizePt(num);
+                      savePaperLayout(selectedPaperQuestions, { fontSize: val, baseFontSizePt: num });
+                    }}
+                    className="bg-transparent text-classic-text-primary font-semibold focus:outline-none cursor-pointer text-xs"
+                  >
+                    <option value="8pt">8pt (Ultra Saver)</option>
+                    <option value="8.5pt">8.5pt (Compact)</option>
+                    <option value="9pt">9pt (Micro Saver)</option>
+                    <option value="9.5pt">9.5pt (Dense)</option>
+                    <option value="10pt">10pt (Standard)</option>
+                    <option value="10.5pt">10.5pt (CBSE Std)</option>
+                    <option value="11pt">11pt (Normal)</option>
+                    <option value="12pt">12pt (Large)</option>
+                  </select>
+                </div>
+
+                {/* Minimum Spacing / Zero Spacing Preset Button */}
+                <button
+                  type="button"
+                  onClick={applyZeroSpacingPreset}
+                  className="classic-button-secondary text-xs font-bold px-2 py-0 h-6 rounded-classic border-emerald-300 text-emerald-800 hover:bg-emerald-50 flex items-center space-x-1 transition-all"
+                  title="Set spacing to minimum: Zero-Space, 4mm Margins, Tight Line-Height, Inline Options"
+                >
+                  <Zap className="w-3 h-3 text-emerald-600" />
+                  <span>Min Spacing</span>
+                </button>
+
+                {/* Image Border Style */}
+                <div className="flex items-center space-x-0.5 bg-classic-surface-muted p-0.5 h-6 rounded-classic border border-classic-border">
+                  <span className="text-xs text-classic-text-muted px-0.5">Border:</span>
+                  <button
+                    onClick={() => {
+                      setImageBorderStyle('none');
+                      savePaperLayout(selectedPaperQuestions, { imageBorderStyle: 'none' });
+                    }}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-semibold transition-colors ${
+                      imageBorderStyle === 'none' ? 'bg-classic-navy text-white shadow-classic' : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                  >
+                    None
+                  </button>
+                  <button
+                    onClick={() => {
+                      setImageBorderStyle('subtle');
+                      savePaperLayout(selectedPaperQuestions, { imageBorderStyle: 'subtle' });
+                    }}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-semibold transition-colors ${
+                      imageBorderStyle === 'subtle' ? 'bg-classic-navy text-white shadow-classic' : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                  >
+                    Box
+                  </button>
+                </div>
+
+                {/* Precision Image Height & Auto-Match */}
+                <div className="flex items-center space-x-0.5 bg-classic-surface-muted p-0.5 h-6 rounded-classic border border-classic-border">
+                  <button
+                    type="button"
+                    onClick={() => handleSetAllImageHeights(15)}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-bold flex items-center space-x-1 transition-colors ${
+                      imageCustomHeight === 15 ? 'bg-classic-navy text-white shadow-classic' : 'text-classic-navy hover:bg-white'
+                    }`}
+                    title="Auto-match question font height"
+                  >
+                    <Type className="w-3 h-3" />
+                    <span>Match Font (15px)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSetAllImageHeights(imageCustomHeight - 2)}
+                    className="w-4 h-4 rounded-classic bg-white hover:bg-classic-surface-muted text-classic-text-primary border border-classic-border flex items-center justify-center font-bold text-xs"
+                  >
+                    -
+                  </button>
+                  <span className="font-mono text-xs font-bold text-classic-navy px-0.5">{imageCustomHeight}px</span>
+                  <button
+                    type="button"
+                    onClick={() => handleSetAllImageHeights(imageCustomHeight + 2)}
+                    className="w-4 h-4 rounded-classic bg-white hover:bg-classic-surface-muted text-classic-text-primary border border-classic-border flex items-center justify-center font-bold text-xs"
+                  >
+                    +
+                  </button>
+                </div>
+
+                {/* Question Dividers */}
+                <div className="flex items-center space-x-0.5 bg-classic-surface-muted p-0.5 h-6 rounded-classic border border-classic-border">
+                  <span className="text-xs text-classic-text-muted px-0.5">Divider:</span>
+                  <button
+                    onClick={() => {
+                      setBorderStyle('none');
+                      savePaperLayout(selectedPaperQuestions, { borderStyle: 'none' });
+                    }}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-semibold transition-colors ${
+                      borderStyle === 'none' ? 'bg-classic-navy text-white shadow-classic' : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                  >
+                    None
+                  </button>
+                  <button
+                    onClick={() => {
+                      setBorderStyle('divider');
+                      savePaperLayout(selectedPaperQuestions, { borderStyle: 'divider' });
+                    }}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-semibold transition-colors ${
+                      borderStyle === 'divider' ? 'bg-classic-navy text-white shadow-classic' : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                  >
+                    Line
+                  </button>
+                </div>
+              </div>
+              <span className="text-xs uppercase tracking-wider text-classic-text-muted font-semibold block text-center select-none pt-0.5">
+                Font & Typography
+              </span>
+            </div>
+          )}
+
+          {/* 3. LAYOUT GROUP (Columns, Margins, Spacing Density, Option Layout, Image Align) */}
+          {(activeRibbonTab === 'ALL' || activeRibbonTab === 'LAYOUT') && (
+            <div className="bg-white border border-classic-border rounded-classic p-1 px-1.5 flex flex-col justify-between space-y-0.5 shadow-classic">
+              <div className="flex flex-wrap items-center gap-1">
+                {/* Page Columns */}
+                <div className="flex items-center space-x-0.5 bg-classic-surface-muted p-0.5 h-6 rounded-classic border border-classic-border">
+                  <span className="text-xs text-classic-text-muted px-0.5">Cols:</span>
+                  <button
+                    onClick={() => {
+                      setPageColumns(1);
+                      savePaperLayout(selectedPaperQuestions, { pageColumns: 1 });
+                    }}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-semibold transition-colors ${
+                      pageColumns === 1 ? 'bg-classic-navy text-white shadow-classic' : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                  >
+                    1 Col
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPageColumns(2);
+                      savePaperLayout(selectedPaperQuestions, { pageColumns: 2 });
+                    }}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-semibold transition-colors ${
+                      pageColumns === 2 ? 'bg-classic-navy text-white shadow-classic' : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                    title="2-Column Newspaper Exam Style"
+                  >
+                    2 Col
+                  </button>
+                </div>
+
+                {/* Option Layout */}
+                <div className="flex items-center space-x-0.5 bg-classic-surface-muted p-0.5 h-6 rounded-classic border border-classic-border">
+                  <span className="text-xs text-classic-text-muted px-0.5">Options:</span>
+                  <button
+                    onClick={() => {
+                      setOptionLayout('inline');
+                      savePaperLayout(selectedPaperQuestions, { optionLayout: 'inline' });
+                    }}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-semibold transition-colors ${
+                      optionLayout === 'inline' ? 'bg-classic-navy text-white shadow-classic' : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                    title="4 Options on 1 Line (Saves maximum vertical paper space)"
+                  >
+                    Inline (4 Across)
+                  </button>
+                  <button
+                    onClick={() => {
+                      setOptionLayout('grid2');
+                      savePaperLayout(selectedPaperQuestions, { optionLayout: 'grid2' });
+                    }}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-semibold transition-colors ${
+                      optionLayout === 'grid2' ? 'bg-classic-navy text-white shadow-classic' : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                  >
+                    2x2 Grid
+                  </button>
+                </div>
+
+                {/* Image Alignment */}
+                <div className="flex items-center space-x-0.5 bg-classic-surface-muted p-0.5 h-6 rounded-classic border border-classic-border">
+                  <span className="text-xs text-classic-text-muted px-0.5 font-semibold">Align:</span>
+                  <button
+                    onClick={() => {
+                      setImageAlignment('inline');
+                      savePaperLayout(selectedPaperQuestions, { imageAlignment: 'inline' });
+                    }}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-semibold transition-colors ${
+                      imageAlignment === 'inline' ? 'bg-classic-navy text-white shadow-classic' : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                    title="Beside question text"
+                  >
+                    ↔ Inline
+                  </button>
+                  <button
+                    onClick={() => {
+                      setImageAlignment('left');
+                      savePaperLayout(selectedPaperQuestions, { imageAlignment: 'left' });
+                    }}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-semibold transition-colors ${
+                      imageAlignment === 'left' ? 'bg-classic-navy text-white shadow-classic' : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                  >
+                    Left
+                  </button>
+                  <button
+                    onClick={() => {
+                      setImageAlignment('center');
+                      savePaperLayout(selectedPaperQuestions, { imageAlignment: 'center' });
+                    }}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-semibold transition-colors ${
+                      imageAlignment === 'center' ? 'bg-classic-navy text-white shadow-classic' : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                  >
+                    Center
+                  </button>
+                </div>
+
+                {/* Page Margins */}
+                <div className="flex items-center space-x-0.5 bg-classic-surface-muted p-0.5 h-6 rounded-classic border border-classic-border">
+                  <span className="text-xs text-classic-text-muted px-0.5 font-semibold flex items-center space-x-1">
+                    <Maximize2 className="w-2.5 h-2.5 text-classic-navy" />
+                    <span>Margin:</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectPresetMargin('zero')}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-bold transition-colors ${
+                      pageMargin === 'zero' ? 'bg-classic-navy text-white shadow-classic' : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                    title="Zero / Ultra-Eco (4mm) - Minimum spacing"
+                  >
+                    Zero (4mm)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectPresetMargin('narrow')}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-bold transition-colors ${
+                      pageMargin === 'narrow' ? 'bg-classic-navy text-white shadow-classic' : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                    title="Narrow (8mm)"
+                  >
+                    Narrow (8mm)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectPresetMargin('normal')}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-bold transition-colors ${
+                      pageMargin === 'normal' ? 'bg-classic-navy text-white shadow-classic' : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                    title="Normal (15mm)"
+                  >
+                    Normal (15mm)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomMarginModalOpen(true)}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-bold transition-all flex items-center space-x-0.5 ${
+                      pageMargin === 'custom' ? 'bg-amber-600 text-white' : 'text-amber-800 hover:bg-amber-50'
+                    }`}
+                  >
+                    <Sliders className="w-2.5 h-2.5" />
+                    <span>Custom</span>
+                  </button>
+                </div>
+              </div>
+              <span className="text-xs uppercase tracking-wider text-classic-text-muted font-semibold block text-center select-none pt-0.5">
+                Page Layout & Margins
+              </span>
+            </div>
+          )}
+
+          {/* 4. INSERT GROUP (School Logo, Roll Number Style, Ruled Answer Lines) */}
+          {(activeRibbonTab === 'ALL' || activeRibbonTab === 'INSERT') && (
+            <div className="bg-white border border-classic-border rounded-classic p-1 px-1.5 flex flex-col justify-between space-y-0.5 shadow-classic">
+              <div className="flex flex-wrap items-center gap-1">
+                {/* Roll No Format */}
+                <div className="flex items-center space-x-0.5 bg-classic-surface-muted p-0.5 h-6 rounded-classic border border-classic-border">
+                  <span className="text-xs text-classic-text-muted px-0.5 font-semibold">Roll No:</span>
+                  <button
+                    onClick={() => {
+                      setRollNoStyle('boxes');
+                      savePaperLayout(selectedPaperQuestions, { rollNoStyle: 'boxes' });
+                    }}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-semibold transition-colors ${
+                      rollNoStyle === 'boxes' ? 'bg-classic-navy text-white shadow-classic' : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                  >
+                    🔲 Boxes
+                  </button>
+                  <button
+                    onClick={() => {
+                      setRollNoStyle('blank');
+                      savePaperLayout(selectedPaperQuestions, { rollNoStyle: 'blank' });
+                    }}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-semibold transition-colors ${
+                      rollNoStyle === 'blank' ? 'bg-classic-navy text-white shadow-classic' : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                  >
+                    ➖ Line
+                  </button>
+                  <button
+                    onClick={() => {
+                      setRollNoStyle('none');
+                      savePaperLayout(selectedPaperQuestions, { rollNoStyle: 'none' });
+                    }}
+                    className={`px-1.5 py-0.2 rounded-classic text-xs font-semibold transition-colors ${
+                      rollNoStyle === 'none' ? 'bg-classic-navy text-white shadow-classic' : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                  >
+                    None
+                  </button>
+                </div>
+
+                {/* School Logo */}
+                <div className="flex items-center space-x-0.5 bg-classic-surface-muted p-0.5 h-6 rounded-classic border border-classic-border">
+                  <span className="text-xs text-classic-text-muted px-0.5 font-semibold">Logo:</span>
+                  {schoolLogoUrl ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => logoFileInputRef.current?.click()}
+                        className="px-1.5 py-0.2 rounded-classic bg-white hover:bg-classic-surface-muted text-classic-navy border border-classic-border text-xs font-semibold flex items-center space-x-0.5"
+                      >
+                        <Edit3 className="w-2.5 h-2.5" />
+                        <span>Change</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextPos = schoolLogoPosition === 'left' ? 'center' : schoolLogoPosition === 'center' ? 'right' : 'left';
+                          setSchoolLogoPosition(nextPos);
+                          savePaperLayout(selectedPaperQuestions, { schoolLogoPosition: nextPos });
+                        }}
+                        className="px-1.5 py-0.2 rounded-classic bg-white hover:bg-classic-surface-muted text-classic-text-primary border border-classic-border text-xs"
+                      >
+                        {schoolLogoPosition === 'left' ? 'Left' : schoolLogoPosition === 'center' ? 'Center' : 'Right'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSchoolLogoUrl(null);
+                          savePaperLayout(selectedPaperQuestions, { schoolLogoUrl: null });
+                        }}
+                        className="p-0.5 rounded-classic bg-white hover:bg-rose-50 text-rose-600 border border-classic-border"
+                      >
+                        <Trash2 className="w-2.5 h-2.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => logoFileInputRef.current?.click()}
+                      className="classic-button-secondary px-1.5 py-0.2 text-xs font-semibold flex items-center space-x-0.5 rounded-classic"
+                    >
+                      <Upload className="w-2.5 h-2.5" />
+                      <span>+ Logo</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Batch Ruled Blank Lines */}
+                <div className="flex items-center space-x-0.5 bg-classic-surface-muted p-0.5 h-6 rounded-classic border border-classic-border">
+                  <span className="text-xs text-classic-text-muted px-0.5">Lines:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleBatchSetBlankLines(3, 'ruled')}
+                    className="px-1.5 py-0.2 rounded-classic text-xs font-bold text-emerald-800 bg-white border border-classic-border hover:bg-emerald-50 transition-all flex items-center space-x-0.5"
+                    title="Add 3 ruled lines under all questions"
+                  >
+                    <Plus className="w-2.5 h-2.5 text-emerald-600" />
+                    <span>+3</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBatchRemoveAllBlankLines}
+                    className="px-1 py-0.2 rounded-classic text-xs font-bold text-rose-700 bg-white border border-classic-border hover:bg-rose-50 transition-all"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+              <span className="text-xs uppercase tracking-wider text-classic-text-muted font-semibold block text-center select-none pt-0.5">
+                Insert & Elements
+              </span>
+            </div>
+          )}
+
+          {/* 5. EXAM & REVIEW GROUP (Teacher's Copy, Marks On/Off, Options Hide/Show, Sections) */}
+          {(activeRibbonTab === 'ALL' || activeRibbonTab === 'REVIEW') && (
+            <div className="bg-white border border-classic-border rounded-classic p-1 px-1.5 flex flex-col justify-between space-y-0.5 shadow-classic">
+              <div className="flex flex-wrap items-center gap-1">
+                {/* Teacher's Copy */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !isTeacherCopy;
+                    setIsTeacherCopy(next);
+                    showToast(next ? '🎓 Teacher’s Copy Active' : '📄 Student Copy Active');
+                  }}
+                  className={`px-2 py-0.2 h-6 rounded-classic border text-xs font-bold flex items-center space-x-1 transition-all ${
+                    isTeacherCopy
+                      ? 'bg-amber-100 text-amber-900 border-amber-300 shadow-classic'
+                      : 'classic-button-secondary text-amber-800'
+                  }`}
+                  title="Toggle Teacher's Copy with answers & solutions"
+                >
+                  <Award className={`w-3 h-3 ${isTeacherCopy ? 'text-amber-800' : 'text-amber-600'}`} />
+                  <span>{isTeacherCopy ? '🎓 Teacher (ON)' : '🎓 Teacher'}</span>
+                </button>
+
+                {/* Marks Removal / Restore */}
+                <button
+                  type="button"
+                  onClick={handleBatchToggleAllMarks}
+                  className={`px-2 py-0.2 h-6 rounded-classic border text-xs font-bold flex items-center space-x-1 transition-all ${
+                    showQuestionMarks
+                      ? 'classic-button-secondary text-classic-navy'
+                      : 'bg-rose-50 text-rose-700 border-rose-200'
+                  }`}
+                  title="Show or hide marks"
+                >
+                  {showQuestionMarks ? (
+                    <>
+                      <Award className="w-3 h-3 text-classic-navy" />
+                      <span>Marks: On</span>
+                    </>
+                  ) : (
+                    <>
+                      <EyeOff className="w-3 h-3 text-rose-500" />
+                      <span>Marks: Off</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Options Visibility */}
+                <button
+                  type="button"
+                  onClick={handleBatchToggleAllOptions}
+                  className={`px-2 py-0.2 h-6 rounded-classic border text-xs font-bold flex items-center space-x-1 transition-all ${
+                    hideAllOptions
+                      ? 'bg-amber-50 text-amber-800 border-amber-200'
+                      : 'classic-button-secondary'
+                  }`}
+                  title="Show or hide MCQ options"
+                >
+                  {hideAllOptions ? (
+                    <>
+                      <EyeOff className="w-3 h-3 text-amber-600" />
+                      <span>Opts: Hidden</span>
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-3 h-3 text-classic-navy" />
+                      <span>Opts: Show</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Sections Visibility */}
+                <button
+                  type="button"
+                  onClick={handleBatchToggleAllSections}
+                  className={`px-2 py-0.2 h-6 rounded-classic border text-xs font-bold flex items-center space-x-1 transition-all ${
+                    hideAllSections
+                      ? 'bg-amber-50 text-amber-800 border-amber-200'
+                      : 'classic-button-secondary'
+                  }`}
+                  title="Show or hide section headings"
+                >
+                  {hideAllSections ? (
+                    <>
+                      <EyeOff className="w-3 h-3 text-amber-600" />
+                      <span>Sec: Hidden</span>
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-3 h-3 text-classic-navy" />
+                      <span>Sec: Show</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <span className="text-xs uppercase tracking-wider text-classic-text-muted font-semibold block text-center select-none pt-0.5">
+                Exam Controls & Review
+              </span>
+            </div>
+          )}
+
+          {/* 6. VIEW MODES GROUP (Split, Editor, A4 Preview) */}
+          {(activeRibbonTab === 'ALL' || activeRibbonTab === 'VIEW') && (
+            <div className="bg-white border border-classic-border rounded-classic p-1 px-1.5 flex flex-col justify-between space-y-0.5 shadow-classic">
+              <div className="flex flex-wrap items-center gap-0.5 bg-classic-surface-muted p-0.5 h-6 rounded-classic border border-classic-border">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('split')}
+                  className={`px-2 py-0.2 rounded-classic flex items-center space-x-0.5 transition-all text-xs font-semibold ${
+                    viewMode === 'split' ? 'bg-classic-navy text-white shadow-classic border border-classic-navy' : 'text-classic-text-secondary hover:text-classic-text-primary border border-transparent'
+                  }`}
+                  title="Split Canvas & A4 View"
+                >
+                  <Columns className="w-3 h-3" />
+                  <span>Split</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('editor')}
+                  className={`px-2 py-0.2 rounded-classic flex items-center space-x-0.5 transition-all text-xs font-semibold ${
+                    viewMode === 'editor' ? 'bg-classic-navy text-white shadow-classic border border-classic-navy' : 'text-classic-text-secondary hover:text-classic-text-primary border border-transparent'
+                  }`}
+                  title="Studio Canvas Editor"
                 >
                   <Edit3 className="w-3 h-3" />
-                  <span>Change</span>
+                  <span>Editor</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    const nextPos = schoolLogoPosition === 'left' ? 'center' : schoolLogoPosition === 'center' ? 'right' : 'left';
-                    setSchoolLogoPosition(nextPos);
-                    savePaperLayout(selectedPaperQuestions, { schoolLogoPosition: nextPos });
-                  }}
-                  className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-mono"
-                  title={`Change Logo Alignment (Current: ${schoolLogoPosition})`}
+                  onClick={() => setViewMode('a4_preview')}
+                  className={`px-2 py-0.2 rounded-classic flex items-center space-x-0.5 transition-all text-xs font-semibold ${
+                    viewMode === 'a4_preview' ? 'bg-classic-navy text-white shadow-classic border border-classic-navy' : 'text-classic-text-secondary hover:text-classic-text-primary border border-transparent'
+                  }`}
+                  title="Full A4 White Paper Preview"
                 >
-                  {schoolLogoPosition === 'left' ? '⬅ Left' : schoolLogoPosition === 'center' ? '⬛ Center' : '➡ Right'}
+                  <Eye className="w-3 h-3" />
+                  <span>A4 Sheet</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSchoolLogoUrl(null);
-                    savePaperLayout(selectedPaperQuestions, { schoolLogoUrl: null });
-                  }}
-                  className="p-1 rounded bg-slate-800 hover:bg-rose-600 text-slate-400 hover:text-white"
-                  title="Remove Logo"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={() => logoFileInputRef.current?.click()}
-                className="px-2 py-0.5 rounded bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white text-[11px] font-semibold flex items-center space-x-1"
-                title="Upload and insert School/Institute Logo"
-              >
-                <Upload className="w-3 h-3" />
-                <span>+ Upload Logo</span>
-              </button>
-            )}
+              </div>
+              <span className="text-xs uppercase tracking-wider text-classic-text-muted font-semibold block text-center select-none pt-0.5">
+                View Modes
+              </span>
+            </div>
+          )}
           </div>
-
-          {/* Question Border Style */}
-          <div className="flex items-center space-x-1 bg-slate-900/90 p-1 rounded-xl border border-slate-700">
-            <span className="text-[11px] text-slate-400 px-1">Dividers:</span>
-            <button
-              onClick={() => {
-                setBorderStyle('none');
-                savePaperLayout(selectedPaperQuestions, { borderStyle: 'none' });
-              }}
-              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                borderStyle === 'none' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              None
-            </button>
-            <button
-              onClick={() => {
-                setBorderStyle('divider');
-                savePaperLayout(selectedPaperQuestions, { borderStyle: 'divider' });
-              }}
-              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                borderStyle === 'divider' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Line
-            </button>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Hidden File Input for School Logo Upload */}
@@ -3571,20 +4020,20 @@ export const PaperDesigner: React.FC = () => {
           !showSidebarBank
             ? 'lg:col-span-1'
             : viewMode === 'split' ? 'lg:col-span-2' : 'lg:col-span-3'
-        } glass-panel rounded-2xl flex flex-col max-h-[820px] overflow-hidden transition-all duration-300`}>
+        } bg-white border border-classic-border rounded-classic shadow-classic flex flex-col max-h-[820px] overflow-hidden transition-all duration-300`}>
 
           {/* Collapsed strip — shown when minimised */}
           <div className={!showSidebarBank ? 'flex flex-col items-center justify-start py-4 space-y-4 h-full' : 'hidden'}>
             <button
               type="button"
               onClick={() => setShowSidebarBank(true)}
-              className="p-2 rounded-xl bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/40 hover:text-white transition-all"
+              className="p-2 rounded-classic classic-button-secondary transition-all"
               title="Expand Question Bank"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4 text-classic-navy" />
             </button>
             <div
-              className="text-[10px] font-bold text-slate-500 tracking-widest select-none"
+              className="text-xs font-bold text-classic-text-muted tracking-widest select-none"
               style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
             >
               QUESTION BANK
@@ -3594,8 +4043,8 @@ export const PaperDesigner: React.FC = () => {
           {/* Expanded content — shown when not minimised */}
           <div className={!showSidebarBank ? 'hidden' : 'space-y-2.5 flex-1 flex flex-col min-h-0 p-3.5'}>
             {/* Header & New Paper */}
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <label className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-slate-300 cursor-pointer select-none">
+            <div className="flex items-center justify-between pb-2 border-b border-classic-border">
+              <label className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-classic-text-primary cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={
@@ -3615,7 +4064,7 @@ export const PaperDesigner: React.FC = () => {
                       return next;
                     });
                   }}
-                  className="w-3.5 h-3.5 rounded text-indigo-600 bg-slate-950 border-slate-700 focus:ring-indigo-500 cursor-pointer"
+                  className="w-3.5 h-3.5 rounded text-classic-navy bg-white border-classic-border focus:ring-classic-navy cursor-pointer"
                 />
                 <span>Question Bank ({filteredSidebarQuestions.length})</span>
               </label>
@@ -3623,7 +4072,7 @@ export const PaperDesigner: React.FC = () => {
               <div className="flex items-center space-x-1.5">
                 <button
                   onClick={handleCreateNewPaper}
-                  className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center space-x-1 font-semibold"
+                  className="text-xs text-classic-navy hover:underline flex items-center space-x-1 font-semibold"
                 >
                   <Plus className="w-3 h-3" />
                   <span>New Paper</span>
@@ -3632,7 +4081,7 @@ export const PaperDesigner: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowSidebarBank(false)}
-                  className="p-1 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors"
+                  className="p-1 rounded-classic text-classic-text-muted hover:text-classic-text-primary hover:bg-classic-surface-muted transition-colors"
                   title="Minimise Question Bank panel"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
@@ -3644,15 +4093,15 @@ export const PaperDesigner: React.FC = () => {
             <button
               type="button"
               onClick={handleOpenQuestionBankExplorer}
-              className="w-full bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold py-2 px-3 rounded-xl shadow-lg shadow-indigo-600/25 flex items-center justify-center space-x-2 text-xs transition-all border border-indigo-400/40 group hover:scale-[1.01]"
+              className="w-full bg-classic-navy hover:bg-classic-navy-hover text-white font-bold py-2 px-3 rounded-classic shadow-classic flex items-center justify-center space-x-2 text-xs transition-all border border-classic-navy"
               title="Open full Question Bank Explorer dialog to select questions by Folder & Subject, and assign marks"
             >
-              <FolderTree className="w-4 h-4 text-indigo-200 group-hover:scale-110 transition-transform" />
+              <FolderTree className="w-4 h-4 text-white" />
               <span>Open Question Bank Explorer</span>
             </button>
 
             {/* Quick Sidebar Filters (Class Folder, Subject, Search) */}
-            <div className="space-y-1.5 bg-slate-950/70 p-2 rounded-xl border border-slate-800/90 text-xs">
+            <div className="space-y-1.5 bg-classic-surface-muted p-2 rounded-classic border border-classic-border text-xs">
               {/* Folder / Class Dropdown */}
               <select
                 value={sidebarFolderFilter}
@@ -3662,7 +4111,7 @@ export const PaperDesigner: React.FC = () => {
                   setSidebarChapterFilter('all');
                   setSidebarSubTopicFilter('all');
                 }}
-                className="w-full bg-slate-900 border border-slate-700/80 rounded-lg text-[11px] text-slate-200 px-2 py-1 focus:outline-none focus:border-indigo-500 truncate"
+                className="w-full bg-white border border-classic-border rounded-classic text-xs text-classic-text-primary px-2 py-1 focus:outline-none focus:border-classic-navy truncate"
                 title="Filter questions by Class Folder"
               >
                 <option value="all">📁 All Classes / Folders</option>
@@ -3681,7 +4130,7 @@ export const PaperDesigner: React.FC = () => {
                   setSidebarChapterFilter('all');
                   setSidebarSubTopicFilter('all');
                 }}
-                className="w-full bg-slate-900 border border-slate-700/80 rounded-lg text-[11px] text-slate-200 px-2 py-1 focus:outline-none focus:border-indigo-500 truncate"
+                className="w-full bg-white border border-classic-border rounded-classic text-xs text-classic-text-primary px-2 py-1 focus:outline-none focus:border-classic-navy truncate"
                 title="Filter questions by Subject"
               >
                 <option value="all">🔬 All Subjects</option>
@@ -3700,8 +4149,10 @@ export const PaperDesigner: React.FC = () => {
                     f.children?.forEach((sub: any) => {
                       if (!seen.has(sub.name.toLowerCase())) {
                         seen.add(sub.name.toLowerCase());
-                        allSubs.push(sub);
+                      } else {
+                        return;
                       }
+                      allSubs.push(sub);
                     });
                   });
                   return allSubs.map((sub) => (
@@ -3719,7 +4170,7 @@ export const PaperDesigner: React.FC = () => {
                   setSidebarChapterFilter(e.target.value);
                   setSidebarSubTopicFilter('all');
                 }}
-                className="w-full bg-slate-900 border border-slate-700/80 rounded-lg text-[11px] text-slate-200 px-2 py-1 focus:outline-none focus:border-emerald-500 truncate"
+                className="w-full bg-white border border-classic-border rounded-classic text-xs text-classic-text-primary px-2 py-1 focus:outline-none focus:border-classic-navy truncate"
                 title="Filter questions by Chapter / Topic"
               >
                 <option value="all">📖 All Chapters / Topics</option>
@@ -3735,7 +4186,7 @@ export const PaperDesigner: React.FC = () => {
                 <select
                   value={sidebarSubTopicFilter}
                   onChange={(e) => setSidebarSubTopicFilter(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700/80 rounded-lg text-[11px] text-slate-200 px-2 py-1 focus:outline-none focus:border-amber-500 truncate"
+                  className="w-full bg-white border border-classic-border rounded-classic text-xs text-classic-text-primary px-2 py-1 focus:outline-none focus:border-classic-navy truncate"
                   title="Filter questions by Sub-Topic / DPP"
                 >
                   <option value="all">🔖 All Sub-Topics / DPPs</option>
@@ -3749,13 +4200,13 @@ export const PaperDesigner: React.FC = () => {
 
               {/* Search input */}
               <div className="relative">
-                <Search className="w-3 h-3 text-slate-500 absolute left-2 top-2" />
+                <Search className="w-3 h-3 text-classic-text-muted absolute left-2 top-2" />
                 <input
                   type="text"
                   placeholder="Filter text or Q#..."
                   value={sidebarSearchQuery}
                   onChange={(e) => setSidebarSearchQuery(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700/80 rounded-lg text-[11px] text-slate-200 pl-6 pr-2 py-1 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-white border border-classic-border rounded-classic text-xs text-classic-text-primary pl-6 pr-2 py-1 focus:outline-none focus:border-classic-navy"
                 />
               </div>
             </div>
@@ -3765,7 +4216,7 @@ export const PaperDesigner: React.FC = () => {
               <button
                 type="button"
                 onClick={handleAddSelectedQuestionsToCanvas}
-                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold py-2 px-3 rounded-xl shadow-lg shadow-emerald-600/30 flex items-center justify-center space-x-1.5 transition-all animate-fade-in"
+                className="w-full classic-button-primary text-xs font-bold py-2 px-3 rounded-classic shadow-classic flex items-center justify-center space-x-1.5 transition-all animate-fade-in"
               >
                 <Plus className="w-4 h-4" />
                 <span>Insert Selected ({selectedBankQIds.size}) to Canvas</span>
@@ -3774,7 +4225,7 @@ export const PaperDesigner: React.FC = () => {
 
             <div className="space-y-2 overflow-y-auto pr-1 flex-1">
               {filteredSidebarQuestions.length === 0 ? (
-                <div className="text-center py-6 text-slate-400 text-xs space-y-1">
+                <div className="text-center py-6 text-classic-text-muted text-xs space-y-1">
                   <p>No questions match filters.</p>
                   <button
                     type="button"
@@ -3783,7 +4234,7 @@ export const PaperDesigner: React.FC = () => {
                       setSidebarSubjectFilter('all');
                       setSidebarSearchQuery('');
                     }}
-                    className="text-indigo-400 hover:underline text-[11px]"
+                    className="text-classic-navy hover:underline text-xs"
                   >
                     Reset filters
                   </button>
@@ -3796,12 +4247,12 @@ export const PaperDesigner: React.FC = () => {
                   return (
                     <div
                       key={q.id}
-                      className={`p-2.5 rounded-xl border text-xs space-y-1.5 transition-all ${
+                      className={`p-2.5 rounded-classic border text-xs space-y-1.5 transition-all ${
                         isChecked
-                          ? 'bg-indigo-950/50 border-indigo-500/90 ring-1 ring-indigo-500/50 shadow-md shadow-indigo-950/40'
+                          ? 'bg-blue-50/70 border-2 border-classic-navy shadow-classic'
                           : isAdded
-                          ? 'bg-slate-900/40 border-slate-800 opacity-60'
-                          : 'bg-slate-900/80 border-slate-800 hover:border-indigo-500/40'
+                          ? 'bg-gray-50 border-classic-border opacity-60'
+                          : 'bg-white border-classic-border hover:border-classic-navy/50'
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -3810,19 +4261,19 @@ export const PaperDesigner: React.FC = () => {
                             type="checkbox"
                             checked={isChecked}
                             onChange={() => handleToggleSelectBankQuestion(q.id)}
-                            className="w-3.5 h-3.5 rounded text-indigo-600 bg-slate-950 border-slate-700 focus:ring-indigo-500 cursor-pointer"
+                            className="w-3.5 h-3.5 rounded text-classic-navy bg-white border-classic-border focus:ring-classic-navy cursor-pointer"
                           />
-                          <span className="font-mono font-bold text-indigo-400">Q{q.questionNumber}</span>
+                          <span className="font-mono font-bold text-classic-navy">Q{q.questionNumber}</span>
                         </label>
-                        <span className="text-[10px] text-slate-400 font-mono">[{q.marks} Mark{q.marks > 1 ? 's' : ''}]</span>
+                        <span className="text-xs text-classic-text-muted font-mono">[{q.marks} Mark{q.marks > 1 ? 's' : ''}]</span>
                       </div>
-                      <div className="line-clamp-2 text-slate-300 text-[11px]">
+                      <div className="line-clamp-2 text-classic-text-primary text-xs">
                         <MathRenderer content={q.questionText} />
                       </div>
                       <button
                         onClick={() => handleAddQuestionToCanvas(q)}
                         disabled={isAdded}
-                        className="w-full mt-1 bg-indigo-600/20 hover:bg-indigo-600/40 disabled:opacity-40 text-indigo-300 text-[11px] font-semibold py-1 rounded-lg border border-indigo-500/30 flex items-center justify-center space-x-1"
+                        className="w-full mt-1 classic-button-secondary disabled:opacity-40 text-xs font-semibold py-1 rounded-classic flex items-center justify-center space-x-1"
                       >
                         <Plus className="w-3 h-3" />
                         <span>{isAdded ? '✓ Added' : 'Insert to Canvas'}</span>
@@ -3836,23 +4287,384 @@ export const PaperDesigner: React.FC = () => {
         </div>
 
         {/* CENTER: INTERACTIVE STUDIO CANVAS */}
-        <div className={`${viewMode === 'split' ? centerCanvasColSpan : viewMode === 'editor' ? centerCanvasColSpan : 'hidden'} glass-panel rounded-2xl p-4 space-y-4 bg-slate-900/90 overflow-y-auto max-h-[820px] border border-slate-700/80 select-text`}>
-          {/* CANVAS DOCKED MOUSE ACTION RIBBON */}
-          <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-950/90 rounded-xl border border-indigo-500/40 text-xs shadow-lg sticky top-0 z-20 backdrop-blur-md">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="font-bold text-indigo-300 flex items-center space-x-1 mr-1 text-[11px] uppercase tracking-wider">
-                <Sliders className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Canvas:</span>
-              </span>
+        <div className={`${viewMode === 'split' ? centerCanvasColSpan : viewMode === 'editor' ? centerCanvasColSpan : 'hidden'} bg-white border border-classic-border rounded-classic shadow-classic p-4 space-y-4 overflow-y-auto max-h-[820px] select-text relative`}>
+          {/* Canvas Watermark with School Name, Custom Text, or Image */}
+          {showWatermark && (
+            <div
+              className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden"
+              style={{ opacity: watermarkOpacity }}
+            >
+              {watermarkType === 'image' && watermarkImageUrl ? (
+                <img
+                  src={watermarkImageUrl}
+                  alt="Watermark"
+                  style={{
+                    width: `${watermarkSize}px`,
+                    maxWidth: '85%',
+                    transform: `rotate(${watermarkRotation}deg)`,
+                    filter: 'grayscale(100%)',
+                    objectFit: 'contain',
+                  }}
+                  className="pointer-events-none select-none"
+                />
+              ) : (
+                <span
+                  style={{
+                    fontSize: `${watermarkSize}px`,
+                    transform: `rotate(${watermarkRotation}deg)`,
+                  }}
+                  className="font-black tracking-widest text-slate-900 uppercase text-center max-w-4xl leading-tight select-none pointer-events-none px-4"
+                >
+                  {watermarkType === 'custom_text'
+                    ? (watermarkText || 'CONFIDENTIAL')
+                    : (schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI')}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* CANVAS DOCKED MOUSE ACTION RIBBON (With 5s Auto-Hide, Pin & Minimize / Expand toggle) */}
+          <div
+            onMouseEnter={() => {
+              isCanvasToolbarHoveredRef.current = true;
+              clearCanvasToolbarTimer();
+            }}
+            onMouseLeave={() => {
+              isCanvasToolbarHoveredRef.current = false;
+              if (!isCanvasToolbarPinned && !isCanvasToolbarMinimized) {
+                startCanvasToolbarAutoHide(5000);
+              }
+            }}
+            className="bg-white rounded-classic border border-classic-border text-xs shadow-classic sticky top-0 z-20 p-2 transition-all space-y-2"
+          >
+            {/* Header strip with Minimize / Expand toggle */}
+            <div className="flex items-center justify-between gap-2 select-none">
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCanvasToolbarMinimized((prev) => !prev)}
+                  className="flex items-center space-x-1.5 font-bold text-classic-navy hover:text-classic-navy-hover transition-colors cursor-pointer text-xs uppercase tracking-wider"
+                  title={isCanvasToolbarMinimized ? "Click to expand Canvas Toolbar" : "Click to minimize Canvas Toolbar"}
+                >
+                  <Sliders className="w-3.5 h-3.5 text-classic-navy" />
+                  <span>Canvas Toolbar</span>
+                  {isCanvasToolbarMinimized && (
+                    <span className="text-xs normal-case text-classic-text-muted font-normal bg-classic-surface-muted px-2 py-0.5 rounded-classic border border-classic-border">
+                      Minimized — click to expand
+                    </span>
+                  )}
+                </button>
+
+                {!isCanvasToolbarPinned && !isCanvasToolbarMinimized && (
+                  <span
+                    className="text-xs font-mono text-classic-navy bg-classic-surface-muted px-1.5 py-0.2 rounded-classic border border-classic-border"
+                    title="Auto-hides after 5 seconds of inactivity"
+                  >
+                    5s
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center space-x-1.5">
+                {isCanvasToolbarMinimized ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleAddNewQuestionToCanvas()}
+                      className="classic-button-primary px-2 py-0.5 text-xs rounded-classic flex items-center space-x-1"
+                      title="Quick add question"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>+ Question</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleOpenQuestionBankExplorer}
+                      className="classic-button-secondary px-2 py-0.5 text-xs rounded-classic flex items-center space-x-1"
+                      title="Open Question Bank Explorer"
+                    >
+                      <FolderTree className="w-3 h-3 text-classic-navy" />
+                      <span>+ Bank</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCanvasToolbarMinimized(false);
+                        if (!isCanvasToolbarPinned) startCanvasToolbarAutoHide(5000);
+                      }}
+                      className="classic-button-secondary px-2 py-0.5 rounded-classic text-xs flex items-center space-x-1 font-semibold"
+                      title="Expand Canvas Toolbar"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5 text-classic-navy" />
+                      <span className="text-xs font-medium">Expand</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {/* Pin button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCanvasToolbarPinned((prev) => {
+                          const next = !prev;
+                          try { localStorage.setItem('pg_canvas_toolbar_pinned', String(next)); } catch {}
+                          if (next) {
+                            clearCanvasToolbarTimer();
+                            showToast('📌 Canvas Toolbar Pinned: Will stay open permanently');
+                          } else {
+                            startCanvasToolbarAutoHide(5000);
+                            showToast('⏱️ Canvas Toolbar Unpinned: Auto-hides after 5 seconds of inactivity');
+                          }
+                          return next;
+                        });
+                      }}
+                      className={`px-2 py-0.5 rounded-classic text-xs font-semibold border flex items-center space-x-1 transition-all h-6.5 ${
+                        isCanvasToolbarPinned
+                          ? 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200'
+                          : 'classic-button-secondary'
+                      }`}
+                      title={
+                        isCanvasToolbarPinned
+                          ? 'Pinned: Stays open permanently. Click to enable 5s auto-hide'
+                          : 'Auto-hides after 5 seconds of inactivity. Click to pin open'
+                      }
+                    >
+                      {isCanvasToolbarPinned ? <Pin className="w-3 h-3 text-amber-600" /> : <PinOff className="w-3 h-3 text-classic-text-muted" />}
+                      <span>{isCanvasToolbarPinned ? 'Pinned' : 'Auto-Hide (5s)'}</span>
+                    </button>
+
+                    {/* Minimize All Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearCanvasToolbarTimer();
+                        setIsCanvasToolbarMinimized(true);
+                      }}
+                      className="px-2 py-0.5 rounded-classic classic-button-secondary flex items-center space-x-1 transition-all text-xs font-semibold h-6.5 shadow-classic"
+                      title="Minimize Canvas Toolbar (hide all options)"
+                    >
+                      <ChevronUp className="w-3.5 h-3.5 text-classic-navy" />
+                      <span className="text-xs font-medium">Minimize All</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* CONTEXTUAL SELECTED QUESTION OPTIONS IN RIBBON (Displayed only when question is selected, hidden when not selected) */}
+            {selectedCanvasQuestionIdx !== null && selectedPaperQuestions[selectedCanvasQuestionIdx] && (() => {
+              const selIdx = selectedCanvasQuestionIdx;
+              const selQ = selectedPaperQuestions[selIdx];
+              if (selQ.type === 'section' || selQ.type === 'note' || selQ.type === 'space') return null;
+
+              // Compute human-readable question number
+              let qNum = 1;
+              for (let i = 0; i < selIdx; i++) {
+                if (selectedPaperQuestions[i].type !== 'section' && selectedPaperQuestions[i].type !== 'note' && selectedPaperQuestions[i].type !== 'space') {
+                  qNum++;
+                }
+              }
+
+              const shouldWrapOptions = selQ.wrapOptionsBesideDiagram !== undefined ? selQ.wrapOptionsBesideDiagram : wrapOptionsBesideDiagram;
+              const isQOptionsHidden = selQ.hideOptions !== undefined ? selQ.hideOptions : hideAllOptions;
+
+              return (
+                <div className="p-2 bg-blue-50/60 border border-classic-navy rounded-classic space-y-1.5 animate-fade-in shadow-classic">
+                  <div className="flex flex-wrap items-center justify-between gap-1.5 pb-1 border-b border-blue-200">
+                    <div className="flex items-center space-x-2">
+                      <span className="px-2 py-0.5 bg-classic-navy text-white font-mono font-bold text-xs rounded-classic shadow-classic">
+                        Q{qNum} Selected
+                      </span>
+                      <span className="text-classic-text-primary text-xs font-semibold">
+                        Question Tools &amp; Actions
+                      </span>
+                    </div>
+
+                    <div className="flex items-center space-x-1.5">
+                      {/* Save this question to Question Bank */}
+                      <button
+                        type="button"
+                        onClick={() => handleSaveCanvasQuestionToBank(selIdx)}
+                        disabled={savingCanvasQToBank}
+                        className="classic-button-primary px-2.5 py-0.5 rounded-classic text-xs font-bold flex items-center space-x-1 shadow-classic transition-all"
+                        title="Save this question with options & diagrams into Question Bank"
+                      >
+                        <FolderPlus className="w-3 h-3" />
+                        <span>{savingCanvasQToBank ? 'Saving...' : `Save Q${qNum} to Bank`}</span>
+                      </button>
+
+                      {/* Deselect button */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCanvasQuestionIdx(null)}
+                        className="p-1 text-classic-text-muted hover:text-classic-text-primary rounded-classic hover:bg-classic-surface-muted transition-colors"
+                        title="Deselect question (hide options)"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Formatting Controls in Ribbon */}
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                    {/* Marks Stepper */}
+                    <div className="inline-flex items-center space-x-1 bg-white px-2 py-0.5 rounded-classic border border-classic-border">
+                      <span className="text-xs text-classic-text-muted font-semibold">Marks:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentMarks = Number(selQ.marks) || 1;
+                          handleUpdateMarksOnCanvas(selIdx, Math.max(0.5, currentMarks - (currentMarks > 1 ? 1 : 0.5)));
+                        }}
+                        className="w-4 h-4 rounded-classic hover:bg-classic-surface-muted text-classic-text-primary font-bold"
+                      >
+                        -
+                      </button>
+                      <span className="font-mono font-bold text-classic-navy px-1">{selQ.marks || 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentMarks = Number(selQ.marks) || 1;
+                          handleUpdateMarksOnCanvas(selIdx, currentMarks + (currentMarks < 1 ? 0.5 : 1));
+                        }}
+                        className="w-4 h-4 rounded-classic hover:bg-classic-surface-muted text-classic-text-primary font-bold"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {/* Font Size */}
+                    <div className="inline-flex items-center space-x-1 bg-white px-2 py-0.5 rounded-classic border border-classic-border">
+                      <span className="text-xs text-classic-text-muted font-semibold">Size:</span>
+                      <button
+                        type="button"
+                        onClick={() => handleAdjustItemFontSize(selIdx, -1)}
+                        className="p-0.5 hover:bg-classic-surface-muted text-classic-text-primary rounded-classic font-bold text-xs"
+                      >
+                        A-
+                      </button>
+                      <span className="font-mono font-bold text-classic-navy text-xs px-0.5">
+                        {selQ.customFontSize || baseFontSizePt || 10}pt
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleAdjustItemFontSize(selIdx, 1)}
+                        className="p-0.5 hover:bg-classic-surface-muted text-classic-text-primary rounded-classic font-bold text-xs"
+                      >
+                        A+
+                      </button>
+                    </div>
+
+                    {/* Edit */}
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditQuestion(selIdx)}
+                      className="classic-button-secondary px-2 py-0.5 rounded-classic font-semibold flex items-center space-x-1 transition-all"
+                      title="Edit question text, formulas, options & diagrams"
+                    >
+                      <Edit3 className="w-3 h-3 text-classic-navy" />
+                      <span>Edit</span>
+                    </button>
+
+                    {/* Duplicate */}
+                    <button
+                      type="button"
+                      onClick={() => handleDuplicateCanvasItem(selIdx)}
+                      className="classic-button-secondary px-2 py-0.5 rounded-classic font-semibold flex items-center space-x-1 transition-all"
+                      title="Duplicate question"
+                    >
+                      <Copy className="w-3 h-3 text-classic-text-muted" />
+                      <span>Duplicate</span>
+                    </button>
+
+                    {/* Move Up */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleMoveQuestion(selIdx, 'up');
+                        setSelectedCanvasQuestionIdx(Math.max(0, selIdx - 1));
+                      }}
+                      disabled={selIdx === 0}
+                      className="p-1 classic-button-secondary disabled:opacity-20 rounded-classic transition-all"
+                      title="Move Question Up"
+                    >
+                      <MoveUp className="w-3 h-3" />
+                    </button>
+
+                    {/* Move Down */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleMoveQuestion(selIdx, 'down');
+                        setSelectedCanvasQuestionIdx(Math.min(selectedPaperQuestions.length - 1, selIdx + 1));
+                      }}
+                      disabled={selIdx === selectedPaperQuestions.length - 1}
+                      className="p-1 classic-button-secondary disabled:opacity-20 rounded-classic transition-all"
+                      title="Move Question Down"
+                    >
+                      <MoveDown className="w-3 h-3" />
+                    </button>
+
+                    {/* Wrap beside diagram toggle */}
+                    <button
+                      type="button"
+                      onClick={() => handleToggleQuestionWrapOptions(selIdx)}
+                      className={`px-2 py-0.5 rounded-classic font-semibold flex items-center space-x-1 border transition-all ${
+                        shouldWrapOptions
+                          ? 'bg-classic-navy text-white border-classic-navy shadow-classic'
+                          : 'classic-button-secondary'
+                      }`}
+                      title={shouldWrapOptions ? 'Choices wrap beside diagram' : 'Choices below diagram'}
+                    >
+                      <WrapText className="w-3 h-3" />
+                      <span>{shouldWrapOptions ? 'Beside Diagram' : 'Below Diagram'}</span>
+                    </button>
+
+                    {/* Hide choices toggle */}
+                    <button
+                      type="button"
+                      onClick={() => handleToggleQuestionOptions(selIdx)}
+                      className={`px-2 py-0.5 rounded-classic font-semibold flex items-center space-x-1 border transition-all ${
+                        isQOptionsHidden
+                          ? 'bg-amber-100 text-amber-800 border-amber-300'
+                          : 'classic-button-secondary'
+                      }`}
+                      title={isQOptionsHidden ? 'Choices are hidden. Click to unhide' : 'Click to hide choices'}
+                    >
+                      {isQOptionsHidden ? <Eye className="w-3 h-3 text-amber-700" /> : <EyeOff className="w-3 h-3 text-classic-text-muted" />}
+                      <span>{isQOptionsHidden ? 'Choices Hidden' : 'Choices Visible'}</span>
+                    </button>
+
+                    {/* Delete */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleDeleteCanvasQuestion(selIdx);
+                        setSelectedCanvasQuestionIdx(null);
+                      }}
+                      className="p-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-classic border border-rose-200 ml-auto transition-colors"
+                      title="Delete question from paper"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Expanded Tool Rows */}
+            {!isCanvasToolbarMinimized && (
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-classic-border animate-fade-in transition-all">
+                <div className="flex flex-wrap items-center gap-1.5">
 
               {/* 📚 Open Question Bank Explorer Dialog */}
               <button
                 type="button"
                 onClick={handleOpenQuestionBankExplorer}
-                className="px-2.5 py-1 bg-gradient-to-r from-indigo-600/30 to-violet-600/30 hover:from-indigo-600 hover:to-violet-600 text-indigo-200 hover:text-white font-bold rounded-lg border border-indigo-500/40 flex items-center space-x-1.5 transition-all text-xs shadow-sm"
+                className="classic-button-secondary px-2.5 py-1 text-xs font-bold rounded-classic flex items-center space-x-1.5 transition-all shadow-classic"
                 title="Open Question Bank Explorer to filter by Class & Subject, select questions and assign marks"
               >
-                <FolderTree className="w-3.5 h-3.5 text-indigo-400 group-hover:text-white" />
+                <FolderTree className="w-3.5 h-3.5 text-classic-navy" />
                 <span>+ Question Bank</span>
               </button>
 
@@ -3860,10 +4672,10 @@ export const PaperDesigner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsOpenSavedPaperModalOpen(true)}
-                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white font-semibold rounded-lg border border-slate-700 flex items-center space-x-1 transition-all text-xs"
+                className="classic-button-secondary px-2.5 py-1 text-xs font-semibold rounded-classic flex items-center space-x-1 transition-all"
                 title="Browse and open a saved paper from Paper Bank"
               >
-                <Folder className="w-3.5 h-3.5 text-indigo-400" />
+                <Folder className="w-3.5 h-3.5 text-classic-navy" />
                 <span>Open Saved</span>
               </button>
 
@@ -3871,10 +4683,10 @@ export const PaperDesigner: React.FC = () => {
               <button
                 type="button"
                 onClick={handleStartNewPaper}
-                className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold rounded-lg border border-slate-700 flex items-center space-x-1 transition-all text-xs"
+                className="classic-button-secondary px-2 py-1 text-xs font-semibold rounded-classic flex items-center space-x-1 transition-all"
                 title="Start a fresh blank paper canvas"
               >
-                <Plus className="w-3 h-3 text-indigo-400" />
+                <Plus className="w-3 h-3 text-classic-navy" />
                 <span>New Paper</span>
               </button>
 
@@ -3883,10 +4695,10 @@ export const PaperDesigner: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleCloseActivePaper}
-                  className="px-2 py-1 bg-rose-950/60 hover:bg-rose-900 text-rose-300 hover:text-white font-semibold rounded-lg border border-rose-500/40 flex items-center space-x-1 transition-all text-xs"
+                  className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded-classic border border-rose-200 flex items-center space-x-1 transition-all text-xs"
                   title="Close current paper and clear canvas"
                 >
-                  <X className="w-3 h-3 text-rose-400" />
+                  <X className="w-3 h-3 text-rose-500" />
                   <span>Close</span>
                 </button>
               )}
@@ -3895,7 +4707,7 @@ export const PaperDesigner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleAddNewQuestionToCanvas()}
-                className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg flex items-center space-x-1 transition-all shadow-md shadow-indigo-600/30 text-xs"
+                className="classic-button-primary px-2.5 py-1 font-bold rounded-classic flex items-center space-x-1 transition-all shadow-classic text-xs"
                 title="Add a new custom question directly onto the canvas"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -3906,10 +4718,10 @@ export const PaperDesigner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleOpenCreateFieldModal('section')}
-                className="px-2.5 py-1 bg-violet-600/30 hover:bg-violet-600 text-violet-200 hover:text-white font-semibold rounded-lg border border-violet-500/40 flex items-center space-x-1 transition-all text-xs"
+                className="classic-button-secondary px-2.5 py-1 font-semibold rounded-classic flex items-center space-x-1 transition-all text-xs"
                 title="Add Section Heading (e.g. SECTION A, SECTION B)"
               >
-                <Type className="w-3.5 h-3.5 text-violet-400" />
+                <Type className="w-3.5 h-3.5 text-classic-navy" />
                 <span>+ Section</span>
               </button>
 
@@ -3917,10 +4729,10 @@ export const PaperDesigner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleOpenCreateFieldModal('header')}
-                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold rounded-lg border border-slate-700 flex items-center space-x-1 transition-all text-xs"
+                className="classic-button-secondary px-2.5 py-1 font-semibold rounded-classic flex items-center space-x-1 transition-all text-xs"
                 title="Add Header Metadata Field (e.g. Subject, Class, Date, Room No)"
               >
-                <Hash className="w-3.5 h-3.5 text-indigo-400" />
+                <Hash className="w-3.5 h-3.5 text-classic-navy" />
                 <span>+ Header Field</span>
               </button>
 
@@ -3928,10 +4740,10 @@ export const PaperDesigner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleOpenCreateFieldModal('note')}
-                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold rounded-lg border border-slate-700 flex items-center space-x-1 transition-all text-xs"
+                className="classic-button-secondary px-2.5 py-1 font-semibold rounded-classic flex items-center space-x-1 transition-all text-xs"
                 title="Add general instructions or note block"
               >
-                <FileText className="w-3.5 h-3.5 text-amber-400" />
+                <FileText className="w-3.5 h-3.5 text-amber-700" />
                 <span>+ Note</span>
               </button>
 
@@ -3939,10 +4751,10 @@ export const PaperDesigner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleAddBlankSpace(60, 'blank')}
-                className="px-2.5 py-1 bg-emerald-600/30 hover:bg-emerald-600 text-emerald-200 hover:text-white font-semibold rounded-lg border border-emerald-500/40 flex items-center space-x-1 transition-all text-xs"
+                className="classic-button-secondary px-2.5 py-1 font-semibold rounded-classic flex items-center space-x-1 transition-all text-xs"
                 title="Add blank space, ruled answer lines, or rough work box"
               >
-                <Square className="w-3.5 h-3.5 text-emerald-400" />
+                <Square className="w-3.5 h-3.5 text-emerald-700" />
                 <span>+ Blank Space</span>
               </button>
 
@@ -3950,10 +4762,10 @@ export const PaperDesigner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsCustomMarginModalOpen(true)}
-                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white font-semibold rounded-lg border border-slate-700 flex items-center space-x-1 transition-all text-xs"
+                className="classic-button-secondary px-2.5 py-1 font-semibold rounded-classic flex items-center space-x-1 transition-all text-xs"
                 title="Configure page margins (Top, Bottom, Left, Right in mm)"
               >
-                <Maximize2 className="w-3.5 h-3.5 text-indigo-400" />
+                <Maximize2 className="w-3.5 h-3.5 text-classic-navy" />
                 <span>Margins ({pageMargin === 'custom' ? `${marginLeft}mm` : pageMargin})</span>
               </button>
 
@@ -3961,21 +4773,21 @@ export const PaperDesigner: React.FC = () => {
               <button
                 type="button"
                 onClick={handleBatchToggleAllOptions}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all border ${
+                className={`px-2.5 py-1 rounded-classic text-xs font-semibold flex items-center space-x-1.5 transition-all border ${
                   hideAllOptions
-                    ? 'bg-amber-950 text-amber-300 border-amber-500/50 shadow-sm'
-                    : 'bg-emerald-950/50 hover:bg-emerald-900/60 text-emerald-300 border-emerald-500/40'
+                    ? 'bg-amber-100 text-amber-800 border-amber-300'
+                    : 'classic-button-secondary'
                 }`}
                 title={hideAllOptions ? 'Click to show all MCQ options on paper' : 'Click to hide all MCQ options'}
               >
                 {hideAllOptions ? (
                   <>
-                    <EyeOff className="w-3.5 h-3.5 text-amber-400" />
+                    <EyeOff className="w-3.5 h-3.5 text-amber-700" />
                     <span>Options: Hidden</span>
                   </>
                 ) : (
                   <>
-                    <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                    <Eye className="w-3.5 h-3.5 text-classic-navy" />
                     <span>Options: Visible</span>
                   </>
                 )}
@@ -3985,69 +4797,120 @@ export const PaperDesigner: React.FC = () => {
               <button
                 type="button"
                 onClick={handleBatchToggleAllMarks}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all border ${
+                className={`px-2.5 py-1 rounded-classic text-xs font-semibold flex items-center space-x-1.5 transition-all border ${
                   !showQuestionMarks
-                    ? 'bg-rose-950 text-rose-300 border-rose-500/50 shadow-sm'
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                    : 'classic-button-secondary'
                 }`}
                 title={!showQuestionMarks ? 'Click to restore marks on paper' : 'Click to remove marks from paper'}
               >
                 {!showQuestionMarks ? (
                   <>
-                    <EyeOff className="w-3.5 h-3.5 text-rose-400" />
+                    <EyeOff className="w-3.5 h-3.5 text-rose-500" />
                     <span>Marks: Removed</span>
                   </>
                 ) : (
                   <>
-                    <Award className="w-3.5 h-3.5 text-indigo-400" />
+                    <Award className="w-3.5 h-3.5 text-classic-navy" />
                     <span>Marks: On</span>
                   </>
                 )}
               </button>
 
-              {/* Quick Canvas Sections Toggle */}
+              {/* Quick Canvas Sections Paper Visibility Toggle */}
               <button
                 type="button"
                 onClick={handleBatchToggleAllSections}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all border ${
+                className={`px-2.5 py-1 rounded-classic text-xs font-semibold flex items-center space-x-1.5 transition-all border ${
                   hideAllSections
-                    ? 'bg-amber-950 text-amber-300 border-amber-500/50 shadow-sm'
-                    : 'bg-violet-950/50 hover:bg-violet-900/60 text-violet-300 border-violet-500/40'
+                    ? 'bg-amber-100 text-amber-800 border-amber-300'
+                    : 'classic-button-secondary'
                 }`}
-                title={hideAllSections ? 'Click to show all section headings on paper' : 'Click to hide all section headings'}
+                title={hideAllSections ? 'Click to show all section headings on paper' : 'Click to hide all section headings from paper output'}
               >
                 {hideAllSections ? (
                   <>
-                    <EyeOff className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Sections: Hidden</span>
+                    <EyeOff className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Sections: Hidden on Paper</span>
                   </>
                 ) : (
                   <>
-                    <Eye className="w-3.5 h-3.5 text-violet-400" />
-                    <span>Sections: Visible</span>
+                    <Eye className="w-3.5 h-3.5 text-classic-navy" />
+                    <span>Sections: Visible on Paper</span>
                   </>
                 )}
+              </button>
+
+              {/* Canvas Expand/Collapse All Sections Toggle */}
+              <button
+                type="button"
+                onClick={handleToggleAllSectionsCollapse}
+                className="classic-button-secondary px-2.5 py-1 rounded-classic text-xs font-semibold flex items-center space-x-1.5 transition-all"
+                title={areAllSectionsCollapsed ? "Expand all section questions on canvas" : "Collapse all section questions on canvas"}
+              >
+                {areAllSectionsCollapsed ? (
+                  <>
+                    <ChevronDown className="w-3.5 h-3.5 text-classic-navy" />
+                    <span>Expand All Sections</span>
+                  </>
+                ) : (
+                  <>
+                    <ChevronUp className="w-3.5 h-3.5 text-classic-navy" />
+                    <span>Collapse All Sections</span>
+                  </>
+                )}
+              </button>
+
+              {/* Watermark Quick Toggle */}
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !showWatermark;
+                  setShowWatermark(next);
+                  savePaperLayout(selectedPaperQuestions, { showWatermark: next });
+                  showToast(next ? '✓ Watermark Enabled' : 'Watermark Disabled');
+                }}
+                className={`px-2.5 py-1 rounded-classic text-xs font-semibold flex items-center space-x-1.5 transition-all border ${
+                  showWatermark
+                    ? 'bg-blue-50 text-classic-navy border-blue-300'
+                    : 'classic-button-secondary'
+                }`}
+                title="Toggle watermark on canvas and output print/exports"
+              >
+                <Stamp className="w-3.5 h-3.5 text-classic-navy" />
+                <span>Watermark: {showWatermark ? 'On' : 'Off'}</span>
+              </button>
+
+              {/* Header & Footer Modal Trigger */}
+              <button
+                type="button"
+                onClick={() => setIsHeaderFooterModalOpen(true)}
+                className="classic-button-secondary px-2.5 py-1 text-xs font-semibold rounded-classic flex items-center space-x-1.5 transition-all"
+                title="Configure running header & footer"
+              >
+                <FileText className="w-3.5 h-3.5 text-classic-navy" />
+                <span>Header &amp; Footer</span>
               </button>
             </div>
 
             {/* Quick Canvas Text Size Stepper (A- / A+) */}
-            <div className="flex items-center space-x-1 bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-700">
-              <span className="text-[11px] text-slate-400 font-semibold mr-1">Text Size:</span>
+            <div className="flex items-center space-x-1 bg-classic-surface-muted px-2 py-0.5 rounded-classic border border-classic-border">
+              <span className="text-xs text-classic-text-muted font-semibold mr-1">Text Size:</span>
               <button
                 type="button"
                 onClick={() => handleAdjustGlobalFontSize(-1)}
-                className="w-5 h-5 rounded bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center transition-colors shadow-sm"
+                className="w-5 h-5 rounded-classic bg-white hover:bg-classic-surface-muted text-classic-text-primary border border-classic-border font-bold text-xs flex items-center justify-center transition-colors shadow-classic"
                 title="Decrease Canvas Text Size (A-) [Ctrl+-]"
               >
                 A-
               </button>
-              <span className="font-mono font-bold text-indigo-300 text-xs px-1.5 select-none">
+              <span className="font-mono font-bold text-classic-navy text-xs px-1.5 select-none">
                 {baseFontSizePt}pt
               </span>
               <button
                 type="button"
                 onClick={() => handleAdjustGlobalFontSize(1)}
-                className="w-5 h-5 rounded bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center transition-colors shadow-sm"
+                className="w-5 h-5 rounded-classic bg-white hover:bg-classic-surface-muted text-classic-text-primary border border-classic-border font-bold text-xs flex items-center justify-center transition-colors shadow-classic"
                 title="Increase Canvas Text Size (A+) [Ctrl++]"
               >
                 A+
@@ -4055,9 +4918,9 @@ export const PaperDesigner: React.FC = () => {
             </div>
 
             {/* Quick Canvas Line Spacing Stepper (None / Compact / Tight / Normal / Relaxed) */}
-            <div className="flex items-center space-x-1 bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-700">
-              <span className="text-[11px] text-slate-400 font-semibold mr-1 flex items-center space-x-1">
-                <AlignJustify className="w-3 h-3 text-indigo-400" />
+            <div className="flex items-center space-x-1 bg-classic-surface-muted px-2 py-0.5 rounded-classic border border-classic-border">
+              <span className="text-xs text-classic-text-muted font-semibold mr-1 flex items-center space-x-1">
+                <AlignJustify className="w-3 h-3 text-classic-navy" />
                 <span>Line Spacing:</span>
               </span>
               <button
@@ -4082,12 +4945,12 @@ export const PaperDesigner: React.FC = () => {
                   }
                 }}
                 disabled={lineSpacing === 'none'}
-                className="w-5 h-5 rounded bg-slate-800 hover:bg-indigo-600 disabled:opacity-30 text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center transition-colors shadow-sm"
+                className="w-5 h-5 rounded-classic bg-white hover:bg-classic-surface-muted disabled:opacity-30 text-classic-text-primary border border-classic-border font-bold text-xs flex items-center justify-center transition-colors shadow-classic"
                 title="Decrease Line Spacing (Remove spaces between text lines) [Alt+Up]"
               >
                 -
               </button>
-              <span className="font-mono font-bold text-indigo-300 text-xs px-1 select-none capitalize">
+              <span className="font-mono font-bold text-classic-navy text-xs px-1 select-none capitalize">
                 {lineSpacing === 'none' ? 'None (0 Gap)' : lineSpacing}
               </span>
               <button
@@ -4112,7 +4975,7 @@ export const PaperDesigner: React.FC = () => {
                   }
                 }}
                 disabled={lineSpacing === 'relaxed'}
-                className="w-5 h-5 rounded bg-slate-800 hover:bg-indigo-600 disabled:opacity-30 text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center transition-colors shadow-sm"
+                className="w-5 h-5 rounded-classic bg-white hover:bg-classic-surface-muted disabled:opacity-30 text-classic-text-primary border border-classic-border font-bold text-xs flex items-center justify-center transition-colors shadow-classic"
                 title="Increase Line Spacing (More breathing room) [Alt+Down]"
               >
                 +
@@ -4123,14 +4986,14 @@ export const PaperDesigner: React.FC = () => {
             <button
               type="button"
               onClick={handleRemoveSpacesBetweenText}
-              className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold transition-all shadow-sm ${
+              className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-classic border text-xs font-bold transition-all shadow-classic ${
                 lineSpacing === 'none' && spacingPreset === 'zero'
-                  ? 'bg-emerald-600 text-white border-emerald-400 shadow-emerald-900/40'
-                  : 'bg-slate-900 hover:bg-emerald-600/20 text-emerald-400 hover:text-white border-emerald-500/40'
+                  ? 'bg-classic-navy text-white border-classic-navy'
+                  : 'classic-button-secondary'
               }`}
               title="Click to remove spaces between text lines, tighten gaps, and collapse redundant whitespace"
             >
-              <Minimize2 className="w-3.5 h-3.5" />
+              <Minimize2 className="w-3.5 h-3.5 text-classic-navy" />
               <span>Remove Text Spaces</span>
             </button>
 
@@ -4143,10 +5006,10 @@ export const PaperDesigner: React.FC = () => {
                 savePaperLayout(selectedPaperQuestions, { wrapOptionsBesideDiagram: next });
                 showToast(next ? 'Zero Space Before Choices: ON (Wrapped beside diagrams)' : 'Zero Space Before Choices: OFF (Choices below diagram)');
               }}
-              className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold transition-all shadow-sm ${
+              className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-classic border text-xs font-bold transition-all shadow-classic ${
                 wrapOptionsBesideDiagram
-                  ? 'bg-indigo-600 text-white border-indigo-400 shadow-indigo-900/40'
-                  : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700'
+                  ? 'bg-classic-navy text-white border-classic-navy'
+                  : 'classic-button-secondary'
               }`}
               title={
                 wrapOptionsBesideDiagram
@@ -4159,8 +5022,8 @@ export const PaperDesigner: React.FC = () => {
             </button>
 
             {/* Quick Canvas Question Gap Spacing Stepper */}
-            <div className="flex items-center space-x-1 bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-700">
-              <span className="text-[11px] text-slate-400 font-semibold mr-1">Gap:</span>
+            <div className="flex items-center space-x-1 bg-classic-surface-muted px-2 py-0.5 rounded-classic border border-classic-border">
+              <span className="text-xs text-classic-text-muted font-semibold mr-1">Gap:</span>
               <button
                 type="button"
                 onClick={() => {
@@ -4175,12 +5038,12 @@ export const PaperDesigner: React.FC = () => {
                   }
                 }}
                 disabled={spacingPreset === 'zero'}
-                className="w-5 h-5 rounded bg-slate-800 hover:bg-indigo-600 disabled:opacity-30 text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center transition-colors shadow-sm"
+                className="w-5 h-5 rounded-classic bg-white hover:bg-classic-surface-muted disabled:opacity-30 text-classic-text-primary border border-classic-border font-bold text-xs flex items-center justify-center transition-colors shadow-classic"
                 title="Decrease Question Spacing (Save space)"
               >
                 -
               </button>
-              <span className="font-mono font-bold text-indigo-300 text-xs px-1 select-none capitalize">
+              <span className="font-mono font-bold text-classic-navy text-xs px-1 select-none capitalize">
                 {spacingPreset}
               </span>
               <button
@@ -4197,7 +5060,7 @@ export const PaperDesigner: React.FC = () => {
                   }
                 }}
                 disabled={spacingPreset === 'standard'}
-                className="w-5 h-5 rounded bg-slate-800 hover:bg-indigo-600 disabled:opacity-30 text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center transition-colors shadow-sm"
+                className="w-5 h-5 rounded-classic bg-white hover:bg-classic-surface-muted disabled:opacity-30 text-classic-text-primary border border-classic-border font-bold text-xs flex items-center justify-center transition-colors shadow-classic"
                 title="Increase Question Spacing"
               >
                 +
@@ -4205,8 +5068,8 @@ export const PaperDesigner: React.FC = () => {
             </div>
 
             {/* Quick Canvas Font Selector */}
-            <div className="flex items-center space-x-1.5 bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-700">
-              <Type className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <div className="flex items-center space-x-1.5 bg-classic-surface-muted px-2 py-0.5 rounded-classic border border-classic-border">
+              <Type className="w-3.5 h-3.5 text-classic-navy shrink-0" />
               <select
                 value={fontFamily}
                 onChange={(e) => {
@@ -4214,23 +5077,25 @@ export const PaperDesigner: React.FC = () => {
                   setFontFamily(val);
                   savePaperLayout(selectedPaperQuestions, { fontFamily: val });
                 }}
-                className="bg-transparent text-slate-200 font-semibold focus:outline-none cursor-pointer text-xs"
+                className="bg-transparent text-classic-text-primary font-semibold focus:outline-none cursor-pointer text-xs"
                 title="Change Paper Font Style"
               >
-                <option value="serif" className="bg-slate-900 text-white">Times New Roman (Board)</option>
-                <option value="cm" className="bg-slate-900 text-white">Computer Modern (LaTeX / STEM)</option>
-                <option value="calibri" className="bg-slate-900 text-white">Calibri (Modern Clear)</option>
-                <option value="sans" className="bg-slate-900 text-white">Arial (Clean Sans)</option>
-                <option value="cambria" className="bg-slate-900 text-white">Cambria (CBSE Math & Science)</option>
-                <option value="georgia" className="bg-slate-900 text-white">Georgia (Elegant Serif)</option>
-                <option value="garamond" className="bg-slate-900 text-white">Garamond (Classic Academic)</option>
-                <option value="verdana" className="bg-slate-900 text-white">Verdana (High Legibility)</option>
-                <option value="trebuchet" className="bg-slate-900 text-white">Trebuchet MS (Dynamic)</option>
-                <option value="bookman" className="bg-slate-900 text-white">Bookman / Antiqua (Traditional)</option>
-                <option value="dejavu" className="bg-slate-900 text-white">DejaVu / Lucida (Technical)</option>
-                <option value="monospace" className="bg-slate-900 text-white">Courier New (Monospace / CS)</option>
+                <option value="serif">Times New Roman (Board)</option>
+                <option value="cm">Computer Modern (LaTeX / STEM)</option>
+                <option value="calibri">Calibri (Modern Clear)</option>
+                <option value="sans">Arial (Clean Sans)</option>
+                <option value="cambria">Cambria (CBSE Math & Science)</option>
+                <option value="georgia">Georgia (Elegant Serif)</option>
+                <option value="garamond">Garamond (Classic Academic)</option>
+                <option value="verdana">Verdana (High Legibility)</option>
+                <option value="trebuchet">Trebuchet MS (Dynamic)</option>
+                <option value="bookman">Bookman / Antiqua (Traditional)</option>
+                <option value="dejavu">DejaVu / Lucida (Technical)</option>
+                <option value="monospace">Courier New (Monospace / CS)</option>
               </select>
             </div>
+              </div>
+            )}
           </div>
 
           {/* Header Layout Block with Inline Editing & School Logo */}
@@ -4276,7 +5141,7 @@ export const PaperDesigner: React.FC = () => {
                         setSchoolLogoPosition(nextPos);
                         savePaperLayout(selectedPaperQuestions, { schoolLogoPosition: nextPos });
                       }}
-                      className="p-1 bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white rounded font-mono text-[10px]"
+                      className="p-1 bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white rounded font-mono text-xs"
                       title={`Align Logo (Current: ${schoolLogoPosition})`}
                     >
                       {schoolLogoPosition === 'left' ? '⬅ L' : schoolLogoPosition === 'center' ? '⬛ C' : '➡ R'}
@@ -4307,11 +5172,11 @@ export const PaperDesigner: React.FC = () => {
                       onChange={(e) => setSchoolName(e.target.value)}
                       onBlur={() => savePaperLayout()}
                       style={{ fontSize: `${schoolNameSize}px` }}
-                      className="w-full text-center font-black tracking-wider uppercase text-white font-display bg-transparent border-b border-transparent hover:border-slate-700 focus:border-indigo-500 focus:outline-none transition-colors"
+                      className="w-full text-center font-black tracking-wider uppercase text-slate-900 font-display bg-transparent border-b border-transparent hover:border-slate-400 focus:border-indigo-600 focus:outline-none transition-colors"
                       placeholder="ENTER SCHOOL / INSTITUTE NAME"
                     />
                     {/* Hover toolbar for School Name */}
-                    <div className="absolute -right-2 top-0 hidden group-hover/schoolName:flex items-center space-x-1 bg-slate-950 border border-slate-700 rounded-lg px-1.5 py-0.5 shadow-lg z-10">
+                    <div className="absolute -right-2 top-0 hidden group-hover/schoolName:flex items-center space-x-1 bg-white border border-slate-300 rounded-lg px-2 py-0.5 shadow-md z-10">
                       <button
                         type="button"
                         onClick={() => {
@@ -4319,12 +5184,12 @@ export const PaperDesigner: React.FC = () => {
                           setSchoolNameSize(next);
                           savePaperLayout(selectedPaperQuestions, { schoolNameSize: next });
                         }}
-                        className="p-0.5 hover:bg-slate-800 text-slate-300 rounded font-bold text-[10px]"
+                        className="p-1 hover:bg-slate-100 text-slate-700 rounded font-bold text-xs"
                         title="Decrease School Name size"
                       >
                         A-
                       </button>
-                      <span className="font-mono text-[10px] text-indigo-300 font-bold px-0.5 select-none">
+                      <span className="font-mono text-xs text-indigo-800 font-bold px-1 select-none">
                         {schoolNameSize}px
                       </span>
                       <button
@@ -4334,7 +5199,7 @@ export const PaperDesigner: React.FC = () => {
                           setSchoolNameSize(next);
                           savePaperLayout(selectedPaperQuestions, { schoolNameSize: next });
                         }}
-                        className="p-0.5 hover:bg-slate-800 text-slate-300 rounded font-bold text-[10px]"
+                        className="p-1 hover:bg-slate-100 text-slate-700 rounded font-bold text-xs"
                         title="Increase School Name size"
                       >
                         A+
@@ -4345,10 +5210,10 @@ export const PaperDesigner: React.FC = () => {
                           setShowSchoolName(false);
                           savePaperLayout(selectedPaperQuestions, { showSchoolName: false });
                         }}
-                        className="p-0.5 hover:bg-rose-600 text-slate-400 hover:text-white rounded ml-1"
+                        className="p-1 text-rose-700 hover:bg-rose-100 rounded ml-1 border border-transparent hover:border-rose-200 transition-colors"
                         title="Hide / Delete School Name"
                       >
-                        <Trash2 className="w-2.5 h-2.5" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -4363,11 +5228,11 @@ export const PaperDesigner: React.FC = () => {
                       onChange={(e) => setTitle(e.target.value)}
                       onBlur={() => savePaperLayout()}
                       style={{ fontSize: `${examTitleSize}px` }}
-                      className="w-full text-center font-bold text-indigo-300 uppercase tracking-wide bg-transparent border-b border-transparent hover:border-slate-700 focus:border-indigo-500 focus:outline-none transition-colors"
+                      className="w-full text-center font-bold text-slate-800 uppercase tracking-wide bg-transparent border-b border-transparent hover:border-slate-400 focus:border-indigo-600 focus:outline-none transition-colors"
                       placeholder="ENTER EXAM TITLE"
                     />
                     {/* Hover toolbar for Exam Title */}
-                    <div className="absolute -right-2 top-0 hidden group-hover/examTitle:flex items-center space-x-1 bg-slate-950 border border-slate-700 rounded-lg px-1.5 py-0.5 shadow-lg z-10">
+                    <div className="absolute -right-2 top-0 hidden group-hover/examTitle:flex items-center space-x-1 bg-white border border-slate-300 rounded-lg px-2 py-0.5 shadow-md z-10">
                       <button
                         type="button"
                         onClick={() => {
@@ -4375,12 +5240,12 @@ export const PaperDesigner: React.FC = () => {
                           setExamTitleSize(next);
                           savePaperLayout(selectedPaperQuestions, { examTitleSize: next });
                         }}
-                        className="p-0.5 hover:bg-slate-800 text-slate-300 rounded font-bold text-[10px]"
+                        className="p-1 hover:bg-slate-100 text-slate-700 rounded font-bold text-xs"
                         title="Decrease Exam Title size"
                       >
                         A-
                       </button>
-                      <span className="font-mono text-[10px] text-indigo-300 font-bold px-0.5 select-none">
+                      <span className="font-mono text-xs text-indigo-800 font-bold px-1 select-none">
                         {examTitleSize}px
                       </span>
                       <button
@@ -4390,7 +5255,7 @@ export const PaperDesigner: React.FC = () => {
                           setExamTitleSize(next);
                           savePaperLayout(selectedPaperQuestions, { examTitleSize: next });
                         }}
-                        className="p-0.5 hover:bg-slate-800 text-slate-300 rounded font-bold text-[10px]"
+                        className="p-1 hover:bg-slate-100 text-slate-700 rounded font-bold text-xs"
                         title="Increase Exam Title size"
                       >
                         A+
@@ -4401,10 +5266,10 @@ export const PaperDesigner: React.FC = () => {
                           setShowExamTitle(false);
                           savePaperLayout(selectedPaperQuestions, { showExamTitle: false });
                         }}
-                        className="p-0.5 hover:bg-rose-600 text-slate-400 hover:text-white rounded ml-1"
+                        className="p-1 text-rose-700 hover:bg-rose-100 rounded ml-1 border border-transparent hover:border-rose-200 transition-colors"
                         title="Hide / Delete Exam Title"
                       >
-                        <Trash2 className="w-2.5 h-2.5" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -4415,18 +5280,18 @@ export const PaperDesigner: React.FC = () => {
             {/* Metadata Chips Bar (Exam Code, Duration, Max Marks, Custom Fields) */}
             {showHeaderMeta && (
               <div className="relative group/metaRow pt-1 px-2">
-                <div className="flex flex-wrap items-center justify-between text-xs text-slate-300 font-mono gap-2">
+                <div className="flex flex-wrap items-center justify-between text-xs text-slate-700 font-mono gap-2">
                   <div className="flex flex-wrap items-center gap-2">
                     {/* EXAM CODE */}
                     {showExamCode && (
-                      <div className="group/chip inline-flex items-center space-x-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/60 rounded-lg px-2 py-0.5 transition-colors">
-                        <span className="text-slate-400 font-bold text-[11px]">EXAM CODE:</span>
+                      <div className="group/chip inline-flex items-center space-x-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg px-2.5 py-1 transition-colors shadow-xs">
+                        <span className="text-slate-700 font-bold text-xs">EXAM CODE:</span>
                         <input
                           type="text"
                           value={examCode}
                           onChange={(e) => setExamCode(e.target.value)}
                           onBlur={() => savePaperLayout()}
-                          className="bg-transparent text-white font-semibold font-mono w-24 border-b border-transparent focus:border-indigo-400 focus:outline-none px-0.5 text-xs"
+                          className="bg-transparent text-slate-900 font-bold font-mono w-24 border-b border-transparent focus:border-indigo-600 focus:outline-none px-0.5 text-xs"
                           placeholder="EXAM-101"
                         />
                         <button
@@ -4435,18 +5300,18 @@ export const PaperDesigner: React.FC = () => {
                             setShowExamCode(false);
                             savePaperLayout(selectedPaperQuestions, { showExamCode: false });
                           }}
-                          className="text-slate-500 hover:text-rose-400 p-0.5 transition-colors"
+                          className="text-slate-400 hover:text-rose-700 hover:bg-rose-50 p-0.5 rounded transition-colors"
                           title="Delete / Hide Exam Code"
                         >
-                          <X className="w-3 h-3" />
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     )}
 
                     {/* TIME */}
                     {showTime && (
-                      <div className="group/chip inline-flex items-center space-x-1 bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/60 rounded-lg px-2 py-0.5 transition-colors">
-                        <span className="text-slate-400 font-bold text-[11px]">TIME:</span>
+                      <div className="group/chip inline-flex items-center space-x-1 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg px-2.5 py-1 transition-colors shadow-xs">
+                        <span className="text-slate-700 font-bold text-xs">TIME:</span>
                         <input
                           type="number"
                           value={duration === undefined || duration === null || Number.isNaN(Number(duration)) ? '' : duration}
@@ -4455,28 +5320,28 @@ export const PaperDesigner: React.FC = () => {
                             setDuration(val as any);
                           }}
                           onBlur={() => savePaperLayout()}
-                          className="bg-transparent text-white font-semibold font-mono w-14 text-center border-b border-transparent focus:border-indigo-400 focus:outline-none px-0.5 text-xs"
+                          className="bg-transparent text-slate-900 font-bold font-mono w-14 text-center border-b border-transparent focus:border-indigo-600 focus:outline-none px-0.5 text-xs"
                           placeholder="180"
                         />
-                        <span className="text-slate-400 font-semibold text-[11px]">MINS</span>
+                        <span className="text-slate-700 font-semibold text-xs">MINS</span>
                         <button
                           type="button"
                           onClick={() => {
                             setShowTime(false);
                             savePaperLayout(selectedPaperQuestions, { showTime: false });
                           }}
-                          className="text-slate-500 hover:text-rose-400 p-0.5 transition-colors"
+                          className="text-slate-400 hover:text-rose-700 hover:bg-rose-50 p-0.5 rounded transition-colors"
                           title="Delete / Hide Time"
                         >
-                          <X className="w-3 h-3" />
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     )}
 
                     {/* MAX MARKS */}
                     {showMaxMarks && (
-                      <div className="group/chip inline-flex items-center space-x-1 bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/60 rounded-lg px-2 py-0.5 transition-colors">
-                        <span className="text-indigo-300 font-bold text-[11px]">MAX MARKS:</span>
+                      <div className="group/chip inline-flex items-center space-x-1 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg px-2.5 py-1 transition-colors shadow-xs">
+                        <span className="text-indigo-900 font-bold text-xs">MAX MARKS:</span>
                         <input
                           type="number"
                           value={maxMarks === undefined || maxMarks === null || Number.isNaN(Number(maxMarks)) ? '' : maxMarks}
@@ -4485,7 +5350,7 @@ export const PaperDesigner: React.FC = () => {
                             setMaxMarks(val as any);
                           }}
                           onBlur={() => savePaperLayout()}
-                          className="bg-transparent text-indigo-300 font-semibold font-mono w-14 text-center border-b border-transparent focus:border-indigo-400 focus:outline-none px-0.5 text-xs"
+                          className="bg-transparent text-indigo-950 font-bold font-mono w-14 text-center border-b border-transparent focus:border-indigo-600 focus:outline-none px-0.5 text-xs"
                           placeholder="70"
                         />
                         <button
@@ -4494,10 +5359,10 @@ export const PaperDesigner: React.FC = () => {
                             setShowMaxMarks(false);
                             savePaperLayout(selectedPaperQuestions, { showMaxMarks: false });
                           }}
-                          className="text-slate-500 hover:text-rose-400 p-0.5 transition-colors"
+                          className="text-slate-400 hover:text-rose-700 hover:bg-rose-50 p-0.5 rounded transition-colors"
                           title="Delete / Hide Max Marks"
                         >
-                          <X className="w-3 h-3" />
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     )}
@@ -4506,7 +5371,7 @@ export const PaperDesigner: React.FC = () => {
                     {customHeaderFields.map((f, fIdx) => (
                       <div
                         key={f.id}
-                        className="group/chip inline-flex items-center space-x-1.5 bg-slate-950 hover:bg-indigo-950/70 border border-slate-800 hover:border-indigo-500/60 rounded-lg px-2 py-0.5 transition-colors"
+                        className="group/chip inline-flex items-center space-x-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg px-2.5 py-1 transition-colors shadow-xs"
                       >
                         <input
                           type="text"
@@ -4517,9 +5382,9 @@ export const PaperDesigner: React.FC = () => {
                             setCustomHeaderFields(updated);
                           }}
                           onBlur={() => savePaperLayout(selectedPaperQuestions, { customHeaderFields })}
-                          className="bg-transparent text-slate-400 font-bold font-mono w-20 border-b border-transparent focus:border-indigo-400 focus:outline-none px-0.5 text-xs uppercase"
+                          className="bg-transparent text-slate-700 font-bold font-mono w-20 border-b border-transparent focus:border-indigo-600 focus:outline-none px-0.5 text-xs uppercase"
                         />
-                        <span className="text-slate-500">:</span>
+                        <span className="text-slate-500 font-bold">:</span>
                         <input
                           type="text"
                           value={f.value}
@@ -4529,15 +5394,15 @@ export const PaperDesigner: React.FC = () => {
                             setCustomHeaderFields(updated);
                           }}
                           onBlur={() => savePaperLayout(selectedPaperQuestions, { customHeaderFields })}
-                          className="bg-transparent text-white font-semibold font-mono w-28 border-b border-transparent focus:border-indigo-400 focus:outline-none px-0.5 text-xs"
+                          className="bg-transparent text-slate-900 font-bold font-mono w-28 border-b border-transparent focus:border-indigo-600 focus:outline-none px-0.5 text-xs"
                         />
                         <button
                           type="button"
                           onClick={() => handleDeleteHeaderField(f.id)}
-                          className="text-slate-500 hover:text-rose-400 p-0.5 transition-colors"
+                          className="text-slate-400 hover:text-rose-700 hover:bg-rose-50 p-0.5 rounded transition-colors"
                           title={`Delete field "${f.label}"`}
                         >
-                          <X className="w-3 h-3" />
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ))}
@@ -4550,10 +5415,10 @@ export const PaperDesigner: React.FC = () => {
                           setShowExamCode(true);
                           savePaperLayout(selectedPaperQuestions, { showExamCode: true });
                         }}
-                        className="inline-flex items-center space-x-1 text-[11px] text-indigo-300 hover:text-white bg-indigo-950/40 hover:bg-indigo-900/60 px-2 py-0.5 rounded-lg border border-indigo-500/30 transition-colors"
+                        className="inline-flex items-center space-x-1 text-xs text-indigo-900 hover:text-indigo-950 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 font-semibold transition-colors shadow-xs"
                         title="Restore Exam Code badge"
                       >
-                        <Plus className="w-3 h-3" />
+                        <Plus className="w-3.5 h-3.5 text-indigo-700" />
                         <span>Exam Code</span>
                       </button>
                     )}
@@ -4564,10 +5429,10 @@ export const PaperDesigner: React.FC = () => {
                           setShowTime(true);
                           savePaperLayout(selectedPaperQuestions, { showTime: true });
                         }}
-                        className="inline-flex items-center space-x-1 text-[11px] text-indigo-300 hover:text-white bg-indigo-950/40 hover:bg-indigo-900/60 px-2 py-0.5 rounded-lg border border-indigo-500/30 transition-colors"
+                        className="inline-flex items-center space-x-1 text-xs text-indigo-900 hover:text-indigo-950 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 font-semibold transition-colors shadow-xs"
                         title="Restore Time badge"
                       >
-                        <Plus className="w-3 h-3" />
+                        <Plus className="w-3.5 h-3.5 text-indigo-700" />
                         <span>Time</span>
                       </button>
                     )}
@@ -4578,10 +5443,10 @@ export const PaperDesigner: React.FC = () => {
                           setShowMaxMarks(true);
                           savePaperLayout(selectedPaperQuestions, { showMaxMarks: true });
                         }}
-                        className="inline-flex items-center space-x-1 text-[11px] text-indigo-300 hover:text-white bg-indigo-950/40 hover:bg-indigo-900/60 px-2 py-0.5 rounded-lg border border-indigo-500/30 transition-colors"
+                        className="inline-flex items-center space-x-1 text-xs text-indigo-900 hover:text-indigo-950 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 font-semibold transition-colors shadow-xs"
                         title="Restore Max Marks badge"
                       >
-                        <Plus className="w-3 h-3" />
+                        <Plus className="w-3.5 h-3.5 text-indigo-700" />
                         <span>Max Marks</span>
                       </button>
                     )}
@@ -4592,10 +5457,10 @@ export const PaperDesigner: React.FC = () => {
                           setShowSchoolName(true);
                           savePaperLayout(selectedPaperQuestions, { showSchoolName: true });
                         }}
-                        className="inline-flex items-center space-x-1 text-[11px] text-indigo-300 hover:text-white bg-indigo-950/40 hover:bg-indigo-900/60 px-2 py-0.5 rounded-lg border border-indigo-500/30 transition-colors"
+                        className="inline-flex items-center space-x-1 text-xs text-indigo-900 hover:text-indigo-950 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 font-semibold transition-colors shadow-xs"
                         title="Restore School Name"
                       >
-                        <Plus className="w-3 h-3" />
+                        <Plus className="w-3.5 h-3.5 text-indigo-700" />
                         <span>School Name</span>
                       </button>
                     )}
@@ -4606,10 +5471,10 @@ export const PaperDesigner: React.FC = () => {
                           setShowExamTitle(true);
                           savePaperLayout(selectedPaperQuestions, { showExamTitle: true });
                         }}
-                        className="inline-flex items-center space-x-1 text-[11px] text-indigo-300 hover:text-white bg-indigo-950/40 hover:bg-indigo-900/60 px-2 py-0.5 rounded-lg border border-indigo-500/30 transition-colors"
+                        className="inline-flex items-center space-x-1 text-xs text-indigo-900 hover:text-indigo-950 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 font-semibold transition-colors shadow-xs"
                         title="Restore Exam Title"
                       >
-                        <Plus className="w-3 h-3" />
+                        <Plus className="w-3.5 h-3.5 text-indigo-700" />
                         <span>Exam Title</span>
                       </button>
                     )}
@@ -4620,10 +5485,10 @@ export const PaperDesigner: React.FC = () => {
                           setShowCandidateBox(true);
                           savePaperLayout(selectedPaperQuestions, { showCandidateBox: true });
                         }}
-                        className="inline-flex items-center space-x-1 text-[11px] text-emerald-300 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 px-2 py-0.5 rounded-lg border border-emerald-500/30 transition-colors"
+                        className="inline-flex items-center space-x-1 text-xs text-emerald-900 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 font-semibold transition-colors shadow-xs"
                         title="Restore Candidate Details Box"
                       >
-                        <Plus className="w-3 h-3" />
+                        <Plus className="w-3.5 h-3.5 text-emerald-700" />
                         <span>Candidate Box</span>
                       </button>
                     )}
@@ -4632,11 +5497,11 @@ export const PaperDesigner: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleOpenCreateFieldModal('header')}
-                      className="inline-flex items-center space-x-1 text-[11px] text-indigo-400 hover:text-indigo-300 hover:bg-indigo-950/40 px-2 py-0.5 rounded-lg border border-dashed border-indigo-500/40 transition-colors"
+                      className="inline-flex items-center space-x-1.5 text-xs text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-300 font-bold transition-colors shadow-xs"
                       title="Add a custom metadata field (e.g. Subject, Class, Date, Room No, Set A)"
                     >
-                      <Plus className="w-3 h-3" />
-                      <span>Add Field</span>
+                      <Plus className="w-3.5 h-3.5 text-indigo-700" />
+                      <span>+ Field</span>
                     </button>
                   </div>
                 </div>
@@ -4646,10 +5511,10 @@ export const PaperDesigner: React.FC = () => {
 
           {/* Candidate Box with Full Mouse Access & Custom Fields */}
           {showCandidateBox && (
-            <div className="relative group/candBox p-3.5 bg-slate-950/90 rounded-xl border border-slate-800 text-xs space-y-2.5 transition-all">
+            <div className="relative group/candBox p-3.5 bg-slate-50/90 rounded-xl border border-slate-300 text-xs space-y-2.5 transition-all text-slate-900">
               {/* Candidate Box Hover Actions */}
-              <div className="absolute -top-2.5 right-3 hidden group-hover/candBox:flex items-center space-x-1.5 bg-slate-900 border border-slate-700 rounded-lg px-2 py-0.5 shadow-xl z-10">
-                <span className="text-[10px] text-slate-400 font-semibold">Box Text:</span>
+              <div className="absolute -top-2.5 right-3 hidden group-hover/candBox:flex items-center space-x-1.5 bg-white border border-slate-300 rounded-lg px-2 py-0.5 shadow-md z-10 text-slate-700">
+                <span className="text-xs text-slate-600 font-bold">Box Text:</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -4657,12 +5522,12 @@ export const PaperDesigner: React.FC = () => {
                     setCandidateBoxFontSize(next);
                     savePaperLayout(selectedPaperQuestions, { candidateBoxFontSize: next });
                   }}
-                  className="p-0.5 hover:bg-slate-800 text-slate-300 rounded font-bold text-[10px]"
+                  className="p-0.5 hover:bg-slate-100 text-slate-700 rounded font-bold text-xs"
                   title="Decrease Candidate Box font size"
                 >
                   A-
                 </button>
-                <span className="font-mono text-[10px] text-indigo-300 font-bold px-0.5">
+                <span className="font-mono text-xs text-indigo-700 font-bold px-0.5">
                   {candidateBoxFontSize}px
                 </span>
                 <button
@@ -4672,7 +5537,7 @@ export const PaperDesigner: React.FC = () => {
                     setCandidateBoxFontSize(next);
                     savePaperLayout(selectedPaperQuestions, { candidateBoxFontSize: next });
                   }}
-                  className="p-0.5 hover:bg-slate-800 text-slate-300 rounded font-bold text-[10px]"
+                  className="p-0.5 hover:bg-slate-100 text-slate-700 rounded font-bold text-xs"
                   title="Increase Candidate Box font size"
                 >
                   A+
@@ -4684,7 +5549,7 @@ export const PaperDesigner: React.FC = () => {
                       setShowCandidateName(true);
                       savePaperLayout(selectedPaperQuestions, { showCandidateName: true });
                     }}
-                    className="text-[10px] px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded"
+                    className="text-xs px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-semibold rounded"
                     title="Restore Candidate Name field"
                   >
                     + Name
@@ -4697,7 +5562,7 @@ export const PaperDesigner: React.FC = () => {
                       setShowRollNo(true);
                       savePaperLayout(selectedPaperQuestions, { showRollNo: true });
                     }}
-                    className="text-[10px] px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded"
+                    className="text-xs px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-semibold rounded"
                     title="Restore Roll No field"
                   >
                     + Roll No
@@ -4710,7 +5575,7 @@ export const PaperDesigner: React.FC = () => {
                       setShowInstructions(true);
                       savePaperLayout(selectedPaperQuestions, { showInstructions: true });
                     }}
-                    className="text-[10px] px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded"
+                    className="text-xs px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-semibold rounded"
                     title="Restore Instructions field"
                   >
                     + Instructions
@@ -4719,7 +5584,7 @@ export const PaperDesigner: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleOpenCreateFieldModal('candidate')}
-                  className="text-[10px] px-1.5 py-0.5 bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white rounded font-medium ml-1"
+                  className="text-xs px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-300 rounded font-bold ml-1"
                   title="Add candidate detail (e.g. Father's Name, Invigilator Sign, Date of Birth)"
                 >
                   + Field
@@ -4730,28 +5595,28 @@ export const PaperDesigner: React.FC = () => {
                     setShowCandidateBox(false);
                     savePaperLayout(selectedPaperQuestions, { showCandidateBox: false });
                   }}
-                  className="p-1 hover:bg-rose-600 text-slate-400 hover:text-white rounded"
+                  className="p-1 text-rose-700 hover:bg-rose-100 rounded border border-transparent hover:border-rose-200 transition-colors ml-0.5"
                   title="Hide Candidate Box"
                 >
-                  <Trash2 className="w-3 h-3" />
+                  <Trash2 className="w-3 h-3 text-rose-700" />
                 </button>
               </div>
 
               {/* Main Candidate Details Row */}
               <div
-                className="flex flex-wrap items-center justify-between border-b border-slate-800/80 pb-2 gap-2"
+                className="flex flex-wrap items-center justify-between border-b border-slate-300 pb-2 gap-2 text-slate-900"
                 style={{ fontSize: `${candidateBoxFontSize}px` }}
               >
                 {showCandidateName && (
                   <div className="group/nameField inline-flex items-center space-x-1">
-                    <span className="font-semibold text-slate-300">Candidate Name: __________________________</span>
+                    <span className="font-bold text-slate-900">Candidate Name: __________________________</span>
                     <button
                       type="button"
                       onClick={() => {
                         setShowCandidateName(false);
                         savePaperLayout(selectedPaperQuestions, { showCandidateName: false });
                       }}
-                      className="opacity-0 group-hover/nameField:opacity-100 p-0.5 text-slate-500 hover:text-rose-400 transition-opacity"
+                      className="opacity-0 group-hover/nameField:opacity-100 p-0.5 text-slate-400 hover:text-rose-600 transition-opacity"
                       title="Remove Candidate Name field"
                     >
                       <X className="w-3 h-3" />
@@ -4761,7 +5626,7 @@ export const PaperDesigner: React.FC = () => {
 
                 {/* Custom Candidate Fields */}
                 {customCandidateFields.map((cf, cfIdx) => (
-                  <div key={cf.id} className="group/candCustomField inline-flex items-center space-x-1 font-semibold text-slate-300">
+                  <div key={cf.id} className="group/candCustomField inline-flex items-center space-x-1 font-semibold text-slate-900">
                     <input
                       type="text"
                       value={cf.label}
@@ -4771,7 +5636,7 @@ export const PaperDesigner: React.FC = () => {
                         setCustomCandidateFields(updated);
                       }}
                       onBlur={() => savePaperLayout(selectedPaperQuestions, { customCandidateFields })}
-                      className="bg-transparent text-slate-300 font-semibold border-b border-transparent focus:border-indigo-400 focus:outline-none px-0.5 w-24 text-xs"
+                      className="bg-transparent text-slate-900 font-bold border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-0.5 w-24 text-xs"
                       placeholder="Field Name"
                     />
                     <span>:</span>
@@ -4784,13 +5649,13 @@ export const PaperDesigner: React.FC = () => {
                         setCustomCandidateFields(updated);
                       }}
                       onBlur={() => savePaperLayout(selectedPaperQuestions, { customCandidateFields })}
-                      className="bg-transparent text-slate-400 font-mono border-b border-transparent focus:border-indigo-400 focus:outline-none px-0.5 w-32 text-xs"
+                      className="bg-transparent text-slate-600 font-mono border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-0.5 w-32 text-xs"
                       placeholder="Blank space"
                     />
                     <button
                       type="button"
                       onClick={() => handleDeleteCandidateField(cf.id)}
-                      className="opacity-0 group-hover/candCustomField:opacity-100 p-0.5 text-slate-500 hover:text-rose-400 transition-opacity"
+                      className="opacity-0 group-hover/candCustomField:opacity-100 p-0.5 text-slate-400 hover:text-rose-600 transition-opacity"
                       title={`Remove "${cf.label}"`}
                     >
                       <X className="w-3 h-3" />
@@ -4803,32 +5668,32 @@ export const PaperDesigner: React.FC = () => {
                   <div className="group/rollNoField inline-flex items-center space-x-1.5">
                     {rollNoStyle === 'boxes' ? (
                       <div className="flex items-center space-x-1.5">
-                        <span className="font-semibold text-slate-300 font-mono text-[11px]">Roll No:</span>
+                        <span className="font-bold text-slate-900 font-mono text-xs">Roll No:</span>
                         <div className="inline-flex space-x-1">
                           {Array.from({ length: 8 }).map((_, i) => (
                             <div
                               key={i}
-                              className="w-5 h-5 border border-slate-700 bg-slate-900/90 inline-flex items-center justify-center rounded-[3px]"
+                              className="w-5 h-5 border-2 border-slate-400 bg-white inline-flex items-center justify-center rounded-[3px]"
                             />
                           ))}
                         </div>
                       </div>
                     ) : rollNoStyle === 'blank' ? (
-                      <div className="flex items-center space-x-1 font-mono text-slate-300">
-                        <span className="font-semibold">Roll No:</span>
+                      <div className="flex items-center space-x-1 font-mono text-slate-900">
+                        <span className="font-bold">Roll No:</span>
                         <span>________________________</span>
                       </div>
                     ) : null}
 
                     {/* Quick Roll No Style Switcher on Hover */}
-                    <div className="opacity-0 group-hover/rollNoField:opacity-100 flex items-center space-x-0.5 bg-slate-900 border border-slate-700 rounded px-1 transition-opacity">
+                    <div className="opacity-0 group-hover/rollNoField:opacity-100 flex items-center space-x-0.5 bg-white border border-slate-300 rounded px-1 shadow-xs transition-opacity">
                       <button
                         type="button"
                         onClick={() => {
                           setRollNoStyle('boxes');
                           savePaperLayout(selectedPaperQuestions, { rollNoStyle: 'boxes' });
                         }}
-                        className={`text-[9px] px-1 py-0.5 rounded font-mono ${rollNoStyle === 'boxes' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                        className={`text-xs px-1.5 py-0.5 rounded font-mono font-bold ${rollNoStyle === 'boxes' ? 'bg-indigo-600 text-white' : 'text-slate-700 hover:bg-slate-100'}`}
                       >
                         Boxes
                       </button>
@@ -4838,7 +5703,7 @@ export const PaperDesigner: React.FC = () => {
                           setRollNoStyle('blank');
                           savePaperLayout(selectedPaperQuestions, { rollNoStyle: 'blank' });
                         }}
-                        className={`text-[9px] px-1 py-0.5 rounded font-mono ${rollNoStyle === 'blank' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                        className={`text-xs px-1.5 py-0.5 rounded font-mono font-bold ${rollNoStyle === 'blank' ? 'bg-indigo-600 text-white' : 'text-slate-700 hover:bg-slate-100'}`}
                       >
                         Line
                       </button>
@@ -4848,7 +5713,7 @@ export const PaperDesigner: React.FC = () => {
                           setShowRollNo(false);
                           savePaperLayout(selectedPaperQuestions, { showRollNo: false });
                         }}
-                        className="p-0.5 text-slate-500 hover:text-rose-400"
+                        className="p-0.5 text-slate-400 hover:text-rose-600"
                         title="Remove Roll No field"
                       >
                         <X className="w-2.5 h-2.5" />
@@ -4860,16 +5725,16 @@ export const PaperDesigner: React.FC = () => {
 
               {/* Instructions Row with Direct Inline Textarea */}
               {showInstructions && (
-                <div className="relative group/inst text-slate-400 text-[11px] leading-relaxed">
+                <div className="relative group/inst text-slate-800 text-xs leading-relaxed">
                   <div className="flex items-center justify-between pb-0.5">
-                    <span className="font-bold text-slate-300">General Instructions:</span>
+                    <span className="font-bold text-slate-900">General Instructions:</span>
                     <button
                       type="button"
                       onClick={() => {
                         setShowInstructions(false);
                         savePaperLayout(selectedPaperQuestions, { showInstructions: false });
                       }}
-                      className="opacity-0 group-hover/inst:opacity-100 text-slate-500 hover:text-rose-400 p-0.5 transition-opacity"
+                      className="opacity-0 group-hover/inst:opacity-100 text-slate-400 hover:text-rose-600 p-0.5 transition-opacity"
                       title="Remove Instructions block"
                     >
                       <X className="w-3 h-3" />
@@ -4880,7 +5745,7 @@ export const PaperDesigner: React.FC = () => {
                     value={instructions}
                     onChange={(e) => setInstructions(e.target.value)}
                     onBlur={() => savePaperLayout()}
-                    className="w-full bg-slate-900/60 border border-slate-800 rounded-lg p-2 text-slate-300 text-[11px] focus:outline-none focus:border-indigo-500 transition-colors leading-relaxed resize-y"
+                    className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-800 text-xs focus:outline-none focus:border-indigo-600 transition-colors leading-relaxed resize-y"
                     placeholder="Enter exam instructions (e.g. 1. All questions are compulsory...)"
                   />
                 </div>
@@ -4896,15 +5761,15 @@ export const PaperDesigner: React.FC = () => {
           >
             {selectedPaperQuestions.length === 0 ? (
               /* ACTIONABLE INTERACTIVE EMPTY CANVAS HUB */
-              <div className="text-center py-10 px-6 border-2 border-dashed border-slate-800 hover:border-indigo-500/40 rounded-3xl bg-slate-950/40 space-y-5 transition-all">
-                <div className="w-16 h-16 mx-auto rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+              <div className="text-center py-10 px-6 border-2 border-dashed border-slate-300 hover:border-indigo-400 rounded-3xl bg-slate-50/70 space-y-5 transition-all">
+                <div className="w-16 h-16 mx-auto rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-200">
                   <FileSpreadsheet className="w-8 h-8" />
                 </div>
                 <div className="max-w-md mx-auto space-y-1.5">
-                  <h3 className="text-base font-bold text-white">
+                  <h3 className="text-base font-bold text-slate-900">
                     {activePaper ? `Editing: ${activePaper.title}` : 'New Blank Examination Paper'}
                   </h3>
-                  <p className="text-xs text-slate-400 leading-relaxed">
+                  <p className="text-xs text-slate-600 leading-relaxed">
                     {activePaper
                       ? 'This paper has no questions yet. Add questions from the bank on the left or create new ones below.'
                       : 'Choose to open a previously saved paper from the Paper Bank, or start fresh by adding questions to this blank canvas.'}
@@ -4925,17 +5790,17 @@ export const PaperDesigner: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleStartNewPaper}
-                      className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center space-x-2 transition-all"
+                      className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-900 text-xs font-bold rounded-xl border-2 border-slate-300 hover:border-slate-400 shadow-xs flex items-center space-x-2 transition-all"
                     >
-                      <Plus className="w-4 h-4 text-indigo-400" />
+                      <Plus className="w-4 h-4 text-indigo-600" />
                       <span>✨ Start Fresh New Paper</span>
                     </button>
                   </div>
 
-                  <div className="flex items-center space-x-3 text-slate-600 text-[11px]">
-                    <div className="flex-1 h-px bg-slate-800"></div>
+                  <div className="flex items-center space-x-3 text-slate-500 text-xs">
+                    <div className="flex-1 h-px bg-slate-300"></div>
                     <span>or add questions to this blank canvas</span>
-                    <div className="flex-1 h-px bg-slate-800"></div>
+                    <div className="flex-1 h-px bg-slate-300"></div>
                   </div>
 
                   <div className="flex flex-wrap items-center justify-center gap-2">
@@ -4950,17 +5815,17 @@ export const PaperDesigner: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleOpenCreateFieldModal('section')}
-                      className="px-3.5 py-2 bg-violet-600/20 hover:bg-violet-600/40 text-violet-300 hover:text-white border border-violet-500/40 text-xs font-semibold rounded-xl flex items-center space-x-1.5 transition-all"
+                      className="px-3.5 py-2 bg-violet-50 hover:bg-violet-100 text-violet-800 border border-violet-300 text-xs font-bold rounded-xl flex items-center space-x-1.5 transition-all shadow-xs"
                     >
-                      <Type className="w-3.5 h-3.5" />
+                      <Type className="w-3.5 h-3.5 text-violet-700" />
                       <span>+ Section Heading</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleOpenCreateFieldModal('note')}
-                      className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 flex items-center space-x-1.5 transition-all"
+                      className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl border border-slate-300 flex items-center space-x-1.5 transition-all shadow-xs"
                     >
-                      <FileText className="w-3.5 h-3.5" />
+                      <FileText className="w-3.5 h-3.5 text-slate-700" />
                       <span>+ Note Block</span>
                     </button>
                   </div>
@@ -4969,38 +5834,39 @@ export const PaperDesigner: React.FC = () => {
             ) : (
               (() => {
                 let qCounter = 0;
+                let currentSectionId: string | null = null;
                 return selectedPaperQuestions.map((q, idx) => {
                   {/* HOVER INSERTION BAR BETWEEN ELEMENTS */}
                   const insertionBar = (
                     <div className="relative group/insertBar h-2 hover:h-7 transition-all flex items-center justify-center my-1 z-10">
                       <div className="absolute inset-x-0 h-px bg-slate-800 group-hover/insertBar:bg-indigo-500/50 transition-colors" />
                       <div className="opacity-0 group-hover/insertBar:opacity-100 flex items-center space-x-1 bg-slate-900 border border-indigo-500/60 rounded-lg px-2 py-0.5 shadow-xl transition-all scale-90 group-hover/insertBar:scale-100">
-                        <span className="text-[10px] text-slate-400 font-semibold mr-1">Insert Here:</span>
+                        <span className="text-xs text-slate-400 font-semibold mr-1">Insert Here:</span>
                         <button
                           type="button"
                           onClick={() => handleAddNewQuestionToCanvas(idx)}
-                          className="text-[10px] px-1.5 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-bold transition-colors"
+                          className="text-xs px-1.5 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-bold transition-colors"
                         >
                           + Question
                         </button>
                         <button
                           type="button"
                           onClick={() => handleOpenCreateFieldModal('section', idx)}
-                          className="text-[10px] px-1.5 py-0.5 bg-violet-600/30 hover:bg-violet-600 text-violet-200 rounded font-semibold transition-colors"
+                          className="text-xs px-1.5 py-0.5 bg-violet-600/30 hover:bg-violet-600 text-violet-200 rounded font-semibold transition-colors"
                         >
                           + Section
                         </button>
                         <button
                           type="button"
                           onClick={() => handleOpenCreateFieldModal('note', idx)}
-                          className="text-[10px] px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded font-semibold transition-colors"
+                          className="text-xs px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded font-semibold transition-colors"
                         >
                           + Note
                         </button>
                         <button
                           type="button"
                           onClick={() => handleAddBlankSpace(60, 'blank', idx)}
-                          className="text-[10px] px-1.5 py-0.5 bg-emerald-600/30 hover:bg-emerald-600 text-emerald-200 rounded font-semibold transition-colors"
+                          className="text-xs px-1.5 py-0.5 bg-emerald-600/30 hover:bg-emerald-600 text-emerald-200 rounded font-semibold transition-colors"
                           title="Insert blank space / working area here"
                         >
                           + Space
@@ -5011,91 +5877,157 @@ export const PaperDesigner: React.FC = () => {
 
                   {/* SECTION HEADING RENDERER */}
                   if (q.type === 'section') {
+                    const sectionKey = q.id || `section_${idx}`;
+                    currentSectionId = sectionKey;
+                    const isCollapsed = isSectionCollapsed(sectionKey);
                     const isSectionHidden = q.hideSection !== undefined ? q.hideSection : hideAllSections;
+
+                    // Calculate items and marks inside this section
+                    let secQuestionCount = 0;
+                    let secTotalMarks = 0;
+                    for (let j = idx + 1; j < selectedPaperQuestions.length; j++) {
+                      if (selectedPaperQuestions[j].type === 'section') break;
+                      if (selectedPaperQuestions[j].type !== 'note' && selectedPaperQuestions[j].type !== 'space') {
+                        secQuestionCount++;
+                        secTotalMarks += (Number(selectedPaperQuestions[j].marks) || 1);
+                      }
+                    }
+
                     return (
                       <React.Fragment key={q.id || idx}>
                         {idx > 0 && insertionBar}
                         <div
                           className={`group/sec relative p-3 rounded-2xl transition-all shadow-lg space-y-1.5 my-2 border ${
                             isSectionHidden
-                              ? 'bg-gradient-to-r from-amber-950/40 via-slate-950/70 to-slate-950/90 border-amber-500/50 opacity-80'
+                              ? 'bg-gradient-to-r from-amber-950/40 via-slate-950/70 to-slate-950/90 border-amber-500/50 opacity-90'
+                              : isCollapsed
+                              ? 'bg-gradient-to-r from-slate-900/90 via-slate-950/80 to-slate-900/90 border-slate-700/80 hover:border-violet-500/60'
                               : 'bg-gradient-to-r from-violet-950/60 via-indigo-950/40 to-slate-950/80 border-violet-500/40'
                           }`}
                         >
                           {/* Top Status & Controls Header */}
-                          <div className="flex items-center justify-between pb-1.5 mb-1 border-b border-white/5">
+                          <div className="flex flex-wrap items-center justify-between gap-1.5 pb-1.5 mb-1 border-b border-white/5">
                             <div className="flex items-center space-x-2">
-                              <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-violet-300 bg-violet-950/80 px-1.5 py-0.5 rounded border border-violet-500/30">
+                              {/* Direct Show / Hide Section questions toggle button */}
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSectionCollapse(sectionKey)}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-all shadow-sm ${
+                                  isCollapsed
+                                    ? 'bg-violet-600 hover:bg-violet-500 text-white shadow-violet-600/30'
+                                    : 'bg-slate-800 hover:bg-slate-700 text-violet-300 border border-violet-500/40'
+                                }`}
+                                title={isCollapsed ? 'Click to show questions in this section' : 'Click to hide questions in this section'}
+                              >
+                                {isCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+                                <span>{isCollapsed ? 'SHOW SECTION' : 'HIDE SECTION'}</span>
+                              </button>
+
+                              <span className="text-xs uppercase font-mono font-bold tracking-wider text-violet-300 bg-violet-950/80 px-1.5 py-0.5 rounded border border-violet-500/30">
                                 SECTION
                               </span>
+
+                              <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                                {secQuestionCount} {secQuestionCount === 1 ? 'question' : 'questions'} &bull; {secTotalMarks} marks
+                              </span>
+
+                              {isCollapsed ? (
+                                <span
+                                  onClick={() => handleToggleSectionCollapse(sectionKey)}
+                                  className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded font-semibold cursor-pointer hover:bg-amber-500/30 flex items-center space-x-1"
+                                  title="Section content is hidden. Click to expand"
+                                >
+                                  <span>Hidden (Click to expand)</span>
+                                </span>
+                              ) : (
+                                <span
+                                  onClick={() => handleToggleSectionCollapse(sectionKey)}
+                                  className="text-xs px-2 py-0.5 bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded font-semibold cursor-pointer hover:bg-emerald-500/25 flex items-center space-x-1"
+                                  title="Section content is visible. Click to collapse"
+                                >
+                                  <span>Showing</span>
+                                </span>
+                              )}
+
                               {isSectionHidden ? (
-                                <span className="text-[9px] px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded font-semibold flex items-center space-x-1">
-                                  <EyeOff className="w-2.5 h-2.5" />
+                                <span className="text-xs px-2.5 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded font-semibold flex items-center space-x-1.5">
+                                  <EyeOff className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                                   <span>Hidden on Paper</span>
                                 </span>
                               ) : (
-                                <span className="text-[9px] px-2 py-0.5 bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded font-semibold flex items-center space-x-1">
-                                  <Eye className="w-2.5 h-2.5" />
+                                <span className="text-xs px-2.5 py-0.5 bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded font-semibold flex items-center space-x-1.5">
+                                  <Eye className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                                   <span>Visible on Paper</span>
                                 </span>
                               )}
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={() => handleToggleSectionVisibility(idx)}
-                              className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center space-x-1 transition-all border ${
-                                isSectionHidden
-                                  ? 'bg-amber-950 text-amber-300 border-amber-500/50 hover:bg-amber-900 shadow-sm'
-                                  : 'text-slate-400 hover:text-amber-300 hover:bg-slate-800 border-slate-700/60'
-                              }`}
-                              title={isSectionHidden ? 'Section is hidden on paper. Click to unhide' : 'Click to hide section heading from paper'}
-                            >
-                              {isSectionHidden ? (
-                                <>
-                                  <Eye className="w-3 h-3 text-amber-400" />
-                                  <span>Unhide Section</span>
-                                </>
-                              ) : (
-                                <>
-                                  <EyeOff className="w-3 h-3 text-slate-400" />
-                                  <span>Hide Section</span>
-                                </>
-                              )}
-                            </button>
+                            <div className="flex items-center space-x-2">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSectionCollapse(sectionKey)}
+                                className="px-2.5 py-1 rounded text-xs font-bold flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 transition-colors shadow-xs"
+                              >
+                                {isCollapsed ? <ChevronDown className="w-3.5 h-3.5 text-violet-300 shrink-0" /> : <ChevronUp className="w-3.5 h-3.5 text-violet-300 shrink-0" />}
+                                <span>{isCollapsed ? 'Expand' : 'Collapse'}</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSectionVisibility(idx)}
+                                className={`px-2.5 py-1 rounded text-xs font-bold flex items-center space-x-1.5 transition-all border shadow-xs ${
+                                  isSectionHidden
+                                    ? 'bg-amber-950 text-amber-300 border-amber-500/50 hover:bg-amber-900'
+                                    : 'text-slate-300 hover:text-amber-300 hover:bg-slate-800 border-slate-600'
+                                }`}
+                                title={isSectionHidden ? 'Section is hidden on paper. Click to unhide' : 'Click to hide section heading from paper'}
+                              >
+                                {isSectionHidden ? (
+                                  <>
+                                    <Eye className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                    <span>Unhide on Paper</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <EyeOff className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                                    <span>Hide on Paper</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
                           </div>
 
                           {/* Section Hover Toolbar */}
-                          <div className="absolute -top-2.5 right-3 hidden group-hover/sec:flex items-center space-x-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-0.5 shadow-xl z-10">
+                          <div className="absolute -top-2.5 right-3 hidden group-hover/sec:flex items-center space-x-1.5 bg-slate-900 border border-slate-600 rounded-lg px-2.5 py-1 shadow-2xl z-10">
                             {/* Direct Hide / Unhide button in hover toolbar */}
                             <button
                               type="button"
                               onClick={() => handleToggleSectionVisibility(idx)}
-                              className={`p-1 rounded transition-colors ${
+                              className={`p-1.5 rounded transition-colors ${
                                 isSectionHidden
                                   ? 'bg-amber-900/60 text-amber-300 hover:bg-amber-800'
-                                  : 'hover:bg-slate-800 text-slate-300'
+                                  : 'hover:bg-slate-800 text-slate-200'
                               }`}
                               title={isSectionHidden ? 'Unhide section on paper' : 'Hide section from paper'}
                             >
-                              {isSectionHidden ? <Eye className="w-3 h-3 text-amber-400" /> : <EyeOff className="w-3 h-3 text-violet-300" />}
+                              {isSectionHidden ? <Eye className="w-3.5 h-3.5 text-amber-400 shrink-0" /> : <EyeOff className="w-3.5 h-3.5 text-violet-300 shrink-0" />}
                             </button>
 
-                            <span className="text-[10px] text-slate-400 font-semibold">Size:</span>
+                            <span className="text-xs text-slate-300 font-semibold">Size:</span>
                             <button
                               type="button"
                               onClick={() => handleAdjustItemFontSize(idx, -1)}
-                              className="p-0.5 hover:bg-slate-800 text-slate-300 rounded font-bold text-[10px]"
+                              className="px-1.5 py-0.5 hover:bg-slate-800 text-slate-200 rounded font-bold text-xs"
                             >
                               A-
                             </button>
-                            <span className="font-mono text-[10px] text-violet-300 font-bold px-0.5">
+                            <span className="font-mono text-xs text-violet-300 font-bold px-0.5">
                               {q.customFontSize || q.fontSize || 14}pt
                             </span>
                             <button
                               type="button"
                               onClick={() => handleAdjustItemFontSize(idx, 1)}
-                              className="p-0.5 hover:bg-slate-800 text-slate-300 rounded font-bold text-[10px]"
+                              className="px-1.5 py-0.5 hover:bg-slate-800 text-slate-200 rounded font-bold text-xs"
                             >
                               A+
                             </button>
@@ -5108,7 +6040,7 @@ export const PaperDesigner: React.FC = () => {
                                 setSelectedPaperQuestions(updated);
                                 savePaperLayout(updated);
                               }}
-                              className="p-1 hover:bg-slate-800 text-slate-300 rounded text-[10px] font-mono ml-1"
+                              className="p-1 hover:bg-slate-800 text-slate-200 rounded text-xs font-mono ml-0.5"
                               title="Toggle Text Alignment"
                             >
                               {q.align === 'left' ? 'Left' : 'Center'}
@@ -5116,26 +6048,26 @@ export const PaperDesigner: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => handleDuplicateCanvasItem(idx)}
-                              className="p-1 hover:bg-slate-800 text-slate-300 rounded"
+                              className="p-1.5 hover:bg-slate-800 text-slate-200 rounded"
                               title="Duplicate Section"
                             >
-                              <Copy className="w-3 h-3" />
+                              <Copy className="w-3.5 h-3.5 text-slate-200 shrink-0" />
                             </button>
                             <button
                               type="button"
                               onClick={() => handleMoveQuestion(idx, 'up')}
                               disabled={idx === 0}
-                              className="p-1 hover:bg-slate-800 disabled:opacity-20 text-slate-300 rounded"
+                              className="p-1.5 hover:bg-slate-800 disabled:opacity-20 text-slate-200 rounded"
                             >
-                              <MoveUp className="w-3 h-3" />
+                              <MoveUp className="w-3.5 h-3.5 text-slate-200 shrink-0" />
                             </button>
                             <button
                               type="button"
                               onClick={() => handleMoveQuestion(idx, 'down')}
                               disabled={idx === selectedPaperQuestions.length - 1}
-                              className="p-1 hover:bg-slate-800 disabled:opacity-20 text-slate-300 rounded"
+                              className="p-1.5 hover:bg-slate-800 disabled:opacity-20 text-slate-200 rounded"
                             >
-                              <MoveDown className="w-3 h-3" />
+                              <MoveDown className="w-3.5 h-3.5 text-slate-200 shrink-0" />
                             </button>
                             <button
                               type="button"
@@ -5145,9 +6077,10 @@ export const PaperDesigner: React.FC = () => {
                                 savePaperLayout(updated);
                                 showToast('Deleted section heading');
                               }}
-                              className="p-1 hover:bg-rose-600 text-slate-400 hover:text-white rounded"
+                              className="p-1.5 text-rose-700 hover:bg-rose-100 rounded transition-colors"
+                              title="Delete section heading"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-3.5 h-3.5 shrink-0 text-rose-700" />
                             </button>
                           </div>
 
@@ -5180,6 +6113,22 @@ export const PaperDesigner: React.FC = () => {
                             }`}
                             placeholder="Optional section description e.g. Questions 1 to 10 carry 1 mark each"
                           />
+
+                          {/* Expandable banner when section is collapsed/hidden */}
+                          {isCollapsed && (
+                            <div
+                              onClick={() => handleToggleSectionCollapse(sectionKey)}
+                              className="mt-2 py-2 px-3 bg-slate-900/80 hover:bg-slate-900 border border-dashed border-violet-500/40 hover:border-violet-400 rounded-xl cursor-pointer flex items-center justify-between text-xs text-violet-300 transition-all group/expand"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <ChevronDown className="w-4 h-4 text-violet-400 group-hover/expand:translate-y-0.5 transition-transform" />
+                                <span className="font-semibold">Section Hidden &bull; Click to show {secQuestionCount} {secQuestionCount === 1 ? 'question' : 'questions'} ({secTotalMarks} marks)</span>
+                              </div>
+                              <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-violet-600/40 text-violet-200 border border-violet-500/50">
+                                Show Section
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </React.Fragment>
                     );
@@ -5187,27 +6136,30 @@ export const PaperDesigner: React.FC = () => {
 
                   {/* NOTE / NOTICE BLOCK RENDERER */}
                   if (q.type === 'note') {
+                    if (currentSectionId !== null && isSectionCollapsed(currentSectionId)) {
+                      return null;
+                    }
                     return (
                       <React.Fragment key={q.id || idx}>
                         {idx > 0 && insertionBar}
                         <div className="group/note relative p-3 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1 my-1.5 transition-all">
                           {/* Note Hover Toolbar */}
                           <div className="absolute -top-2.5 right-3 hidden group-hover/note:flex items-center space-x-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-0.5 shadow-xl z-10">
-                            <span className="text-[10px] text-slate-400 font-semibold">Size:</span>
+                            <span className="text-xs text-slate-400 font-semibold">Size:</span>
                             <button
                               type="button"
                               onClick={() => handleAdjustItemFontSize(idx, -1)}
-                              className="p-0.5 hover:bg-slate-800 text-slate-300 rounded font-bold text-[10px]"
+                              className="p-0.5 hover:bg-slate-800 text-slate-300 rounded font-bold text-xs"
                             >
                               A-
                             </button>
-                            <span className="font-mono text-[10px] text-amber-300 font-bold px-0.5">
+                            <span className="font-mono text-xs text-amber-300 font-bold px-0.5">
                               {q.customFontSize || q.fontSize || 11}pt
                             </span>
                             <button
                               type="button"
                               onClick={() => handleAdjustItemFontSize(idx, 1)}
-                              className="p-0.5 hover:bg-slate-800 text-slate-300 rounded font-bold text-[10px]"
+                              className="p-0.5 hover:bg-slate-800 text-slate-300 rounded font-bold text-xs"
                             >
                               A+
                             </button>
@@ -5242,9 +6194,10 @@ export const PaperDesigner: React.FC = () => {
                                 savePaperLayout(updated);
                                 showToast('Deleted note block');
                               }}
-                              className="p-1 hover:bg-rose-600 text-slate-400 hover:text-white rounded"
+                              className="p-1 text-rose-700 hover:bg-rose-100 rounded transition-colors"
+                              title="Delete note block"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-3 h-3 text-rose-700" />
                             </button>
                           </div>
 
@@ -5271,6 +6224,9 @@ export const PaperDesigner: React.FC = () => {
 
                   {/* BLANK SPACE / ANSWER WORKING AREA RENDERER */}
                   if (q.type === 'space') {
+                    if (currentSectionId !== null && isSectionCollapsed(currentSectionId)) {
+                      return null;
+                    }
                     const spaceH = q.height || 60;
                     const style = q.spaceStyle || 'blank';
                     return (
@@ -5279,7 +6235,7 @@ export const PaperDesigner: React.FC = () => {
                         <div className="group/space relative p-3 rounded-2xl bg-slate-950/60 border border-dashed border-emerald-500/40 space-y-2 my-2 transition-all hover:border-emerald-400">
                           {/* Space Hover Toolbar */}
                           <div className="absolute -top-2.5 right-3 hidden group-hover/space:flex items-center space-x-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-0.5 shadow-xl z-10">
-                            <span className="text-[10px] text-slate-400 font-semibold">Height:</span>
+                            <span className="text-xs text-slate-400 font-semibold">Height:</span>
                             <button
                               type="button"
                               onClick={() => {
@@ -5289,12 +6245,12 @@ export const PaperDesigner: React.FC = () => {
                                 setSelectedPaperQuestions(updated);
                                 savePaperLayout(updated);
                               }}
-                              className="px-1 py-0.5 hover:bg-slate-800 text-slate-300 rounded font-bold text-[10px]"
+                              className="px-1 py-0.5 hover:bg-slate-800 text-slate-300 rounded font-bold text-xs"
                               title="Decrease Space Height (-20px)"
                             >
                               -20px
                             </button>
-                            <span className="font-mono text-[10px] text-emerald-300 font-bold px-1">
+                            <span className="font-mono text-xs text-emerald-300 font-bold px-1">
                               {spaceH}px
                             </span>
                             <button
@@ -5306,7 +6262,7 @@ export const PaperDesigner: React.FC = () => {
                                 setSelectedPaperQuestions(updated);
                                 savePaperLayout(updated);
                               }}
-                              className="px-1 py-0.5 hover:bg-slate-800 text-slate-300 rounded font-bold text-[10px]"
+                              className="px-1 py-0.5 hover:bg-slate-800 text-slate-300 rounded font-bold text-xs"
                               title="Increase Space Height (+20px)"
                             >
                               +20px
@@ -5324,7 +6280,7 @@ export const PaperDesigner: React.FC = () => {
                                     setSelectedPaperQuestions(updated);
                                     savePaperLayout(updated);
                                   }}
-                                  className={`px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase ${
+                                  className={`px-1.5 py-0.5 rounded text-xs font-semibold uppercase ${
                                     style === st
                                       ? 'bg-emerald-600 text-white'
                                       : 'text-slate-400 hover:text-slate-200'
@@ -5369,10 +6325,10 @@ export const PaperDesigner: React.FC = () => {
                                 savePaperLayout(updated);
                                 showToast('Removed blank space');
                               }}
-                              className="p-1 hover:bg-rose-600 text-slate-400 hover:text-white rounded"
+                              className="p-1 text-rose-700 hover:bg-rose-100 rounded transition-colors"
                               title="Delete Space"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-3 h-3 text-rose-700" />
                             </button>
                           </div>
 
@@ -5388,7 +6344,7 @@ export const PaperDesigner: React.FC = () => {
                             }`}
                           >
                             {style === 'rough' && (
-                              <span className="text-[11px] font-mono uppercase tracking-widest font-semibold opacity-60">
+                              <span className="text-xs font-mono uppercase tracking-widest font-semibold opacity-60">
                                 — SPACE FOR ROUGH WORK —
                               </span>
                             )}
@@ -5400,7 +6356,7 @@ export const PaperDesigner: React.FC = () => {
                               </div>
                             )}
                             {style === 'blank' && (
-                              <span className="text-[10px] font-mono uppercase tracking-wider opacity-40">
+                              <span className="text-xs font-mono uppercase tracking-wider opacity-40">
                                 ␣ Blank Answer Space ({spaceH}px)
                               </span>
                             )}
@@ -5412,6 +6368,9 @@ export const PaperDesigner: React.FC = () => {
 
                   {/* STANDARD QUESTION RENDERER */}
                   qCounter++;
+                  if (currentSectionId !== null && isSectionCollapsed(currentSectionId)) {
+                    return null;
+                  }
                   const currentQNum = qCounter;
                   const options = typeof q.optionsJson === 'string' ? JSON.parse(q.optionsJson) : q.options || [];
                   const rawDiagrams = typeof q.diagramsJson === 'string' ? JSON.parse(q.diagramsJson) : q.diagrams || [];
@@ -5452,14 +6411,14 @@ export const PaperDesigner: React.FC = () => {
                     return (
                       <div className={`${wrapBeside ? 'relative z-10' : 'clear-both'} mt-1 space-y-1`}>
                         <div className="flex items-center justify-between px-1 py-0.5 bg-slate-900/40 rounded-lg border border-slate-800/60">
-                          <span className="text-[10px] font-semibold text-slate-400 flex items-center space-x-1.5">
+                          <span className="text-xs font-semibold text-slate-400 flex items-center space-x-1.5">
                             <span>Choices ({options.length}):</span>
                             {isQOptionsHidden ? (
-                              <span className="text-[9px] px-1.5 py-0.2 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded font-semibold">
+                              <span className="text-xs px-1.5 py-0.2 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded font-semibold">
                                 Hidden on Paper (Subjective)
                               </span>
                             ) : (
-                              <span className="text-[9px] px-1.5 py-0.2 bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded font-semibold">
+                              <span className="text-xs px-1.5 py-0.2 bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded font-semibold">
                                 Visible on Paper
                               </span>
                             )}
@@ -5471,7 +6430,7 @@ export const PaperDesigner: React.FC = () => {
                                 e.stopPropagation();
                                 handleToggleQuestionWrapOptions(idx);
                               }}
-                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center space-x-1 transition-all border ${
+                              className={`px-1.5 py-0.5 rounded text-xs font-bold flex items-center space-x-1 transition-all border ${
                                 shouldWrapOptions
                                   ? 'bg-indigo-950 text-indigo-300 border-indigo-500/50 hover:bg-indigo-900'
                                   : 'text-slate-400 hover:text-indigo-300 hover:bg-slate-800 border-slate-700/60'
@@ -5491,7 +6450,7 @@ export const PaperDesigner: React.FC = () => {
                                 e.stopPropagation();
                                 handleToggleQuestionOptions(idx);
                               }}
-                              className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center space-x-1 transition-all border ${
+                              className={`px-2 py-0.5 rounded text-xs font-bold flex items-center space-x-1 transition-all border ${
                                 isQOptionsHidden
                                   ? 'bg-amber-950 text-amber-300 border-amber-500/50 hover:bg-amber-900'
                                   : 'text-slate-400 hover:text-amber-300 hover:bg-slate-800 border-slate-700/60'
@@ -5581,7 +6540,12 @@ export const PaperDesigner: React.FC = () => {
                     <React.Fragment key={q.id || idx}>
                       {idx > 0 && insertionBar}
                       <div
-                        className={`avoid-break transition-all group relative ${
+                        onClick={() => setSelectedCanvasQuestionIdx(idx)}
+                        className={`avoid-break transition-all group relative cursor-pointer ${
+                          selectedCanvasQuestionIdx === idx
+                            ? 'ring-2 ring-indigo-500 border-indigo-400/90 shadow-lg shadow-indigo-500/10 rounded-xl'
+                            : ''
+                        } ${
                           spacingPreset === 'zero' ? 'space-y-1' : 'space-y-2'
                         } ${
                           isBoxed
@@ -5603,7 +6567,7 @@ export const PaperDesigner: React.FC = () => {
 
                             {/* Direct Marks Entry Controller on Canvas */}
                             <div className="inline-flex items-center space-x-1.5 bg-slate-900/90 px-2 py-0.5 rounded-lg border border-slate-700/80 hover:border-indigo-500 transition-all shadow-sm">
-                              <span className="text-[10px] text-slate-400 font-semibold select-none">Marks:</span>
+                              <span className="text-xs text-slate-400 font-semibold select-none">Marks:</span>
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -5650,7 +6614,7 @@ export const PaperDesigner: React.FC = () => {
                                       e.stopPropagation();
                                       handleUpdateMarksOnCanvas(idx, m);
                                     }}
-                                    className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold transition-all ${
+                                    className={`px-1.5 py-0.2 rounded text-xs font-mono font-bold transition-all ${
                                       Number(q.marks) === m && !q.hideMarks
                                         ? 'bg-indigo-600 text-white shadow-sm'
                                         : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -5668,7 +6632,7 @@ export const PaperDesigner: React.FC = () => {
                                   e.stopPropagation();
                                   handleToggleQuestionMarks(idx);
                                 }}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all ml-1 border ${
+                                className={`px-1.5 py-0.5 rounded text-xs font-bold transition-all ml-1 border ${
                                   q.hideMarks || !showQuestionMarks
                                     ? 'bg-rose-950/80 text-rose-300 border-rose-500/50 hover:bg-rose-900 shadow-sm'
                                     : 'text-slate-400 hover:text-rose-300 hover:bg-slate-800 border-transparent'
@@ -5686,18 +6650,18 @@ export const PaperDesigner: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => handleAdjustItemFontSize(idx, -1)}
-                              className="p-1 hover:bg-slate-800 text-slate-300 rounded font-bold text-[10px]"
+                              className="p-1 hover:bg-slate-800 text-slate-300 rounded font-bold text-xs"
                               title="Decrease font size for this question"
                             >
                               A-
                             </button>
-                            <span className="font-mono text-[10px] text-indigo-300 font-bold px-0.5 select-none">
+                            <span className="font-mono text-xs text-indigo-300 font-bold px-0.5 select-none">
                               {q.customFontSize || baseFontSizePt || 10}pt
                             </span>
                             <button
                               type="button"
                               onClick={() => handleAdjustItemFontSize(idx, 1)}
-                              className="p-1 hover:bg-slate-800 text-slate-300 rounded font-bold text-[10px]"
+                              className="p-1 hover:bg-slate-800 text-slate-300 rounded font-bold text-xs"
                               title="Increase font size for this question"
                             >
                               A+
@@ -5754,10 +6718,10 @@ export const PaperDesigner: React.FC = () => {
                                 savePaperLayout(updated);
                                 showToast(`Removed Q${currentQNum} from canvas`);
                               }}
-                              className="p-1 hover:bg-slate-800 text-slate-400 hover:text-rose-400 rounded ml-1"
+                              className="p-1 hover:bg-rose-50 text-rose-700 rounded ml-1 transition-colors"
                               title="Remove question from canvas"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-3.5 h-3.5 text-rose-700" />
                             </button>
                           </div>
                         </div>
@@ -5938,7 +6902,7 @@ export const PaperDesigner: React.FC = () => {
                                 {q.correctAnswer}
                               </span>
                               {q.explanation && (
-                                <span className="text-slate-300 text-[11px]">
+                                <span className="text-slate-300 text-xs">
                                   &bull; <strong>Solution:</strong> {q.explanation}
                                 </span>
                               )}
@@ -5946,7 +6910,7 @@ export const PaperDesigner: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => handleOpenEditAnswerModal(idx)}
-                              className="text-[11px] text-emerald-300 hover:text-white underline font-semibold flex items-center space-x-1"
+                              className="text-xs text-emerald-300 hover:text-white underline font-semibold flex items-center space-x-1"
                             >
                               <Edit3 className="w-3 h-3" />
                               <span>Edit Answer</span>
@@ -5959,13 +6923,13 @@ export const PaperDesigner: React.FC = () => {
                               <span className="font-bold">No answer set</span>
                               {options.length > 0 && (
                                 <div className="flex items-center space-x-1 ml-2">
-                                  <span className="text-[11px] text-slate-400">Quick set:</span>
+                                  <span className="text-xs text-slate-400">Quick set:</span>
                                   {options.map((opt: any) => (
                                     <button
                                       key={opt.key}
                                       type="button"
                                       onClick={() => handleSaveQuickAnswer(idx, opt.key)}
-                                      className="w-5 h-5 rounded bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-200 text-[10px] font-bold font-mono border border-slate-700 transition-colors"
+                                      className="w-5 h-5 rounded bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-200 text-xs font-bold font-mono border border-slate-700 transition-colors"
                                       title={`Set Option (${opt.key}) as correct answer`}
                                     >
                                       {opt.key}
@@ -5977,7 +6941,7 @@ export const PaperDesigner: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => handleOpenEditAnswerModal(idx)}
-                              className="px-2 py-0.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-[11px] font-bold transition-all flex items-center space-x-1 shadow"
+                              className="px-2 py-0.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold transition-all flex items-center space-x-1 shadow"
                             >
                               <Edit3 className="w-3 h-3" />
                               <span>Enter Answer</span>
@@ -5996,7 +6960,7 @@ export const PaperDesigner: React.FC = () => {
                             <div className="mt-2 pt-1.5 border-t border-slate-800/80 space-y-1.5 text-xs">
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div className="flex items-center space-x-2">
-                                  <span className="text-[10px] text-slate-400 font-semibold select-none flex items-center space-x-1">
+                                  <span className="text-xs text-slate-400 font-semibold select-none flex items-center space-x-1">
                                     <Square className="w-3 h-3 text-emerald-400" />
                                     <span>Blank Lines:</span>
                                   </span>
@@ -6031,7 +6995,7 @@ export const PaperDesigner: React.FC = () => {
                                         key={ln}
                                         type="button"
                                         onClick={() => handleUpdateQuestionBlankLines(idx, ln, currentStyle)}
-                                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold transition-all ${
+                                        className={`px-1.5 py-0.5 rounded text-xs font-mono font-semibold transition-all ${
                                           currentLines === ln
                                             ? 'bg-emerald-600 text-white shadow-sm'
                                             : 'bg-slate-900/60 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800'
@@ -6048,7 +7012,7 @@ export const PaperDesigner: React.FC = () => {
                                     <button
                                       type="button"
                                       onClick={() => handleUpdateQuestionBlankLines(idx, 0, currentStyle)}
-                                      className="px-2 py-0.5 rounded text-[10px] font-bold text-rose-300 hover:text-white bg-rose-950/60 hover:bg-rose-900 border border-rose-500/40 transition-all flex items-center space-x-1"
+                                      className="px-2 py-0.5 rounded text-xs font-bold text-rose-300 hover:text-white bg-rose-950/60 hover:bg-rose-900 border border-rose-500/40 transition-all flex items-center space-x-1"
                                       title="Remove all blank lines from this question"
                                     >
                                       <Trash2 className="w-2.5 h-2.5" />
@@ -6065,7 +7029,7 @@ export const PaperDesigner: React.FC = () => {
                                         key={st}
                                         type="button"
                                         onClick={() => handleUpdateQuestionBlankLines(idx, currentLines, st)}
-                                        className={`px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase transition-colors ${
+                                        className={`px-1.5 py-0.5 rounded text-xs font-semibold uppercase transition-colors ${
                                           currentStyle === st
                                             ? 'bg-indigo-600 text-white shadow-sm'
                                             : 'bg-slate-900/60 text-slate-400 hover:text-slate-200 border border-slate-800'
@@ -6098,12 +7062,12 @@ export const PaperDesigner: React.FC = () => {
                                     </div>
                                   )}
                                   {currentStyle === 'rough' && (
-                                    <span className="text-[10px] font-mono uppercase tracking-widest opacity-60">
+                                    <span className="text-xs font-mono uppercase tracking-widest opacity-60">
                                       — SPACE FOR ROUGH WORK ({currentLines} LINES) —
                                     </span>
                                   )}
                                   {currentStyle === 'blank' && (
-                                    <span className="text-[10px] font-mono uppercase tracking-wider opacity-40">
+                                    <span className="text-xs font-mono uppercase tracking-wider opacity-40">
                                       ␣ Blank Answer Space ({currentLines} Lines &bull; {currentLines * 22}px)
                                     </span>
                                   )}
@@ -6123,18 +7087,18 @@ export const PaperDesigner: React.FC = () => {
 
         {/* LIVE A4 SHEET PREVIEW (SIDE-BY-SIDE IN SPLIT MODE) */}
         {viewMode === 'split' && (
-          <div className={`${splitPreviewColSpan} glass-panel rounded-2xl p-3 bg-slate-950/80 overflow-hidden flex flex-col max-h-[820px] border border-slate-700/80 space-y-2`}>
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800 px-1 shrink-0">
+          <div className={`${splitPreviewColSpan} bg-white border border-classic-border rounded-classic shadow-classic p-3 overflow-hidden flex flex-col max-h-[820px] space-y-2`}>
+            <div className="flex items-center justify-between pb-2 border-b border-classic-border px-1 shrink-0">
               <div className="flex items-center space-x-2">
-                <Eye className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="text-xs font-bold text-slate-200">Live A4 Sheet Preview</span>
-                <span className="text-[10px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-mono rounded font-semibold">
+                <Eye className="w-3.5 h-3.5 text-classic-navy" />
+                <span className="text-xs font-bold text-classic-navy">Live A4 Sheet Preview</span>
+                <span className="text-xs px-1.5 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-300 font-mono rounded-classic font-semibold">
                   Real-Time
                 </span>
                 <button
                   type="button"
                   onClick={() => setIsCustomMarginModalOpen(true)}
-                  className="text-[10px] px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-500/40 text-indigo-300 hover:text-white font-mono flex items-center space-x-1"
+                  className="text-xs px-2 py-0.5 rounded-classic bg-classic-surface-muted border border-classic-border text-classic-navy hover:bg-slate-200 font-mono flex items-center space-x-1"
                   title="Configure page margins"
                 >
                   <Maximize2 className="w-2.5 h-2.5" />
@@ -6145,23 +7109,27 @@ export const PaperDesigner: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowMarginGuide(!showMarginGuide)}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-semibold transition-all border ${
+                  className={`px-1.5 py-0.5 rounded-classic text-xs font-semibold transition-all border ${
                     showMarginGuide
-                      ? 'bg-indigo-600 border-indigo-400 text-white'
-                      : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+                      ? 'bg-classic-navy border-classic-navy text-white'
+                      : 'bg-white border-classic-border text-classic-text-secondary hover:bg-classic-surface-muted hover:text-classic-text'
                   }`}
                   title="Toggle visual margin guidelines on the paper"
                 >
                   📐 {showMarginGuide ? 'Guides ON' : 'Guides'}
                 </button>
-                <span className="text-[10px] text-slate-400 font-mono">
+                <span className="text-xs text-classic-text-muted font-mono">
                   {pageColumns} Col &bull; {selectedPaperQuestions.length} Qs
                 </span>
                 <button
                   type="button"
                   onClick={handlePrintPaper}
-                  className="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-semibold transition-all flex items-center space-x-1"
-                  title="Print or Save as PDF"
+                  className={`px-2 py-1 rounded-classic text-xs font-semibold transition-all flex items-center space-x-1 ${
+                    !canPrintOrExport()
+                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                      : 'classic-button-primary'
+                  }`}
+                  title={!canPrintOrExport() ? '🔒 Printing restricted by RBAC (Assigned users only)' : 'Print or Save as PDF'}
                 >
                   <Printer className="w-3 h-3" />
                   <span>Print</span>
@@ -6176,26 +7144,26 @@ export const PaperDesigner: React.FC = () => {
 
         {/* FULL A4 SHEET PREVIEW (IN A4 PREVIEW MODE) */}
         {viewMode === 'a4_preview' && (
-          <div className={`${a4PreviewColSpan} glass-panel rounded-2xl p-3 bg-slate-950/80 overflow-hidden flex flex-col max-h-[820px] border border-slate-700/80 space-y-2`}>
-            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800 px-1 shrink-0">
+          <div className={`${a4PreviewColSpan} bg-white border border-classic-border rounded-classic shadow-classic p-3 overflow-hidden flex flex-col max-h-[820px] space-y-2`}>
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-classic-border px-1 shrink-0">
               <div className="flex items-center space-x-2">
-                <Eye className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="text-xs font-bold text-slate-200">A4 Printable Paper Preview</span>
-                <span className="text-[10px] px-2 py-0.5 bg-indigo-500/20 text-indigo-300 font-mono rounded font-semibold">
-                  {pageMargin === 'custom' ? `Margins: ${marginLeft}L &bull; ${marginRight}R &bull; ${marginTop}T &bull; ${marginBottom}B mm` : `Margins: ${pageMargin.toUpperCase()}`}
+                <Eye className="w-3.5 h-3.5 text-classic-navy" />
+                <span className="text-xs font-bold text-classic-navy">A4 Printable Paper Preview</span>
+                <span className="text-xs px-2 py-0.5 bg-classic-surface-muted text-classic-navy border border-classic-border font-mono rounded-classic font-semibold">
+                  {pageMargin === 'custom' ? `Margins: ${marginLeft}L • ${marginRight}R • ${marginTop}T • ${marginBottom}B mm` : `Margins: ${pageMargin.toUpperCase()}`}
                 </span>
               </div>
               <div className="flex items-center space-x-2">
                 {/* Direct Margin Presets & Custom Setup Button */}
-                <div className="flex items-center space-x-1 bg-slate-900 px-1.5 py-0.5 rounded-lg border border-slate-700">
-                  <Maximize2 className="w-3 h-3 text-indigo-400 mr-0.5" />
+                <div className="flex items-center space-x-1 bg-classic-surface-muted px-1.5 py-0.5 rounded-classic border border-classic-border">
+                  <Maximize2 className="w-3 h-3 text-classic-navy mr-0.5" />
                   {(['zero', 'narrow', 'normal', 'wide'] as const).map((m) => (
                     <button
                       key={m}
                       type="button"
                       onClick={() => handleSelectPresetMargin(m)}
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold capitalize transition-colors ${
-                        pageMargin === m ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                      className={`px-1.5 py-0.5 rounded-classic text-xs font-bold capitalize transition-colors ${
+                        pageMargin === m ? 'bg-classic-navy text-white' : 'text-classic-text-secondary hover:text-classic-navy hover:bg-white'
                       }`}
                     >
                       {m}
@@ -6204,8 +7172,8 @@ export const PaperDesigner: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsCustomMarginModalOpen(true)}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors flex items-center space-x-1 ${
-                      pageMargin === 'custom' ? 'bg-amber-600 text-white' : 'text-amber-300 hover:text-white hover:bg-slate-800'
+                    className={`px-2 py-0.5 rounded-classic text-xs font-bold transition-colors flex items-center space-x-1 ${
+                      pageMargin === 'custom' ? 'bg-amber-600 text-white' : 'text-amber-800 hover:text-amber-950 hover:bg-white'
                     }`}
                     title="Set custom millimeter margins (Top, Bottom, Left, Right)"
                   >
@@ -6218,10 +7186,10 @@ export const PaperDesigner: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowMarginGuide(!showMarginGuide)}
-                  className={`px-2 py-1 rounded-lg text-xs font-semibold transition-all border ${
+                  className={`px-2 py-1 rounded-classic text-xs font-semibold transition-all border ${
                     showMarginGuide
-                      ? 'bg-indigo-600 border-indigo-400 text-white shadow-sm'
-                      : 'bg-slate-900 border-slate-700 text-slate-300 hover:text-white'
+                      ? 'bg-classic-navy border-classic-navy text-white shadow-classic'
+                      : 'bg-white border-classic-border text-classic-text-secondary hover:bg-classic-surface-muted hover:text-classic-text'
                   }`}
                   title="Toggle visual margin guidelines on the paper"
                 >
@@ -6231,7 +7199,12 @@ export const PaperDesigner: React.FC = () => {
                 <button
                   type="button"
                   onClick={handlePrintPaper}
-                  className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition-all flex items-center space-x-1.5 shadow"
+                  className={`px-3 py-1 rounded-classic text-xs font-semibold transition-all flex items-center space-x-1.5 shadow-classic ${
+                    !canPrintOrExport()
+                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                      : 'classic-button-primary'
+                  }`}
+                  title={!canPrintOrExport() ? '🔒 Printing restricted by RBAC (Assigned users only)' : 'Print or Save as PDF'}
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Print / PDF</span>
@@ -6249,20 +7222,20 @@ export const PaperDesigner: React.FC = () => {
           !showExamConfigPanel
             ? 'lg:col-span-1'
             : viewMode === 'split' ? 'lg:col-span-2' : 'lg:col-span-3'
-        } glass-panel rounded-2xl flex flex-col max-h-[820px] overflow-y-auto transition-all duration-300`}>
+        } bg-white border border-classic-border rounded-classic shadow-classic flex flex-col max-h-[820px] overflow-y-auto transition-all duration-300`}>
 
           {/* Collapsed strip — shown when minimised */}
           <div className={!showExamConfigPanel ? 'flex flex-col items-center justify-start py-4 space-y-4 h-full' : 'hidden'}>
             <button
               type="button"
               onClick={() => setShowExamConfigPanel(true)}
-              className="p-2 rounded-xl bg-violet-600/20 text-violet-400 hover:bg-violet-600/40 hover:text-white transition-all"
+              className="p-2 rounded-classic bg-classic-surface-muted text-classic-navy hover:bg-slate-200 transition-all border border-classic-border"
               title="Expand Exam Configuration"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <div
-              className="text-[10px] font-bold text-slate-500 tracking-widest select-none"
+              className="text-xs font-bold text-classic-text-muted tracking-widest select-none"
               style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
             >
               EXAM CONFIG
@@ -6271,17 +7244,17 @@ export const PaperDesigner: React.FC = () => {
 
           {/* Expanded content — shown when not minimised */}
           <div className={!showExamConfigPanel ? 'hidden' : 'space-y-4 p-4 flex-1'}>
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+            <div className="flex items-center justify-between pb-2 border-b border-classic-border">
+              <span className="text-xs font-bold uppercase tracking-wider text-classic-navy">
                 Exam Configuration
               </span>
               <div className="flex items-center space-x-2">
-                <Sparkles className="w-4 h-4 text-violet-400" />
+                <Sparkles className="w-4 h-4 text-classic-navy" />
                 {/* Minimize / collapse button */}
                 <button
                   type="button"
                   onClick={() => setShowExamConfigPanel(false)}
-                  className="p-1 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors"
+                  className="p-1 rounded-classic text-classic-text-muted hover:text-classic-navy hover:bg-classic-surface-muted transition-colors border border-transparent hover:border-classic-border"
                   title="Minimise Exam Configuration panel"
                 >
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -6291,7 +7264,7 @@ export const PaperDesigner: React.FC = () => {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">Target Max Marks</label>
+                <label className="block text-xs font-semibold text-classic-text-secondary mb-1">Target Max Marks</label>
                 <input
                   type="number"
                   value={maxMarks === undefined || maxMarks === null || Number.isNaN(Number(maxMarks)) ? '' : maxMarks}
@@ -6300,48 +7273,48 @@ export const PaperDesigner: React.FC = () => {
                     setMaxMarks(val as any);
                   }}
                   onBlur={() => savePaperLayout()}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white"
+                  className="w-full classic-input rounded-classic px-3 py-1.5 text-xs font-medium"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Class Folder</label>
+                  <label className="block text-xs font-semibold text-classic-text-secondary mb-1">Class Folder</label>
                   <input
                     type="text"
                     value={className}
                     onChange={(e) => setClassName(e.target.value)}
                     onBlur={() => savePaperLayout()}
                     placeholder="e.g. Class 12"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white"
+                    className="w-full classic-input rounded-classic px-3 py-1.5 text-xs font-medium"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Subject</label>
+                  <label className="block text-xs font-semibold text-classic-text-secondary mb-1">Subject</label>
                   <input
                     type="text"
                     value={subjectName}
                     onChange={(e) => setSubjectName(e.target.value)}
                     onBlur={() => savePaperLayout()}
                     placeholder="e.g. Physics"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white"
+                    className="w-full classic-input rounded-classic px-3 py-1.5 text-xs font-medium"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Exam Code</label>
+                  <label className="block text-xs font-semibold text-classic-text-secondary mb-1">Exam Code</label>
                   <input
                     type="text"
                     value={examCode}
                     onChange={(e) => setExamCode(e.target.value)}
                     onBlur={() => savePaperLayout()}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-mono"
+                    className="w-full classic-input rounded-classic px-3 py-1.5 text-xs font-mono font-medium"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Duration (Mins)</label>
+                  <label className="block text-xs font-semibold text-classic-text-secondary mb-1">Duration (Mins)</label>
                   <input
                     type="number"
                     value={duration === undefined || duration === null || Number.isNaN(Number(duration)) ? '' : duration}
@@ -6350,52 +7323,52 @@ export const PaperDesigner: React.FC = () => {
                       setDuration(val as any);
                     }}
                     onBlur={() => savePaperLayout()}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white"
+                    className="w-full classic-input rounded-classic px-3 py-1.5 text-xs font-medium"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">Exam Date & Time</label>
+                <label className="block text-xs font-semibold text-classic-text-secondary mb-1">Exam Date & Time</label>
                 <div className="grid grid-cols-2 gap-2">
                   <input
                     type="date"
                     value={examDate}
                     onChange={(e) => setExamDate(e.target.value)}
                     onBlur={() => savePaperLayout()}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white"
+                    className="w-full classic-input rounded-classic px-2 py-1.5 text-xs font-medium"
                   />
                   <input
                     type="text"
                     value={examTime}
                     onChange={(e) => setExamTime(e.target.value)}
                     onBlur={() => savePaperLayout()}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white"
+                    className="w-full classic-input rounded-classic px-2 py-1.5 text-xs font-medium"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">General Instructions</label>
+                <label className="block text-xs font-semibold text-classic-text-secondary mb-1">General Instructions</label>
                 <textarea
                   rows={3}
                   value={instructions}
                   onChange={(e) => setInstructions(e.target.value)}
                   onBlur={() => savePaperLayout()}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white font-sans"
+                  className="w-full classic-input rounded-classic p-2.5 text-xs font-sans"
                 />
               </div>
 
-              <div className="space-y-2 bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800">
-                <label className="block text-[11px] font-semibold text-slate-300 flex items-center justify-between">
+              <div className="space-y-2 bg-classic-surface-muted p-2.5 rounded-classic border border-classic-border">
+                <label className="block text-xs font-semibold text-classic-navy flex items-center justify-between">
                   <span className="flex items-center space-x-1.5">
-                    <Maximize2 className="w-3.5 h-3.5 text-indigo-400" />
+                    <Maximize2 className="w-3.5 h-3.5 text-classic-navy" />
                     <span>Page Margins (Print & PDF)</span>
                   </span>
                   <button
                     type="button"
                     onClick={() => setIsCustomMarginModalOpen(true)}
-                    className="text-[10px] text-indigo-400 hover:text-indigo-300 underline font-mono"
+                    className="text-xs text-classic-navy hover:underline font-mono"
                   >
                     Setup Modal
                   </button>
@@ -6421,10 +7394,10 @@ export const PaperDesigner: React.FC = () => {
                           handleSelectPresetMargin(m.id as any);
                         }
                       }}
-                      className={`py-1.5 px-0.5 rounded-xl text-center border text-[10px] font-bold transition-all ${
+                      className={`py-1.5 px-0.5 rounded-classic text-center border text-xs font-bold transition-all ${
                         pageMargin === m.id
-                          ? 'bg-indigo-600 border-indigo-400 text-white shadow-md'
-                          : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                          ? 'bg-classic-navy border-classic-navy text-white shadow-classic'
+                          : 'bg-white border-classic-border text-classic-text-secondary hover:text-classic-text hover:bg-slate-50'
                       }`}
                     >
                       <div className="leading-none">{m.label}</div>
@@ -6434,24 +7407,24 @@ export const PaperDesigner: React.FC = () => {
                 </div>
 
                 {/* Direct 4-Way Margin Numeric Inputs & Steppers */}
-                <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold px-0.5">
+                <div className="pt-2 border-t border-classic-border space-y-1.5">
+                  <div className="flex items-center justify-between text-xs text-classic-text-secondary font-semibold px-0.5">
                     <span>Precision Margins:</span>
-                    <span className="font-mono text-indigo-300">{marginLeft}L &bull; {marginRight}R &bull; {marginTop}T &bull; {marginBottom}B mm</span>
+                    <span className="font-mono text-classic-navy">{marginLeft}L &bull; {marginRight}R &bull; {marginTop}T &bull; {marginBottom}B mm</span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     {/* Left Margin (Crucial for binding/stapling) */}
-                    <div className="bg-slate-900 p-1.5 rounded-xl border border-slate-800 space-y-1">
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold">
+                    <div className="bg-white p-1.5 rounded-classic border border-classic-border space-y-1">
+                      <div className="flex items-center justify-between text-xs text-classic-text-secondary font-semibold">
                         <span>Left (Binding):</span>
-                        <span className="font-mono font-bold text-indigo-400">{marginLeft}mm</span>
+                        <span className="font-mono font-bold text-classic-navy">{marginLeft}mm</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <button
                           type="button"
                           onClick={() => handleApplyCustomMargins(marginTop, marginBottom, Math.max(0, marginLeft - 2), marginRight)}
-                          className="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-bold flex items-center justify-center"
+                          className="w-5 h-5 bg-classic-surface-muted hover:bg-slate-200 text-classic-navy border border-classic-border rounded-classic text-xs font-bold flex items-center justify-center"
                         >-</button>
                         <input
                           type="number"
@@ -6459,27 +7432,27 @@ export const PaperDesigner: React.FC = () => {
                           max={60}
                           value={marginLeft}
                           onChange={(e) => handleApplyCustomMargins(marginTop, marginBottom, parseInt(e.target.value, 10) || 0, marginRight)}
-                          className="w-full bg-slate-950 border border-slate-700 text-white text-xs font-mono font-bold text-center rounded py-0.5 focus:outline-none focus:border-indigo-400"
+                          className="w-full bg-white border border-classic-border text-classic-text text-xs font-mono font-bold text-center rounded-classic py-0.5 focus:outline-none focus:border-classic-navy"
                         />
                         <button
                           type="button"
                           onClick={() => handleApplyCustomMargins(marginTop, marginBottom, Math.min(60, marginLeft + 2), marginRight)}
-                          className="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-bold flex items-center justify-center"
+                          className="w-5 h-5 bg-classic-surface-muted hover:bg-slate-200 text-classic-navy border border-classic-border rounded-classic text-xs font-bold flex items-center justify-center"
                         >+</button>
                       </div>
                     </div>
 
                     {/* Right Margin */}
-                    <div className="bg-slate-900 p-1.5 rounded-xl border border-slate-800 space-y-1">
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold">
+                    <div className="bg-white p-1.5 rounded-classic border border-classic-border space-y-1">
+                      <div className="flex items-center justify-between text-xs text-classic-text-secondary font-semibold">
                         <span>Right:</span>
-                        <span className="font-mono font-bold text-indigo-400">{marginRight}mm</span>
+                        <span className="font-mono font-bold text-classic-navy">{marginRight}mm</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <button
                           type="button"
                           onClick={() => handleApplyCustomMargins(marginTop, marginBottom, marginLeft, Math.max(0, marginRight - 2))}
-                          className="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-bold flex items-center justify-center"
+                          className="w-5 h-5 bg-classic-surface-muted hover:bg-slate-200 text-classic-navy border border-classic-border rounded-classic text-xs font-bold flex items-center justify-center"
                         >-</button>
                         <input
                           type="number"
@@ -6487,27 +7460,27 @@ export const PaperDesigner: React.FC = () => {
                           max={60}
                           value={marginRight}
                           onChange={(e) => handleApplyCustomMargins(marginTop, marginBottom, marginLeft, parseInt(e.target.value, 10) || 0)}
-                          className="w-full bg-slate-950 border border-slate-700 text-white text-xs font-mono font-bold text-center rounded py-0.5 focus:outline-none focus:border-indigo-400"
+                          className="w-full bg-white border border-classic-border text-classic-text text-xs font-mono font-bold text-center rounded-classic py-0.5 focus:outline-none focus:border-classic-navy"
                         />
                         <button
                           type="button"
                           onClick={() => handleApplyCustomMargins(marginTop, marginBottom, marginLeft, Math.min(60, marginRight + 2))}
-                          className="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-bold flex items-center justify-center"
+                          className="w-5 h-5 bg-classic-surface-muted hover:bg-slate-200 text-classic-navy border border-classic-border rounded-classic text-xs font-bold flex items-center justify-center"
                         >+</button>
                       </div>
                     </div>
 
                     {/* Top Margin */}
-                    <div className="bg-slate-900 p-1.5 rounded-xl border border-slate-800 space-y-1">
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold">
+                    <div className="bg-white p-1.5 rounded-classic border border-classic-border space-y-1">
+                      <div className="flex items-center justify-between text-xs text-classic-text-secondary font-semibold">
                         <span>Top:</span>
-                        <span className="font-mono font-bold text-indigo-400">{marginTop}mm</span>
+                        <span className="font-mono font-bold text-classic-navy">{marginTop}mm</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <button
                           type="button"
                           onClick={() => handleApplyCustomMargins(Math.max(0, marginTop - 2), marginBottom, marginLeft, marginRight)}
-                          className="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-bold flex items-center justify-center"
+                          className="w-5 h-5 bg-classic-surface-muted hover:bg-slate-200 text-classic-navy border border-classic-border rounded-classic text-xs font-bold flex items-center justify-center"
                         >-</button>
                         <input
                           type="number"
@@ -6515,27 +7488,27 @@ export const PaperDesigner: React.FC = () => {
                           max={60}
                           value={marginTop}
                           onChange={(e) => handleApplyCustomMargins(parseInt(e.target.value, 10) || 0, marginBottom, marginLeft, marginRight)}
-                          className="w-full bg-slate-950 border border-slate-700 text-white text-xs font-mono font-bold text-center rounded py-0.5 focus:outline-none focus:border-indigo-400"
+                          className="w-full bg-white border border-classic-border text-classic-text text-xs font-mono font-bold text-center rounded-classic py-0.5 focus:outline-none focus:border-classic-navy"
                         />
                         <button
                           type="button"
                           onClick={() => handleApplyCustomMargins(Math.min(60, marginTop + 2), marginBottom, marginLeft, marginRight)}
-                          className="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-bold flex items-center justify-center"
+                          className="w-5 h-5 bg-classic-surface-muted hover:bg-slate-200 text-classic-navy border border-classic-border rounded-classic text-xs font-bold flex items-center justify-center"
                         >+</button>
                       </div>
                     </div>
 
                     {/* Bottom Margin */}
-                    <div className="bg-slate-900 p-1.5 rounded-xl border border-slate-800 space-y-1">
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold">
+                    <div className="bg-white p-1.5 rounded-classic border border-classic-border space-y-1">
+                      <div className="flex items-center justify-between text-xs text-classic-text-secondary font-semibold">
                         <span>Bottom:</span>
-                        <span className="font-mono font-bold text-indigo-400">{marginBottom}mm</span>
+                        <span className="font-mono font-bold text-classic-navy">{marginBottom}mm</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <button
                           type="button"
                           onClick={() => handleApplyCustomMargins(marginTop, Math.max(0, marginBottom - 2), marginLeft, marginRight)}
-                          className="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-bold flex items-center justify-center"
+                          className="w-5 h-5 bg-classic-surface-muted hover:bg-slate-200 text-classic-navy border border-classic-border rounded-classic text-xs font-bold flex items-center justify-center"
                         >-</button>
                         <input
                           type="number"
@@ -6543,29 +7516,29 @@ export const PaperDesigner: React.FC = () => {
                           max={60}
                           value={marginBottom}
                           onChange={(e) => handleApplyCustomMargins(marginTop, parseInt(e.target.value, 10) || 0, marginLeft, marginRight)}
-                          className="w-full bg-slate-950 border border-slate-700 text-white text-xs font-mono font-bold text-center rounded py-0.5 focus:outline-none focus:border-indigo-400"
+                          className="w-full bg-white border border-classic-border text-classic-text text-xs font-mono font-bold text-center rounded-classic py-0.5 focus:outline-none focus:border-classic-navy"
                         />
                         <button
                           type="button"
                           onClick={() => handleApplyCustomMargins(marginTop, Math.min(60, marginBottom + 2), marginLeft, marginRight)}
-                          className="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-bold flex items-center justify-center"
+                          className="w-5 h-5 bg-classic-surface-muted hover:bg-slate-200 text-classic-navy border border-classic-border rounded-classic text-xs font-bold flex items-center justify-center"
                         >+</button>
                       </div>
                     </div>
                   </div>
 
                   {/* Toggle Margin Guidelines */}
-                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
-                    <label className="flex items-center space-x-2 cursor-pointer text-[10px] text-slate-300 font-semibold select-none">
+                  <div className="pt-2 border-t border-classic-border flex items-center justify-between">
+                    <label className="flex items-center space-x-2 cursor-pointer text-xs text-classic-text font-semibold select-none">
                       <input
                         type="checkbox"
                         checked={showMarginGuide}
                         onChange={(e) => setShowMarginGuide(e.target.checked)}
-                        className="w-3.5 h-3.5 rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-0"
+                        className="w-3.5 h-3.5 rounded-classic border-classic-border text-classic-navy focus:ring-0"
                       />
                       <span>Show On-Screen Margin Guides</span>
                     </label>
-                    <span className="text-[9px] text-indigo-400 font-mono">
+                    <span className="text-xs text-classic-navy font-mono font-bold">
                       {showMarginGuide ? 'Visible' : 'Hidden'}
                     </span>
                   </div>
@@ -6573,20 +7546,350 @@ export const PaperDesigner: React.FC = () => {
               </div>
             </div>
 
+            {/* PAGE WATERMARK CONFIGURATION */}
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5">
+                  <Stamp className="w-3.5 h-3.5 text-classic-navy" />
+                  <label className="text-xs font-bold text-classic-text-primary uppercase tracking-wide">
+                    Page Watermark
+                  </label>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showWatermark}
+                    onChange={(e) => {
+                      const next = e.target.checked;
+                      setShowWatermark(next);
+                      savePaperLayout(selectedPaperQuestions, { showWatermark: next });
+                      showToast(next ? '✓ Watermark Enabled' : 'Watermark Disabled');
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-8 h-4 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-classic-navy"></div>
+                </label>
+              </div>
+
+              {showWatermark ? (
+                <div className="p-3 bg-classic-surface-muted rounded-classic border border-classic-border space-y-3">
+                  {/* Watermark Type Selector Tabs */}
+                  <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-classic border border-classic-border">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWatermarkType('school');
+                        savePaperLayout(selectedPaperQuestions, { watermarkType: 'school' });
+                      }}
+                      className={`py-1 text-xs font-bold rounded-classic flex flex-col items-center justify-center transition-all ${
+                        watermarkType === 'school'
+                          ? 'bg-classic-navy text-white shadow-sm'
+                          : 'text-classic-text-secondary hover:text-classic-navy hover:bg-slate-50'
+                      }`}
+                      title="Default School Name"
+                    >
+                      <School className="w-3 h-3 mb-0.5" />
+                      <span className="text-[10px]">School</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWatermarkType('custom_text');
+                        savePaperLayout(selectedPaperQuestions, { watermarkType: 'custom_text' });
+                      }}
+                      className={`py-1 text-xs font-bold rounded-classic flex flex-col items-center justify-center transition-all ${
+                        watermarkType === 'custom_text'
+                          ? 'bg-classic-navy text-white shadow-sm'
+                          : 'text-classic-text-secondary hover:text-classic-navy hover:bg-slate-50'
+                      }`}
+                      title="Custom Text Watermark"
+                    >
+                      <Type className="w-3 h-3 mb-0.5" />
+                      <span className="text-[10px]">Custom</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWatermarkType('image');
+                        if (watermarkSize < 80) setWatermarkSize(280);
+                        savePaperLayout(selectedPaperQuestions, { watermarkType: 'image' });
+                      }}
+                      className={`py-1 text-xs font-bold rounded-classic flex flex-col items-center justify-center transition-all ${
+                        watermarkType === 'image'
+                          ? 'bg-classic-navy text-white shadow-sm'
+                          : 'text-classic-text-secondary hover:text-classic-navy hover:bg-slate-50'
+                      }`}
+                      title="Custom Image or Logo Watermark"
+                    >
+                      <Image className="w-3 h-3 mb-0.5" />
+                      <span className="text-[10px]">Image</span>
+                    </button>
+                  </div>
+
+                  {/* School Mode Info */}
+                  {watermarkType === 'school' && (
+                    <div className="p-2 bg-blue-50/70 border border-blue-200 rounded-classic text-xs text-classic-navy space-y-1">
+                      <div className="flex items-center space-x-1.5 font-bold text-[11px]">
+                        <Check className="w-3 h-3 text-emerald-600" />
+                        <span>Default School Name Watermark</span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 font-mono line-clamp-1 italic">
+                        "{schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI'}"
+                      </p>
+                      <p className="text-[10px] text-slate-500">
+                        Automatically updates whenever the school name is edited at the top of the canvas.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Custom Text Mode */}
+                  {watermarkType === 'custom_text' && (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs text-classic-text-secondary font-semibold">
+                        <span>Watermark Text:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setWatermarkText('CAMBRIDGE INTERNATIONAL SCHOOL MANDI');
+                            savePaperLayout(selectedPaperQuestions, { watermarkText: 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI' });
+                          }}
+                          className="text-[10px] text-classic-navy hover:underline"
+                        >
+                          Reset School
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        value={watermarkText}
+                        onChange={(e) => {
+                          setWatermarkText(e.target.value);
+                          savePaperLayout(selectedPaperQuestions, { watermarkText: e.target.value });
+                        }}
+                        placeholder="e.g. CONFIDENTIAL, SAMPLE PAPER"
+                        className="w-full bg-white border border-classic-border text-classic-text text-xs rounded-classic px-2.5 py-1.5 focus:outline-none focus:border-classic-navy font-semibold"
+                      />
+                      {/* Preset Chips */}
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {['CONFIDENTIAL', 'SAMPLE PAPER', 'PRE-BOARD 2026', 'DO NOT COPY'].map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => {
+                              setWatermarkText(preset);
+                              savePaperLayout(selectedPaperQuestions, { watermarkText: preset });
+                            }}
+                            className="text-[10px] bg-white hover:bg-slate-100 text-classic-text-secondary hover:text-classic-navy border border-classic-border px-1.5 py-0.5 rounded font-mono transition-colors"
+                          >
+                            {preset}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Image Mode */}
+                  {watermarkType === 'image' && (
+                    <div className="space-y-2">
+                      <input
+                        type="file"
+                        ref={watermarkFileInputRef}
+                        accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                        onChange={handleWatermarkImageUpload}
+                        className="hidden"
+                      />
+                      {watermarkImageUrl ? (
+                        <div className="flex items-center space-x-2.5 bg-white p-2 rounded-classic border border-classic-border">
+                          <div className="w-12 h-12 rounded border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                            <img
+                              src={watermarkImageUrl}
+                              alt="Watermark preview"
+                              className="max-w-full max-h-full object-contain"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs font-bold text-classic-navy block truncate">Custom Logo / Image</span>
+                            <span className="text-[10px] text-emerald-600 block">✓ Active as watermark</span>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <button
+                                type="button"
+                                onClick={() => watermarkFileInputRef.current?.click()}
+                                className="text-[10px] text-classic-navy hover:underline font-bold"
+                              >
+                                Change
+                              </button>
+                              <span className="text-[10px] text-slate-300">|</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setWatermarkImageUrl(null);
+                                  setWatermarkType('school');
+                                  savePaperLayout(selectedPaperQuestions, { watermarkImageUrl: null, watermarkType: 'school' });
+                                }}
+                                className="text-[10px] text-rose-600 hover:underline font-bold"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => watermarkFileInputRef.current?.click()}
+                          className="w-full py-2.5 px-3 bg-white hover:bg-blue-50/60 text-classic-navy border border-dashed border-classic-navy/40 hover:border-classic-navy rounded-classic text-xs font-bold flex items-center justify-center space-x-1.5 transition-all shadow-sm"
+                        >
+                          <Upload className="w-3.5 h-3.5 text-classic-navy" />
+                          <span>Upload Watermark Image / Logo</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Size Control Slider */}
+                  <div className="space-y-1 pt-1 border-t border-classic-border/60">
+                    <div className="flex items-center justify-between text-xs text-classic-text-secondary font-semibold">
+                      <span>Watermark Size:</span>
+                      <span className="font-mono font-bold text-classic-navy">
+                        {watermarkSize}px
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = Math.max(watermarkType === 'image' ? 80 : 28, watermarkSize - (watermarkType === 'image' ? 20 : 6));
+                          setWatermarkSize(next);
+                          savePaperLayout(selectedPaperQuestions, { watermarkSize: next });
+                        }}
+                        className="w-6 h-6 bg-white hover:bg-slate-100 text-classic-navy border border-classic-border rounded text-xs font-bold flex items-center justify-center shrink-0"
+                      >-</button>
+                      <input
+                        type="range"
+                        min={watermarkType === 'image' ? 80 : 28}
+                        max={watermarkType === 'image' ? 600 : 130}
+                        step={watermarkType === 'image' ? 10 : 2}
+                        value={watermarkSize}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          setWatermarkSize(val);
+                          savePaperLayout(selectedPaperQuestions, { watermarkSize: val });
+                        }}
+                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-classic-navy"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = Math.min(watermarkType === 'image' ? 600 : 130, watermarkSize + (watermarkType === 'image' ? 20 : 6));
+                          setWatermarkSize(next);
+                          savePaperLayout(selectedPaperQuestions, { watermarkSize: next });
+                        }}
+                        className="w-6 h-6 bg-white hover:bg-slate-100 text-classic-navy border border-classic-border rounded text-xs font-bold flex items-center justify-center shrink-0"
+                      >+</button>
+                    </div>
+                  </div>
+
+                  {/* Transparency / Opacity Slider */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs text-classic-text-secondary font-semibold">
+                      <span>Transparency (Opacity):</span>
+                      <span className="font-mono font-bold text-classic-navy">
+                        {Math.round(watermarkOpacity * 100)}%
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="range"
+                        min={2}
+                        max={40}
+                        step={1}
+                        value={Math.round(watermarkOpacity * 100)}
+                        onChange={(e) => {
+                          const val = (parseInt(e.target.value, 10) || 6) / 100;
+                          setWatermarkOpacity(val);
+                          savePaperLayout(selectedPaperQuestions, { watermarkOpacity: val });
+                        }}
+                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-classic-navy"
+                      />
+                    </div>
+                    {/* Quick Opacity Presets */}
+                    <div className="flex justify-between items-center text-[10px] text-slate-500 pt-0.5">
+                      {[
+                        { label: 'Subtle', val: 0.04 },
+                        { label: 'Normal', val: 0.06 },
+                        { label: 'Medium', val: 0.12 },
+                        { label: 'Prominent', val: 0.22 },
+                      ].map((p) => (
+                        <button
+                          key={p.label}
+                          type="button"
+                          onClick={() => {
+                            setWatermarkOpacity(p.val);
+                            savePaperLayout(selectedPaperQuestions, { watermarkOpacity: p.val });
+                          }}
+                          className={`hover:text-classic-navy underline decoration-dotted ${
+                            Math.abs(watermarkOpacity - p.val) < 0.01 ? 'font-bold text-classic-navy' : ''
+                          }`}
+                        >
+                          {p.label} ({Math.round(p.val * 100)}%)
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Angle / Rotation Selector */}
+                  <div className="space-y-1 pt-1 border-t border-classic-border/60">
+                    <div className="flex items-center justify-between text-xs text-classic-text-secondary font-semibold">
+                      <span>Orientation / Angle:</span>
+                      <span className="font-mono font-bold text-classic-navy">{watermarkRotation}°</span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-1">
+                      {[
+                        { label: '-30°', angle: -30, title: 'Diagonal (Standard)' },
+                        { label: '-45°', angle: -45, title: 'Steep Diagonal' },
+                        { label: '0°', angle: 0, title: 'Horizontal' },
+                        { label: '-90°', angle: -90, title: 'Vertical' },
+                      ].map((item) => (
+                        <button
+                          key={item.angle}
+                          type="button"
+                          onClick={() => {
+                            setWatermarkRotation(item.angle);
+                            savePaperLayout(selectedPaperQuestions, { watermarkRotation: item.angle });
+                          }}
+                          className={`py-1 text-[11px] font-mono font-bold rounded border transition-all ${
+                            watermarkRotation === item.angle
+                              ? 'bg-classic-navy text-white border-classic-navy shadow-sm'
+                              : 'bg-white text-classic-text-secondary border-classic-border hover:bg-slate-50'
+                          }`}
+                          title={item.title}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-2.5 bg-classic-surface-muted rounded-classic border border-classic-border text-center text-xs text-classic-text-muted">
+                  Watermark is currently disabled. Toggle switch to activate.
+                </div>
+              )}
+            </div>
+
             {/* LIVE MARKS MANAGEMENT VALIDATOR */}
             <div className="space-y-2 pt-2">
-              <div className="p-3.5 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-2 text-xs">
+              <div className="p-3.5 bg-classic-surface-muted rounded-classic border border-classic-border space-y-2 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Target Maximum Marks:</span>
-                  <span className="font-mono font-bold text-white text-sm">{numericMaxMarks}</span>
+                  <span className="text-classic-text-secondary">Target Maximum Marks:</span>
+                  <span className="font-mono font-bold text-classic-navy text-sm">{numericMaxMarks}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Current Question Total:</span>
-                  <span className="font-mono font-bold text-indigo-400 text-sm">{currentTotalMarks}</span>
+                  <span className="text-classic-text-secondary">Current Question Total:</span>
+                  <span className="font-mono font-bold text-classic-navy text-sm">{currentTotalMarks}</span>
                 </div>
-                <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
-                  <span className="text-slate-400">Difference:</span>
-                  <span className={`font-mono font-bold ${marksDiff === 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <div className="pt-2 border-t border-classic-border flex items-center justify-between">
+                  <span className="text-classic-text-secondary">Difference:</span>
+                  <span className={`font-mono font-bold ${marksDiff === 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                     {marksDiff === 0 ? '✓ Exact Match (0)' : `${marksDiff > 0 ? '+' : ''}${marksDiff} Marks`}
                   </span>
                 </div>
@@ -6594,8 +7897,8 @@ export const PaperDesigner: React.FC = () => {
 
               {/* Marks Mismatch Alert */}
               {marksMismatch ? (
-                <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300 flex items-start space-x-2">
-                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                <div className="p-3 bg-rose-50 border border-rose-300 rounded-classic text-xs text-rose-800 flex items-start space-x-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold">Marks Mismatch!</span>
                     <br />
@@ -6605,8 +7908,8 @@ export const PaperDesigner: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 flex items-center space-x-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-classic text-xs text-emerald-800 flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>Marks perfectly balanced! Ready to finalize snapshot.</span>
                 </div>
               )}
@@ -6620,9 +7923,9 @@ export const PaperDesigner: React.FC = () => {
                   id="adminOverride"
                   checked={adminOverride}
                   onChange={(e) => setAdminOverride(e.target.checked)}
-                  className="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                  className="rounded-classic border-classic-border text-classic-navy focus:ring-0"
                 />
-                <label htmlFor="adminOverride" className="text-[11px] text-slate-400 font-medium">
+                <label htmlFor="adminOverride" className="text-xs text-classic-text-secondary font-medium">
                   Allow Administrator Override for marks mismatch
                 </label>
               </div>
@@ -6630,35 +7933,56 @@ export const PaperDesigner: React.FC = () => {
           </div>
 
           {/* Action Buttons & Multi-Format Exports */}
-          <div className="space-y-2 pt-4 border-t border-slate-800">
+          <div className="space-y-2 p-4 pt-4 border-t border-classic-border">
             {/* Multi-Format Export Buttons */}
             {activePaper && (
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={handleExportWord}
-                  className="py-2 px-3 bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/40 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all shadow"
-                  title="Export styled Word Document (.doc)"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>Word (.doc)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleExportExcel}
-                  className="py-2 px-3 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/40 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all shadow"
-                  title="Export Excel spreadsheet (.csv)"
-                >
-                  <FileSpreadsheet className="w-3.5 h-3.5" />
-                  <span>Excel (.csv)</span>
-                </button>
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-classic-muted px-0.5">Export Question Paper</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={handleExportWord}
+                    className="py-2 px-2.5 bg-[#185ABD] hover:bg-[#104a9e] text-white rounded-classic text-xs font-bold flex items-center justify-center space-x-1.5 transition-all shadow-classic"
+                    title="Export styled Word Document (.doc)"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-white" />
+                    <span>Word (.doc)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleExportPdf(false)}
+                    className="py-2 px-2.5 bg-[#DC2626] hover:bg-[#B91C1C] text-white rounded-classic text-xs font-bold flex items-center justify-center space-x-1.5 transition-all shadow-classic"
+                    title="Export official A4 PDF (.pdf)"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-white" />
+                    <span>PDF (.pdf)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExportExcel}
+                    className="py-2 px-2.5 bg-[#107C41] hover:bg-[#0c6634] text-white rounded-classic text-xs font-bold flex items-center justify-center space-x-1.5 transition-all shadow-classic"
+                    title="Export Excel spreadsheet (.csv)"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-white" />
+                    <span>Excel (.csv)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExportJson}
+                    className="py-2 px-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-classic text-xs font-bold flex items-center justify-center space-x-1.5 transition-all shadow-classic"
+                    title="Export portable JSON schema (.json)"
+                  >
+                    <Folder className="w-3.5 h-3.5 text-white" />
+                    <span>JSON (.json)</span>
+                  </button>
+                </div>
               </div>
             )}
 
             <button
               onClick={handleFinalizeSnapshot}
               disabled={loading || (marksMismatch && !adminOverride)}
-              className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-40 text-white text-xs font-semibold py-3 px-4 rounded-xl shadow-lg shadow-emerald-600/20 flex items-center justify-center space-x-2 transition-all"
+              className="w-full classic-button-primary disabled:opacity-40 text-xs font-semibold py-3 px-4 rounded-classic shadow-classic flex items-center justify-center space-x-2 transition-all"
             >
               <Lock className="w-4 h-4" />
               <span>{loading ? 'Finalizing Snapshot...' : 'Finalize & Freeze Snapshot'}</span>
@@ -6674,22 +7998,22 @@ export const PaperDesigner: React.FC = () => {
 
       {/* Save Question Paper & Choose Physical Storage Location Modal */}
       {isSaveModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-xl p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white border border-classic-border rounded-classic w-full max-w-xl p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-classic-border">
               <div className="flex items-center space-x-2.5">
-                <div className="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-classic bg-classic-surface-muted text-classic-navy border border-classic-border flex items-center justify-center">
                   <HardDrive className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-white">Save Question Paper & Storage Location</h2>
-                  <p className="text-xs text-slate-400">Give your paper a title and assign physical storage folder</p>
+                  <h2 className="text-base font-bold text-classic-navy">Save Question Paper & Storage Location</h2>
+                  <p className="text-xs text-classic-text-muted">Give your paper a title and assign physical storage folder</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsSaveModalOpen(false)}
-                className="text-slate-400 hover:text-white text-lg font-bold p-1 rounded-lg hover:bg-slate-800"
+                className="text-classic-text-muted hover:text-classic-navy text-lg font-bold p-1 rounded-classic hover:bg-classic-surface-muted transition-colors"
               >
                 ✕
               </button>
@@ -6698,8 +8022,8 @@ export const PaperDesigner: React.FC = () => {
             <form onSubmit={handleConfirmSaveToStorage} className="space-y-4">
               {/* Paper Title / Name */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Question Paper Title / Name <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-classic-text mb-1">
+                  Question Paper Title / Name <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -6707,14 +8031,14 @@ export const PaperDesigner: React.FC = () => {
                   value={saveModalTitle}
                   onChange={(e) => setSaveModalTitle(e.target.value)}
                   placeholder="e.g., Class 12 Physics Pre-Board Examination 2026"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-medium"
+                  className="w-full classic-input rounded-classic px-3.5 py-2 text-xs font-medium"
                 />
               </div>
 
               {/* Exam Code */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Exam Code / Paper Identifier <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-classic-text mb-1">
+                  Exam Code / Paper Identifier <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -6722,15 +8046,15 @@ export const PaperDesigner: React.FC = () => {
                   value={saveModalExamCode}
                   onChange={(e) => setSaveModalExamCode(e.target.value)}
                   placeholder="e.g., PHY-12-2026"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono font-medium"
+                  className="w-full classic-input rounded-classic px-3.5 py-2 text-xs font-mono font-medium"
                 />
               </div>
 
               {/* Class & Subject Folders Grid */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Class / Grade Folder <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-semibold text-classic-text mb-1">
+                    Class / Grade Folder <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -6738,12 +8062,12 @@ export const PaperDesigner: React.FC = () => {
                     value={saveModalClass}
                     onChange={(e) => setSaveModalClass(e.target.value)}
                     placeholder="e.g., Class 12"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                    className="w-full classic-input rounded-classic px-3 py-2 text-xs font-medium"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Subject Subfolder <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-semibold text-classic-text mb-1">
+                    Subject Subfolder <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -6751,24 +8075,24 @@ export const PaperDesigner: React.FC = () => {
                     value={saveModalSubject}
                     onChange={(e) => setSaveModalSubject(e.target.value)}
                     placeholder="e.g., Physics"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                    className="w-full classic-input rounded-classic px-3 py-2 text-xs font-medium"
                   />
                 </div>
               </div>
 
               {/* Physical Storage Preview Card */}
-              <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 space-y-2">
-                <div className="flex items-center space-x-2 text-xs font-bold text-indigo-300">
-                  <Folder className="w-3.5 h-3.5 text-indigo-400" />
+              <div className="bg-classic-surface-muted border border-classic-border rounded-classic p-3.5 space-y-2">
+                <div className="flex items-center space-x-2 text-xs font-bold text-classic-navy">
+                  <Folder className="w-3.5 h-3.5 text-classic-navy" />
                   <span>Physical Storage Destination Preview:</span>
                 </div>
-                <div className="font-mono text-[11px] text-emerald-400 bg-slate-900 px-3 py-2 rounded-xl border border-slate-800/80 break-all select-all">
-                  D:\Recovered_school_app\PAPERGENERATOR\data\Bank\Qpapers\{saveModalClass || '<Class>'}\{saveModalSubject || '<Subject>'}\
+                <div className="font-mono text-xs text-emerald-800 bg-white px-3 py-2 rounded-classic border border-classic-border break-all select-all font-semibold">
+                  data/Bank/Qpapers/{saveModalClass || '<Class>'}/{saveModalSubject || '<Subject>'}/
                 </div>
-                <div className="text-[11px] text-slate-400 space-y-0.5 pl-1">
-                  <div>📄 <span className="text-slate-300 font-mono">{(saveModalTitle || 'Paper').replace(/[^a-zA-Z0-9_-]/g, '_')}_{saveModalExamCode || 'CODE'}.json</span> (Database Snapshot)</div>
-                  <div>📝 <span className="text-slate-300 font-mono">{(saveModalTitle || 'Paper').replace(/[^a-zA-Z0-9_-]/g, '_')}_{saveModalExamCode || 'CODE'}.doc</span> (Microsoft Word Document)</div>
-                  <div>📊 <span className="text-slate-300 font-mono">{(saveModalTitle || 'Paper').replace(/[^a-zA-Z0-9_-]/g, '_')}_{saveModalExamCode || 'CODE'}.csv</span> (Excel Spreadsheet)</div>
+                <div className="text-xs text-classic-text-secondary space-y-0.5 pl-1">
+                  <div>📄 <span className="text-classic-text font-mono font-medium">{(saveModalTitle || 'Paper').replace(/[^a-zA-Z0-9_-]/g, '_')}_{saveModalExamCode || 'CODE'}.json</span> (Database Snapshot)</div>
+                  <div>📝 <span className="text-classic-text font-mono font-medium">{(saveModalTitle || 'Paper').replace(/[^a-zA-Z0-9_-]/g, '_')}_{saveModalExamCode || 'CODE'}.doc</span> (Microsoft Word Document)</div>
+                  <div>📊 <span className="text-classic-text font-mono font-medium">{(saveModalTitle || 'Paper').replace(/[^a-zA-Z0-9_-]/g, '_')}_{saveModalExamCode || 'CODE'}.csv</span> (Excel Spreadsheet)</div>
                 </div>
               </div>
 
@@ -6776,13 +8100,13 @@ export const PaperDesigner: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsSaveModalOpen(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-colors"
+                  className="classic-button-secondary rounded-classic px-4 py-2 text-xs font-semibold transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 flex items-center space-x-2 transition-all"
+                  className="classic-button-primary rounded-classic px-5 py-2 text-xs font-bold shadow-classic flex items-center space-x-2 transition-all"
                 >
                   <Save className="w-4 h-4" />
                   <span>💾 Save Paper & Store to Disk</span>
@@ -6795,17 +8119,17 @@ export const PaperDesigner: React.FC = () => {
 
       {/* Edit Question on Canvas Modal */}
       {editingQuestionIndex !== null && editQForm && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white border border-classic-border rounded-classic w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-5 border-b border-slate-800 shrink-0">
+            <div className="flex items-center justify-between p-5 border-b border-classic-border shrink-0">
               <div className="flex items-center space-x-2.5">
-                <div className="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-mono font-bold text-sm">
+                <div className="w-9 h-9 rounded-classic bg-classic-navy text-white flex items-center justify-center font-mono font-bold text-sm shadow-classic">
                   Q{editingQuestionIndex + 1}
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-white">Edit Question Details & Images</h2>
-                  <p className="text-xs text-slate-400">Modify question text, formula/LaTeX, options, marks & diagrams</p>
+                  <h2 className="text-base font-bold text-classic-navy">Edit Question Details & Images</h2>
+                  <p className="text-xs text-classic-text-muted">Modify question text, formula/LaTeX, options, marks & diagrams</p>
                 </div>
               </div>
               <button
@@ -6814,7 +8138,7 @@ export const PaperDesigner: React.FC = () => {
                   setEditingQuestionIndex(null);
                   setEditQForm(null);
                 }}
-                className="text-slate-400 hover:text-white text-lg font-bold p-1 rounded-lg hover:bg-slate-800"
+                className="text-classic-text-muted hover:text-classic-navy text-lg font-bold p-1 rounded-classic hover:bg-classic-surface-muted transition-colors"
               >
                 ✕
               </button>
@@ -6824,7 +8148,7 @@ export const PaperDesigner: React.FC = () => {
             <div className="p-6 overflow-y-auto space-y-5 flex-1">
               {/* Question Text */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-classic-text-secondary">
                   Question Text / Statement (Supports LaTeX math)
                 </label>
                 <textarea
@@ -6832,12 +8156,12 @@ export const PaperDesigner: React.FC = () => {
                   value={editQForm.questionText}
                   onChange={(e) => setEditQForm({ ...editQForm, questionText: e.target.value })}
                   placeholder="Enter question text or mathematical equation e.g. Calculate the value of $\int_0^\pi \sin(x) dx$"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono leading-relaxed"
+                  className="w-full classic-input rounded-classic p-3 text-xs font-mono leading-relaxed"
                 />
                 {/* Live Math Preview */}
                 {editQForm.questionText && (
-                  <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800 text-xs text-slate-200">
-                    <span className="text-[10px] uppercase font-bold text-indigo-400 block mb-1">Live Equation Preview:</span>
+                  <div className="p-3 bg-classic-surface-muted rounded-classic border border-classic-border text-xs text-classic-text">
+                    <span className="text-xs uppercase font-bold text-classic-navy block mb-1">Live Equation Preview:</span>
                     <MathRenderer content={editQForm.questionText} />
                   </div>
                 )}
@@ -6846,33 +8170,33 @@ export const PaperDesigner: React.FC = () => {
               {/* Marks, Negative Marks & Difficulty Grid */}
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Marks <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-semibold text-classic-text mb-1">
+                    Marks <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="number"
                     min={1}
                     value={editQForm.marks}
                     onChange={(e) => setEditQForm({ ...editQForm, marks: Number(e.target.value) })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    className="w-full classic-input rounded-classic px-3 py-2 text-xs font-medium"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Negative Marks</label>
+                  <label className="block text-xs font-semibold text-classic-text mb-1">Negative Marks</label>
                   <input
                     type="number"
                     step="0.25"
                     value={editQForm.negativeMarks}
                     onChange={(e) => setEditQForm({ ...editQForm, negativeMarks: Number(e.target.value) })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    className="w-full classic-input rounded-classic px-3 py-2 text-xs font-medium"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Difficulty</label>
+                  <label className="block text-xs font-semibold text-classic-text mb-1">Difficulty</label>
                   <select
                     value={editQForm.difficulty}
                     onChange={(e) => setEditQForm({ ...editQForm, difficulty: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    className="w-full classic-input rounded-classic px-3 py-2 text-xs font-medium"
                   >
                     <option value="EASY">EASY</option>
                     <option value="MEDIUM">MEDIUM</option>
@@ -6882,15 +8206,15 @@ export const PaperDesigner: React.FC = () => {
               </div>
 
               {/* Attached Diagrams Section with Delete & Add */}
-              <div className="space-y-2 pt-2 border-t border-slate-800">
+              <div className="space-y-2 pt-2 border-t border-classic-border">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-classic-text-secondary">
                     Attached Question Figures / Diagrams ({editQForm.diagrams.length})
                   </span>
                   <button
                     type="button"
                     onClick={() => editQDiagramInputRef.current?.click()}
-                    className="px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 rounded-lg text-xs font-medium flex items-center space-x-1 border border-indigo-500/30"
+                    className="classic-button-secondary rounded-classic px-2.5 py-1 text-xs font-medium flex items-center space-x-1"
                   >
                     <Plus className="w-3 h-3" />
                     <span>Attach Image</span>
@@ -6905,11 +8229,11 @@ export const PaperDesigner: React.FC = () => {
                 </div>
 
                 {editQForm.diagrams.length === 0 ? (
-                  <p className="text-[11px] text-slate-500 italic">No diagrams attached to this question.</p>
+                  <p className="text-xs text-classic-text-muted italic">No diagrams attached to this question.</p>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     {editQForm.diagrams.map((diag, dIdx) => (
-                      <div key={dIdx} className="relative group bg-slate-950 p-2 rounded-xl border border-slate-800 flex flex-col items-center">
+                      <div key={dIdx} className="relative group bg-classic-surface-muted p-2 rounded-classic border border-classic-border flex flex-col items-center">
                         <img
                           src={diag.relative_url}
                           alt={`Diagram ${dIdx + 1}`}
@@ -6923,7 +8247,7 @@ export const PaperDesigner: React.FC = () => {
                               diagrams: editQForm.diagrams.filter((_, i) => i !== dIdx),
                             });
                           }}
-                          className="absolute top-1.5 right-1.5 p-1 bg-rose-600 text-white rounded-lg opacity-90 hover:opacity-100 shadow"
+                          className="absolute top-1.5 right-1.5 p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-classic shadow"
                           title="Delete this diagram image"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -6935,9 +8259,9 @@ export const PaperDesigner: React.FC = () => {
               </div>
 
               {/* MCQ Options */}
-              <div className="space-y-3 pt-2 border-t border-slate-800">
+              <div className="space-y-3 pt-2 border-t border-classic-border">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-classic-text-secondary">
                     Options ({editQForm.options.length})
                   </span>
                   <button
@@ -6949,7 +8273,7 @@ export const PaperDesigner: React.FC = () => {
                         options: [...editQForm.options, { key: nextKey, text: '' }],
                       });
                     }}
-                    className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center space-x-1"
+                    className="text-xs text-classic-navy hover:underline font-semibold flex items-center space-x-1"
                   >
                     <Plus className="w-3 h-3" />
                     <span>Add Option</span>
@@ -6958,8 +8282,8 @@ export const PaperDesigner: React.FC = () => {
 
                 <div className="space-y-2">
                   {editQForm.options.map((opt, oIdx) => (
-                    <div key={oIdx} className="flex items-center space-x-2 bg-slate-950 p-2 rounded-xl border border-slate-800">
-                      <span className="w-6 h-6 rounded-lg bg-indigo-950 text-indigo-300 font-mono text-xs font-bold flex items-center justify-center shrink-0">
+                    <div key={oIdx} className="flex items-center space-x-2 bg-classic-surface-muted p-2 rounded-classic border border-classic-border">
+                      <span className="w-6 h-6 rounded-classic bg-classic-navy text-white font-mono text-xs font-bold flex items-center justify-center shrink-0">
                         {opt.key}
                       </span>
                       <input
@@ -6971,10 +8295,10 @@ export const PaperDesigner: React.FC = () => {
                           setEditQForm({ ...editQForm, options: updatedOpts });
                         }}
                         placeholder={`Option ${opt.key} text`}
-                        className="flex-1 bg-transparent border-0 text-xs text-white placeholder-slate-500 focus:outline-none"
+                        className="flex-1 bg-transparent border-0 text-xs text-classic-text placeholder-classic-text-muted focus:outline-none"
                       />
                       {opt.imageUrl && (
-                        <div className="relative inline-flex items-center bg-slate-900 px-2 py-1 rounded border border-slate-700">
+                        <div className="relative inline-flex items-center bg-white px-2 py-1 rounded-classic border border-classic-border">
                           <img src={opt.imageUrl} alt={`Opt ${opt.key}`} className="h-6 object-contain mr-1" />
                           <button
                             type="button"
@@ -6983,7 +8307,7 @@ export const PaperDesigner: React.FC = () => {
                               updatedOpts[oIdx] = { ...updatedOpts[oIdx], imageUrl: null };
                               setEditQForm({ ...editQForm, options: updatedOpts });
                             }}
-                            className="text-rose-400 hover:text-rose-200"
+                            className="text-rose-600 hover:text-rose-800"
                             title="Delete option image"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -6998,7 +8322,7 @@ export const PaperDesigner: React.FC = () => {
                             options: editQForm.options.filter((_, i) => i !== oIdx),
                           });
                         }}
-                        className="p-1 text-slate-500 hover:text-rose-400"
+                        className="p-1 text-classic-text-muted hover:text-rose-600"
                         title="Remove this option"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -7009,13 +8333,13 @@ export const PaperDesigner: React.FC = () => {
               </div>
 
               {/* Correct Answer & Explanation */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-800">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-classic-border">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Correct Answer</label>
+                  <label className="block text-xs font-semibold text-classic-text mb-1">Correct Answer</label>
                   <select
                     value={editQForm.correctAnswer}
                     onChange={(e) => setEditQForm({ ...editQForm, correctAnswer: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    className="w-full classic-input rounded-classic px-3 py-2 text-xs font-medium"
                   >
                     <option value="">None / Not Specified</option>
                     {editQForm.options.map((o) => (
@@ -7026,34 +8350,34 @@ export const PaperDesigner: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Explanation / Solution</label>
+                  <label className="block text-xs font-semibold text-classic-text mb-1">Explanation / Solution</label>
                   <input
                     type="text"
                     value={editQForm.explanation}
                     onChange={(e) => setEditQForm({ ...editQForm, explanation: e.target.value })}
                     placeholder="Brief explanation for the answer"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    className="w-full classic-input rounded-classic px-3 py-2 text-xs font-medium"
                   />
                 </div>
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="flex items-center justify-end space-x-3 p-4 border-t border-slate-800 shrink-0 bg-slate-950">
+            <div className="flex items-center justify-end space-x-3 p-4 border-t border-classic-border shrink-0 bg-classic-surface-muted">
               <button
                 type="button"
                 onClick={() => {
                   setEditingQuestionIndex(null);
                   setEditQForm(null);
                 }}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-colors"
+                className="classic-button-secondary rounded-classic px-4 py-2 text-xs font-semibold transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSaveEditedQuestion}
-                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 flex items-center space-x-1.5 transition-all"
+                className="classic-button-primary rounded-classic px-5 py-2.5 text-xs font-bold shadow-classic flex items-center space-x-1.5 transition-all"
               >
                 <Save className="w-4 h-4" />
                 <span>💾 Save & Update Question on Canvas</span>
@@ -7065,18 +8389,18 @@ export const PaperDesigner: React.FC = () => {
 
       {/* Quick Answer Key & Solution Modal (Syncs to Paper & Question Bank) */}
       {quickAnswerModalIdx !== null && selectedPaperQuestions[quickAnswerModalIdx] && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white border border-classic-border rounded-classic w-full max-w-lg p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-classic-border">
               <div className="flex items-center space-x-2.5">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+                <div className="w-9 h-9 rounded-classic bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-300">
                   <Award className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-white">
+                  <h2 className="text-base font-bold text-classic-navy">
                     Set Correct Answer for Q{quickAnswerModalIdx + 1}
                   </h2>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-classic-text-muted">
                     Saves to this question paper and updates the Question Bank
                   </p>
                 </div>
@@ -7084,14 +8408,14 @@ export const PaperDesigner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setQuickAnswerModalIdx(null)}
-                className="text-slate-400 hover:text-white text-lg font-bold p-1 rounded-lg hover:bg-slate-800"
+                className="text-classic-text-muted hover:text-classic-navy text-lg font-bold p-1 rounded-classic hover:bg-classic-surface-muted transition-colors"
               >
                 ✕
               </button>
             </div>
 
-            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs text-slate-300 max-h-24 overflow-y-auto">
-              <span className="font-bold text-indigo-400 mr-1.5">Q{quickAnswerModalIdx + 1}.</span>
+            <div className="bg-classic-surface-muted p-3 rounded-classic border border-classic-border text-xs text-classic-text max-h-24 overflow-y-auto">
+              <span className="font-bold text-classic-navy mr-1.5">Q{quickAnswerModalIdx + 1}.</span>
               <MathRenderer content={selectedPaperQuestions[quickAnswerModalIdx].questionText || selectedPaperQuestions[quickAnswerModalIdx].question_text || ''} />
             </div>
 
@@ -7104,7 +8428,7 @@ export const PaperDesigner: React.FC = () => {
 
               return (
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-slate-300">Choose Option:</label>
+                  <label className="block text-xs font-semibold text-classic-text">Choose Option:</label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {opts.map((opt: any) => {
                       const isSel = quickAnswerVal.trim().toUpperCase() === opt.key.toUpperCase();
@@ -7113,14 +8437,14 @@ export const PaperDesigner: React.FC = () => {
                           key={opt.key}
                           type="button"
                           onClick={() => setQuickAnswerVal(opt.key)}
-                          className={`p-2 rounded-xl text-xs font-bold font-mono flex items-center justify-center space-x-1.5 border transition-all ${
+                          className={`p-2 rounded-classic text-xs font-bold font-mono flex items-center justify-center space-x-1.5 border transition-all ${
                             isSel
-                              ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-600/30'
-                              : 'bg-slate-950 hover:bg-slate-800 text-slate-300 border-slate-700'
+                              ? 'bg-classic-navy text-white border-classic-navy shadow-classic'
+                              : 'bg-white hover:bg-classic-surface-muted text-classic-text-secondary border-classic-border'
                           }`}
                         >
                           <span>({opt.key})</span>
-                          {opt.text && <span className="truncate max-w-[80px] font-sans font-normal text-[11px]">{opt.text}</span>}
+                          {opt.text && <span className="truncate max-w-[80px] font-sans font-normal text-xs">{opt.text}</span>}
                         </button>
                       );
                     })}
@@ -7131,21 +8455,21 @@ export const PaperDesigner: React.FC = () => {
 
             {/* Custom Answer Input */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Correct Answer (Option Key or Text Value) <span className="text-emerald-400">*</span>
+              <label className="block text-xs font-semibold text-classic-text mb-1">
+                Correct Answer (Option Key or Text Value) <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
                 value={quickAnswerVal}
                 onChange={(e) => setQuickAnswerVal(e.target.value)}
                 placeholder="e.g., A or B or 4.5 m/s"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono font-bold"
+                className="w-full classic-input rounded-classic px-3.5 py-2 text-xs font-mono font-bold"
               />
             </div>
 
             {/* Explanation / Step-by-Step Solution */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-classic-text mb-1">
                 Step-by-Step Solution / Explanation (Optional)
               </label>
               <textarea
@@ -7153,7 +8477,7 @@ export const PaperDesigner: React.FC = () => {
                 value={quickExplanationVal}
                 onChange={(e) => setQuickExplanationVal(e.target.value)}
                 placeholder="Enter detailed explanation, derivation or solution steps..."
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none"
+                className="w-full classic-input rounded-classic p-3 text-xs resize-none"
               />
             </div>
 
@@ -7162,7 +8486,7 @@ export const PaperDesigner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setQuickAnswerModalIdx(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-colors"
+                className="classic-button-secondary rounded-classic px-4 py-2 text-xs font-semibold transition-colors"
               >
                 Cancel
               </button>
@@ -7170,7 +8494,7 @@ export const PaperDesigner: React.FC = () => {
                 type="button"
                 onClick={() => handleSaveQuickAnswer(quickAnswerModalIdx, quickAnswerVal, quickExplanationVal)}
                 disabled={!quickAnswerVal.trim()}
-                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-600/30 flex items-center space-x-1.5 transition-all"
+                className="classic-button-primary rounded-classic px-5 py-2.5 text-xs font-bold shadow-classic flex items-center space-x-1.5 transition-all"
               >
                 <Save className="w-4 h-4" />
                 <span>💾 Save to Paper & Question Bank</span>
@@ -7182,23 +8506,23 @@ export const PaperDesigner: React.FC = () => {
 
       {/* Custom Field / Section / Note Creator Modal */}
       {isFieldModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-4 animate-fade-in">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white border border-classic-border rounded-classic w-full max-w-lg p-6 shadow-2xl space-y-4 animate-fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-classic-border">
               <div className="flex items-center space-x-2.5">
-                <div className="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-classic bg-classic-surface-muted text-classic-navy flex items-center justify-center border border-classic-border">
                   {fieldModalType === 'section' ? (
-                    <Type className="w-5 h-5 text-violet-400" />
+                    <Type className="w-5 h-5 text-classic-navy" />
                   ) : fieldModalType === 'note' ? (
-                    <FileText className="w-5 h-5 text-amber-400" />
+                    <FileText className="w-5 h-5 text-classic-navy" />
                   ) : fieldModalType === 'candidate' ? (
-                    <User className="w-5 h-5 text-emerald-400" />
+                    <User className="w-5 h-5 text-classic-navy" />
                   ) : (
-                    <Hash className="w-5 h-5 text-indigo-400" />
+                    <Hash className="w-5 h-5 text-classic-navy" />
                   )}
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-white">
+                  <h2 className="text-base font-bold text-classic-navy">
                     {fieldModalType === 'section'
                       ? 'Add Section Heading'
                       : fieldModalType === 'note'
@@ -7207,7 +8531,7 @@ export const PaperDesigner: React.FC = () => {
                       ? 'Add Candidate Detail Field'
                       : 'Add Header Metadata Field'}
                   </h2>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-classic-text-muted">
                     {fieldModalType === 'section'
                       ? 'Create section banners like SECTION A, SECTION B'
                       : fieldModalType === 'note'
@@ -7221,7 +8545,7 @@ export const PaperDesigner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsFieldModalOpen(false)}
-                className="text-slate-400 hover:text-white text-lg font-bold p-1 rounded-lg hover:bg-slate-800"
+                className="text-classic-text-muted hover:text-classic-navy text-lg font-bold p-1 rounded-classic hover:bg-classic-surface-muted transition-colors"
               >
                 ✕
               </button>
@@ -7229,7 +8553,7 @@ export const PaperDesigner: React.FC = () => {
 
             {/* Quick Presets Bar */}
             <div className="space-y-1.5">
-              <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-classic-text-secondary uppercase tracking-wider">
                 Quick Presets (Click to Auto-Fill):
               </label>
               <div className="flex flex-wrap gap-1.5">
@@ -7250,7 +8574,7 @@ export const PaperDesigner: React.FC = () => {
                           setFieldModalLabel(p.l);
                           setFieldModalValue(p.v);
                         }}
-                        className="px-2 py-1 bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-300 text-[11px] font-mono rounded-lg transition-colors border border-slate-700"
+                        className="px-2 py-1 bg-white hover:bg-classic-surface-muted text-classic-navy text-xs font-mono rounded-classic transition-colors border border-classic-border shadow-sm"
                       >
                         {p.l}: {p.v}
                       </button>
@@ -7273,7 +8597,7 @@ export const PaperDesigner: React.FC = () => {
                           setFieldModalLabel(p.l);
                           setFieldModalValue(p.v);
                         }}
-                        className="px-2 py-1 bg-slate-800 hover:bg-violet-600 hover:text-white text-slate-300 text-[11px] rounded-lg transition-colors border border-slate-700"
+                        className="px-2 py-1 bg-white hover:bg-classic-surface-muted text-classic-navy text-xs rounded-classic transition-colors border border-classic-border shadow-sm font-medium"
                       >
                         {p.l}
                       </button>
@@ -7297,7 +8621,7 @@ export const PaperDesigner: React.FC = () => {
                           setFieldModalLabel(p.l);
                           setFieldModalValue(p.v);
                         }}
-                        className="px-2 py-1 bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-300 text-[11px] rounded-lg transition-colors border border-slate-700"
+                        className="px-2 py-1 bg-white hover:bg-classic-surface-muted text-classic-navy text-xs rounded-classic transition-colors border border-classic-border shadow-sm font-medium"
                       >
                         {p.l}
                       </button>
@@ -7319,7 +8643,7 @@ export const PaperDesigner: React.FC = () => {
                         onClick={() => {
                           setFieldModalValue(p);
                         }}
-                        className="px-2 py-1 bg-slate-800 hover:bg-amber-600 hover:text-white text-slate-300 text-[11px] rounded-lg transition-colors border border-slate-700 text-left truncate max-w-full"
+                        className="px-2 py-1 bg-white hover:bg-classic-surface-muted text-classic-text text-xs rounded-classic transition-colors border border-classic-border shadow-sm text-left truncate max-w-full font-medium"
                       >
                         {p}
                       </button>
@@ -7349,8 +8673,8 @@ export const PaperDesigner: React.FC = () => {
               {fieldModalType !== 'note' ? (
                 <>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      {fieldModalType === 'section' ? 'Section Title' : 'Field Label / Name'} <span className="text-rose-400">*</span>
+                    <label className="block text-xs font-semibold text-classic-text mb-1">
+                      {fieldModalType === 'section' ? 'Section Title' : 'Field Label / Name'} <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -7364,12 +8688,12 @@ export const PaperDesigner: React.FC = () => {
                           ? "e.g., Father's Name"
                           : 'e.g., SUBJECT'
                       }
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-medium"
+                      className="w-full classic-input rounded-classic px-3.5 py-2 text-xs font-medium"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    <label className="block text-xs font-semibold text-classic-text mb-1">
                       {fieldModalType === 'section'
                         ? 'Section Subtitle / Description (Optional)'
                         : fieldModalType === 'candidate'
@@ -7387,14 +8711,14 @@ export const PaperDesigner: React.FC = () => {
                           ? '________________________'
                           : 'e.g., Physics'
                       }
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-medium"
+                      className="w-full classic-input rounded-classic px-3.5 py-2 text-xs font-medium"
                     />
                   </div>
                 </>
               ) : (
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Instructions / Note Text <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-semibold text-classic-text mb-1">
+                    Instructions / Note Text <span className="text-rose-500">*</span>
                   </label>
                   <textarea
                     rows={4}
@@ -7402,7 +8726,7 @@ export const PaperDesigner: React.FC = () => {
                     value={fieldModalValue}
                     onChange={(e) => setFieldModalValue(e.target.value)}
                     placeholder="Enter instructions, notice, or note text for the exam paper..."
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 leading-relaxed"
+                    className="w-full classic-input rounded-classic p-3 text-xs leading-relaxed"
                   />
                 </div>
               )}
@@ -7411,16 +8735,23 @@ export const PaperDesigner: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsFieldModalOpen(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-colors"
+                  className="classic-button-secondary rounded-classic px-4 py-2 text-xs font-semibold transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 flex items-center space-x-1.5 transition-all"
+                  className="classic-button-primary rounded-classic px-5 py-2.5 text-xs font-bold shadow-classic flex items-center space-x-1.5"
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>Insert to Canvas</span>
+                  <span>
+                    {fieldModalType === 'section'
+                      ? 'Add Section'
+                      : fieldModalType === 'note'
+                      ? 'Add Note'
+                      : fieldModalType === 'candidate'
+                      ? 'Add Candidate Field'
+                      : 'Add Header Field'}
+                  </span>
                 </button>
               </div>
             </form>
@@ -7430,18 +8761,18 @@ export const PaperDesigner: React.FC = () => {
 
       {/* PAGE SETUP & CUSTOM MARGINS MODAL */}
       {isCustomMarginModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-xl p-6 shadow-2xl space-y-5 animate-fade-in">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white border border-classic-border rounded-classic w-full max-w-xl p-6 shadow-2xl space-y-5 animate-fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-classic-border">
               <div className="flex items-center space-x-2.5">
-                <div className="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+                <div className="w-9 h-9 rounded-classic bg-classic-surface-muted text-classic-navy flex items-center justify-center border border-classic-border">
                   <Maximize2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-white">
-                    Page Setup: Margins (Print & PDF)
+                  <h2 className="text-base font-bold text-classic-navy">
+                    Page Setup: Margins (Print &amp; PDF)
                   </h2>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-classic-text-muted">
                     Customize boundary margins for screen preview, PDF export, and Word documents
                   </p>
                 </div>
@@ -7449,7 +8780,7 @@ export const PaperDesigner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsCustomMarginModalOpen(false)}
-                className="text-slate-400 hover:text-white text-lg font-bold p-1 rounded-lg hover:bg-slate-800 transition-colors"
+                className="text-classic-text-muted hover:text-classic-navy text-lg font-bold p-1 rounded-classic hover:bg-classic-surface-muted transition-colors"
               >
                 ✕
               </button>
@@ -7457,7 +8788,7 @@ export const PaperDesigner: React.FC = () => {
 
             {/* Quick Presets Grid */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-300">Quick Margins Presets:</label>
+              <label className="block text-xs font-semibold text-classic-text">Quick Margins Presets:</label>
               <div className="grid grid-cols-5 gap-2">
                 {[
                   { id: 'zero', label: 'Eco Zero', t: 4, b: 4, l: 5, r: 5, desc: '4mm' },
@@ -7478,14 +8809,14 @@ export const PaperDesigner: React.FC = () => {
                       key={preset.id}
                       type="button"
                       onClick={() => handleApplyCustomMargins(preset.t, preset.b, preset.l, preset.r)}
-                      className={`p-2 rounded-xl text-center border transition-all ${
+                      className={`p-2 rounded-classic text-center border transition-all ${
                         isCur
-                          ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg shadow-indigo-600/30'
-                          : 'bg-slate-950 hover:bg-slate-800 text-slate-300 border-slate-700'
+                          ? 'bg-classic-navy border-classic-navy text-white shadow-classic'
+                          : 'bg-white hover:bg-classic-surface-muted text-classic-text-secondary border-classic-border'
                       }`}
                     >
                       <div className="text-xs font-bold">{preset.label}</div>
-                      <div className="text-[9px] opacity-70 font-mono mt-0.5">{preset.desc}</div>
+                      <div className="text-xs opacity-70 font-mono mt-0.5">{preset.desc}</div>
                     </button>
                   );
                 })}
@@ -7493,12 +8824,12 @@ export const PaperDesigner: React.FC = () => {
             </div>
 
             {/* Visual Page Margin Preview & Numeric Steppers */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-slate-950 p-4 rounded-2xl border border-slate-800">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-classic-surface-muted p-4 rounded-classic border border-classic-border">
               {/* Visual Diagram Preview */}
               <div className="flex flex-col items-center justify-center p-2">
-                <span className="text-[10px] text-slate-400 font-semibold mb-2">Live Page Boundary Representation:</span>
+                <span className="text-xs text-classic-text-secondary font-semibold mb-2">Live Page Boundary Representation:</span>
                 <div
-                  className="w-36 h-48 bg-white rounded-lg shadow-lg border border-slate-400 relative flex flex-col justify-between"
+                  className="w-36 h-48 bg-white rounded-classic shadow-classic border border-classic-border relative flex flex-col justify-between"
                   style={{
                     paddingTop: `${Math.min(30, Math.max(4, marginTop * 0.8))}px`,
                     paddingBottom: `${Math.min(30, Math.max(4, marginBottom * 0.8))}px`,
@@ -7506,9 +8837,9 @@ export const PaperDesigner: React.FC = () => {
                     paddingRight: `${Math.min(30, Math.max(4, marginRight * 0.8))}px`,
                   }}
                 >
-                  <div className="w-full h-full border border-dashed border-indigo-500/80 bg-indigo-50/50 rounded flex flex-col items-center justify-center text-[9px] font-mono text-indigo-700 font-bold select-none text-center p-1">
+                  <div className="w-full h-full border border-dashed border-classic-navy bg-blue-50/50 rounded-classic flex flex-col items-center justify-center text-xs font-mono text-classic-navy font-bold select-none text-center p-1">
                     <span>Printable Body</span>
-                    <span className="text-[8px] font-normal opacity-80 mt-0.5">{marginLeft}L &bull; {marginRight}R</span>
+                    <span className="text-xs font-normal opacity-80 mt-0.5">{marginLeft}L &bull; {marginRight}R</span>
                   </div>
                 </div>
               </div>
@@ -7517,15 +8848,15 @@ export const PaperDesigner: React.FC = () => {
               <div className="space-y-2.5">
                 {/* Left Margin (Binding Side) */}
                 <div className="space-y-1">
-                  <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+                  <div className="flex items-center justify-between text-xs font-semibold text-classic-text">
                     <span>Left Margin (Binding/Punch):</span>
-                    <span className="font-mono text-indigo-400 font-bold">{marginLeft} mm</span>
+                    <span className="font-mono text-classic-navy font-bold">{marginLeft} mm</span>
                   </div>
                   <div className="flex items-center space-x-1.5">
                     <button
                       type="button"
                       onClick={() => handleApplyCustomMargins(marginTop, marginBottom, Math.max(0, marginLeft - 1), marginRight)}
-                      className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm"
+                      className="w-8 h-8 rounded-classic bg-white hover:bg-slate-100 text-classic-navy border border-classic-border font-bold text-sm shadow-sm"
                     >-</button>
                     <input
                       type="number"
@@ -7533,27 +8864,27 @@ export const PaperDesigner: React.FC = () => {
                       max={60}
                       value={marginLeft}
                       onChange={(e) => handleApplyCustomMargins(marginTop, marginBottom, parseInt(e.target.value, 10) || 0, marginRight)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg text-center text-sm font-mono font-bold text-white py-1 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-classic-border rounded-classic text-center text-sm font-mono font-bold text-classic-text py-1 focus:outline-none focus:border-classic-navy"
                     />
                     <button
                       type="button"
                       onClick={() => handleApplyCustomMargins(marginTop, marginBottom, Math.min(60, marginLeft + 1), marginRight)}
-                      className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm"
+                      className="w-8 h-8 rounded-classic bg-white hover:bg-slate-100 text-classic-navy border border-classic-border font-bold text-sm shadow-sm"
                     >+</button>
                   </div>
                 </div>
 
                 {/* Right Margin */}
                 <div className="space-y-1">
-                  <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+                  <div className="flex items-center justify-between text-xs font-semibold text-classic-text">
                     <span>Right Margin:</span>
-                    <span className="font-mono text-indigo-400 font-bold">{marginRight} mm</span>
+                    <span className="font-mono text-classic-navy font-bold">{marginRight} mm</span>
                   </div>
                   <div className="flex items-center space-x-1.5">
                     <button
                       type="button"
                       onClick={() => handleApplyCustomMargins(marginTop, marginBottom, marginLeft, Math.max(0, marginRight - 1))}
-                      className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm"
+                      className="w-8 h-8 rounded-classic bg-white hover:bg-slate-100 text-classic-navy border border-classic-border font-bold text-sm shadow-sm"
                     >-</button>
                     <input
                       type="number"
@@ -7561,27 +8892,27 @@ export const PaperDesigner: React.FC = () => {
                       max={60}
                       value={marginRight}
                       onChange={(e) => handleApplyCustomMargins(marginTop, marginBottom, marginLeft, parseInt(e.target.value, 10) || 0)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg text-center text-sm font-mono font-bold text-white py-1 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-classic-border rounded-classic text-center text-sm font-mono font-bold text-classic-text py-1 focus:outline-none focus:border-classic-navy"
                     />
                     <button
                       type="button"
                       onClick={() => handleApplyCustomMargins(marginTop, marginBottom, marginLeft, Math.min(60, marginRight + 1))}
-                      className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm"
+                      className="w-8 h-8 rounded-classic bg-white hover:bg-slate-100 text-classic-navy border border-classic-border font-bold text-sm shadow-sm"
                     >+</button>
                   </div>
                 </div>
 
                 {/* Top Margin */}
                 <div className="space-y-1">
-                  <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+                  <div className="flex items-center justify-between text-xs font-semibold text-classic-text">
                     <span>Top Margin:</span>
-                    <span className="font-mono text-indigo-400 font-bold">{marginTop} mm</span>
+                    <span className="font-mono text-classic-navy font-bold">{marginTop} mm</span>
                   </div>
                   <div className="flex items-center space-x-1.5">
                     <button
                       type="button"
                       onClick={() => handleApplyCustomMargins(Math.max(0, marginTop - 1), marginBottom, marginLeft, marginRight)}
-                      className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm"
+                      className="w-8 h-8 rounded-classic bg-white hover:bg-slate-100 text-classic-navy border border-classic-border font-bold text-sm shadow-sm"
                     >-</button>
                     <input
                       type="number"
@@ -7589,27 +8920,27 @@ export const PaperDesigner: React.FC = () => {
                       max={60}
                       value={marginTop}
                       onChange={(e) => handleApplyCustomMargins(parseInt(e.target.value, 10) || 0, marginBottom, marginLeft, marginRight)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg text-center text-sm font-mono font-bold text-white py-1 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-classic-border rounded-classic text-center text-sm font-mono font-bold text-classic-text py-1 focus:outline-none focus:border-classic-navy"
                     />
                     <button
                       type="button"
                       onClick={() => handleApplyCustomMargins(Math.min(60, marginTop + 1), marginBottom, marginLeft, marginRight)}
-                      className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm"
+                      className="w-8 h-8 rounded-classic bg-white hover:bg-slate-100 text-classic-navy border border-classic-border font-bold text-sm shadow-sm"
                     >+</button>
                   </div>
                 </div>
 
                 {/* Bottom Margin */}
                 <div className="space-y-1">
-                  <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+                  <div className="flex items-center justify-between text-xs font-semibold text-classic-text">
                     <span>Bottom Margin:</span>
-                    <span className="font-mono text-indigo-400 font-bold">{marginBottom} mm</span>
+                    <span className="font-mono text-classic-navy font-bold">{marginBottom} mm</span>
                   </div>
                   <div className="flex items-center space-x-1.5">
                     <button
                       type="button"
                       onClick={() => handleApplyCustomMargins(marginTop, Math.max(0, marginBottom - 1), marginLeft, marginRight)}
-                      className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm"
+                      className="w-8 h-8 rounded-classic bg-white hover:bg-slate-100 text-classic-navy border border-classic-border font-bold text-sm shadow-sm"
                     >-</button>
                     <input
                       type="number"
@@ -7617,26 +8948,26 @@ export const PaperDesigner: React.FC = () => {
                       max={60}
                       value={marginBottom}
                       onChange={(e) => handleApplyCustomMargins(marginTop, parseInt(e.target.value, 10) || 0, marginLeft, marginRight)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg text-center text-sm font-mono font-bold text-white py-1 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-classic-border rounded-classic text-center text-sm font-mono font-bold text-classic-text py-1 focus:outline-none focus:border-classic-navy"
                     />
                     <button
                       type="button"
                       onClick={() => handleApplyCustomMargins(marginTop, Math.min(60, marginBottom + 1), marginLeft, marginRight)}
-                      className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm"
+                      className="w-8 h-8 rounded-classic bg-white hover:bg-slate-100 text-classic-navy border border-classic-border font-bold text-sm shadow-sm"
                     >+</button>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
-              <span className="text-slate-400 text-[11px]">
+            <div className="flex items-center justify-between pt-2 border-t border-classic-border text-xs">
+              <span className="text-classic-text-muted text-xs">
                 💡 Tip: Set Left margin to 25mm if stapling or punch-binding exams.
               </span>
               <button
                 type="button"
                 onClick={() => setIsCustomMarginModalOpen(false)}
-                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/30 flex items-center space-x-1.5 transition-all"
+                className="classic-button-primary rounded-classic px-5 py-2.5 font-bold shadow-classic flex items-center space-x-1.5 transition-all"
               >
                 <Check className="w-4 h-4" />
                 <span>Apply &amp; Done</span>
@@ -7646,28 +8977,459 @@ export const PaperDesigner: React.FC = () => {
         </div>
       )}
 
+      {/* RUNNING HEADER, FOOTER & WATERMARK MODAL */}
+      {isHeaderFooterModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 no-print">
+          <div className="bg-white border border-classic-border rounded-classic w-full max-w-2xl p-6 shadow-2xl space-y-5 animate-fade-in max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-classic-border">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-classic bg-classic-surface-muted text-classic-navy flex items-center justify-center border border-classic-border">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-classic-navy">
+                    Running Header, Footer &amp; Watermark Setup
+                  </h2>
+                  <p className="text-xs text-classic-text-muted">
+                    Configure page headers, footers, page numbering, and school watermark for canvas &amp; print
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsHeaderFooterModalOpen(false)}
+                className="text-classic-text-muted hover:text-classic-navy text-lg font-bold p-1 rounded-classic hover:bg-classic-surface-muted transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* School Name Watermark Configuration */}
+            <div className="p-4 rounded-classic bg-classic-surface-muted border border-classic-border space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Stamp className="w-4 h-4 text-classic-navy" />
+                  <span className="text-xs font-bold text-classic-navy">Page Watermark Overlay</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showWatermark}
+                    onChange={(e) => setShowWatermark(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-classic-navy"></div>
+                </label>
+              </div>
+
+              {showWatermark && (
+                <div className="space-y-3 pt-1">
+                  {/* Watermark Type Selector Tabs */}
+                  <div className="grid grid-cols-3 gap-1.5 bg-white p-1 rounded-classic border border-classic-border">
+                    <button
+                      type="button"
+                      onClick={() => setWatermarkType('school')}
+                      className={`py-1.5 text-xs font-bold rounded-classic flex items-center justify-center space-x-1.5 transition-all ${
+                        watermarkType === 'school'
+                          ? 'bg-classic-navy text-white shadow-sm'
+                          : 'text-classic-text-secondary hover:text-classic-navy hover:bg-slate-50'
+                      }`}
+                    >
+                      <School className="w-3.5 h-3.5" />
+                      <span>School Name (Default)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWatermarkType('custom_text')}
+                      className={`py-1.5 text-xs font-bold rounded-classic flex items-center justify-center space-x-1.5 transition-all ${
+                        watermarkType === 'custom_text'
+                          ? 'bg-classic-navy text-white shadow-sm'
+                          : 'text-classic-text-secondary hover:text-classic-navy hover:bg-slate-50'
+                      }`}
+                    >
+                      <Type className="w-3.5 h-3.5" />
+                      <span>Custom Text</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWatermarkType('image');
+                        if (watermarkSize < 80) setWatermarkSize(280);
+                      }}
+                      className={`py-1.5 text-xs font-bold rounded-classic flex items-center justify-center space-x-1.5 transition-all ${
+                        watermarkType === 'image'
+                          ? 'bg-classic-navy text-white shadow-sm'
+                          : 'text-classic-text-secondary hover:text-classic-navy hover:bg-slate-50'
+                      }`}
+                    >
+                      <Image className="w-3.5 h-3.5" />
+                      <span>Logo / Image</span>
+                    </button>
+                  </div>
+
+                  {/* School Mode Info */}
+                  {watermarkType === 'school' && (
+                    <div className="p-2.5 bg-blue-50/70 border border-blue-200 rounded-classic text-xs text-classic-navy space-y-1">
+                      <div className="flex items-center space-x-1.5 font-bold">
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Using Active School Name</span>
+                      </div>
+                      <p className="text-xs text-slate-700 font-mono italic">
+                        "{schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI'}"
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        Default watermark updates in real time whenever the school name on the paper canvas is changed.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Custom Text Mode */}
+                  {watermarkType === 'custom_text' && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-classic-text-secondary flex items-center justify-between">
+                        <span>Custom Watermark Text:</span>
+                        <button
+                          type="button"
+                          onClick={() => setWatermarkText('CAMBRIDGE INTERNATIONAL SCHOOL MANDI')}
+                          className="text-[11px] text-classic-navy hover:underline font-bold"
+                        >
+                          Reset School
+                        </button>
+                      </label>
+                      <input
+                        type="text"
+                        value={watermarkText}
+                        onChange={(e) => setWatermarkText(e.target.value)}
+                        placeholder="e.g. CONFIDENTIAL, SAMPLE PAPER"
+                        className="w-full bg-white border border-classic-border text-classic-text text-xs rounded-classic px-3 py-2 font-semibold focus:outline-none focus:border-classic-navy"
+                      />
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {['CONFIDENTIAL', 'SAMPLE PAPER', 'PRE-BOARD 2026', 'DO NOT COPY'].map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setWatermarkText(preset)}
+                            className="text-xs bg-white hover:bg-slate-100 text-classic-text-secondary hover:text-classic-navy border border-classic-border px-2 py-0.5 rounded font-mono transition-colors"
+                          >
+                            {preset}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Image Mode */}
+                  {watermarkType === 'image' && (
+                    <div className="space-y-2">
+                      <input
+                        type="file"
+                        ref={watermarkFileInputRef}
+                        accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                        onChange={handleWatermarkImageUpload}
+                        className="hidden"
+                      />
+                      {watermarkImageUrl ? (
+                        <div className="flex items-center space-x-3 bg-white p-2.5 rounded-classic border border-classic-border">
+                          <div className="w-14 h-14 rounded border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                            <img
+                              src={watermarkImageUrl}
+                              alt="Watermark preview"
+                              className="max-w-full max-h-full object-contain"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs font-bold text-classic-navy block">Custom Watermark Graphic</span>
+                            <span className="text-[11px] text-emerald-600 block">✓ Image ready</span>
+                            <div className="flex items-center space-x-3 mt-1.5">
+                              <button
+                                type="button"
+                                onClick={() => watermarkFileInputRef.current?.click()}
+                                className="text-xs text-classic-navy hover:underline font-bold"
+                              >
+                                Change Image
+                              </button>
+                              <span className="text-slate-300">|</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setWatermarkImageUrl(null);
+                                  setWatermarkType('school');
+                                }}
+                                className="text-xs text-rose-600 hover:underline font-bold"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => watermarkFileInputRef.current?.click()}
+                          className="w-full py-3 px-3 bg-white hover:bg-blue-50/60 text-classic-navy border border-dashed border-classic-navy/40 hover:border-classic-navy rounded-classic text-xs font-bold flex items-center justify-center space-x-2 transition-all shadow-sm"
+                        >
+                          <Upload className="w-4 h-4 text-classic-navy" />
+                          <span>Upload Watermark Image / Logo</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Size and Transparency Grid */}
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-classic-border/60">
+                    {/* Size Slider */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs text-classic-text-secondary font-semibold">
+                        <span>Watermark Size:</span>
+                        <span className="font-mono font-bold text-classic-navy">{watermarkSize}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={watermarkType === 'image' ? 80 : 28}
+                        max={watermarkType === 'image' ? 600 : 130}
+                        step={watermarkType === 'image' ? 10 : 2}
+                        value={watermarkSize}
+                        onChange={(e) => setWatermarkSize(parseInt(e.target.value, 10))}
+                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-classic-navy"
+                      />
+                    </div>
+
+                    {/* Transparency / Opacity Slider */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs text-classic-text-secondary font-semibold">
+                        <span>Transparency (Opacity):</span>
+                        <span className="font-mono font-bold text-classic-navy">{Math.round(watermarkOpacity * 100)}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={2}
+                        max={40}
+                        step={1}
+                        value={Math.round(watermarkOpacity * 100)}
+                        onChange={(e) => setWatermarkOpacity((parseInt(e.target.value, 10) || 6) / 100)}
+                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-classic-navy"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Angle / Rotation Selector */}
+                  <div className="space-y-1 pt-1">
+                    <div className="flex items-center justify-between text-xs text-classic-text-secondary font-semibold">
+                      <span>Orientation / Angle:</span>
+                      <span className="font-mono font-bold text-classic-navy">{watermarkRotation}°</span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[
+                        { label: '-30° Diagonal', angle: -30 },
+                        { label: '-45° Steep', angle: -45 },
+                        { label: '0° Horizontal', angle: 0 },
+                        { label: '-90° Vertical', angle: -90 },
+                      ].map((item) => (
+                        <button
+                          key={item.angle}
+                          type="button"
+                          onClick={() => setWatermarkRotation(item.angle)}
+                          className={`py-1 text-xs font-mono font-bold rounded border transition-all ${
+                            watermarkRotation === item.angle
+                              ? 'bg-classic-navy text-white border-classic-navy shadow-sm'
+                              : 'bg-white text-classic-text-secondary border-classic-border hover:bg-slate-50'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Running Page Header Configuration */}
+            <div className="p-4 rounded-classic bg-classic-surface-muted border border-classic-border space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <AlignJustify className="w-4 h-4 text-classic-navy" />
+                  <span className="text-xs font-bold text-classic-navy">Running Page Header (Print &amp; PDF)</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showPageHeader}
+                    onChange={(e) => setShowPageHeader(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-classic-navy"></div>
+                </label>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-classic-text-secondary">
+                  Header Content / Template:
+                </label>
+                <input
+                  type="text"
+                  value={customPageHeader}
+                  onChange={(e) => setCustomPageHeader(e.target.value)}
+                  placeholder="{SCHOOL} | {EXAM} - {CODE}"
+                  className="w-full classic-input rounded-classic px-3 py-2 text-xs"
+                />
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-xs text-classic-text-muted font-semibold mr-1">Insert Tag:</span>
+                  {[
+                    { tag: '{SCHOOL}', label: 'School' },
+                    { tag: '{EXAM}', label: 'Exam' },
+                    { tag: '{CODE}', label: 'Code' },
+                    { tag: '{CLASS}', label: 'Class' },
+                    { tag: '{SUBJECT}', label: 'Subject' },
+                    { tag: '{DATE}', label: 'Date' },
+                  ].map((t) => (
+                    <button
+                      key={t.tag}
+                      type="button"
+                      onClick={() => setCustomPageHeader((prev) => (prev ? `${prev} | ${t.tag}` : t.tag))}
+                      className="px-2 py-0.5 rounded-classic text-xs font-mono font-semibold bg-white hover:bg-classic-navy hover:text-white text-classic-navy border border-classic-border shadow-sm transition-colors"
+                    >
+                      {t.tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Running Page Footer Configuration */}
+            <div className="p-4 rounded-classic bg-classic-surface-muted border border-classic-border space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <AlignJustify className="w-4 h-4 text-classic-navy" />
+                  <span className="text-xs font-bold text-classic-navy">Running Page Footer (Print &amp; PDF)</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showPageFooter}
+                    onChange={(e) => setShowPageFooter(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-classic-navy"></div>
+                </label>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-classic-text-secondary">
+                  Footer Content / Template:
+                </label>
+                <input
+                  type="text"
+                  value={customPageFooter}
+                  onChange={(e) => setCustomPageFooter(e.target.value)}
+                  placeholder="{SCHOOL} | {EXAM} | Page {PAGE}"
+                  className="w-full classic-input rounded-classic px-3 py-2 text-xs"
+                />
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-xs text-classic-text-muted font-semibold mr-1">Insert Tag:</span>
+                  {[
+                    { tag: '{SCHOOL}', label: 'School' },
+                    { tag: '{EXAM}', label: 'Exam' },
+                    { tag: '{CODE}', label: 'Code' },
+                    { tag: '{PAGE}', label: 'Page Number' },
+                  ].map((t) => (
+                    <button
+                      key={t.tag}
+                      type="button"
+                      onClick={() => setCustomPageFooter((prev) => (prev ? `${prev} | ${t.tag}` : t.tag))}
+                      className="px-2 py-0.5 rounded-classic text-xs font-mono font-semibold bg-white hover:bg-classic-navy hover:text-white text-classic-navy border border-classic-border shadow-sm transition-colors"
+                    >
+                      {t.tag}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setCustomPageFooter('{SCHOOL} | {EXAM} | Page {PAGE}')}
+                    className="px-2 py-0.5 rounded-classic text-xs font-semibold bg-white hover:bg-slate-100 text-classic-text-secondary border border-classic-border shadow-sm transition-colors ml-auto"
+                  >
+                    Reset Footer
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Template Dynamic Tags Guide */}
+            <div className="p-3 rounded-classic bg-classic-surface-muted border border-classic-border text-xs space-y-1 text-classic-text-secondary">
+              <span className="font-bold text-classic-navy">Supported Dynamic Replacement Tags:</span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-xs">
+                <div className="p-1.5 rounded-classic bg-white border border-classic-border">
+                  <span className="text-classic-navy font-bold">{'{SCHOOL}'}</span>: School Name
+                </div>
+                <div className="p-1.5 rounded-classic bg-white border border-classic-border">
+                  <span className="text-classic-navy font-bold">{'{EXAM}'}</span>: Exam Title
+                </div>
+                <div className="p-1.5 rounded-classic bg-white border border-classic-border">
+                  <span className="text-classic-navy font-bold">{'{CODE}'}</span>: Exam Code
+                </div>
+                <div className="p-1.5 rounded-classic bg-white border border-classic-border">
+                  <span className="text-emerald-800 font-bold">{'{PAGE}'}</span>: Current Page
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Action Buttons */}
+            <div className="flex items-center justify-between pt-2 border-t border-classic-border text-xs">
+              <button
+                type="button"
+                onClick={() => setIsHeaderFooterModalOpen(false)}
+                className="classic-button-secondary rounded-classic px-4 py-2 font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  savePaperLayout(selectedPaperQuestions, {
+                    showPageHeader,
+                    showPageFooter,
+                    customPageHeader,
+                    customPageFooter,
+                    showWatermark,
+                    watermarkType,
+                    watermarkText,
+                    watermarkImageUrl,
+                    watermarkSize,
+                    watermarkOpacity,
+                    watermarkRotation,
+                  });
+                  setIsHeaderFooterModalOpen(false);
+                  showToast('✓ Header, footer & watermark preferences saved!');
+                }}
+                className="classic-button-primary rounded-classic px-5 py-2.5 font-bold shadow-classic flex items-center space-x-1.5 transition-all"
+              >
+                <Check className="w-4 h-4" />
+                <span>Save &amp; Apply</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ========================================================================= */}
       {/* QUESTION BANK EXPLORER MODAL DIALOG                                        */}
-      {/* Dedicated full page explorer for filtering folders, subjects, selecting     */}
-      {/* questions via checkboxes, assigning marks, and inserting into canvas.      */}
-      {/* ========================================================================= */}
-      {isQuestionBankModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-fade-in no-print">
-          <div className="bg-slate-900 border border-slate-700/90 rounded-2xl w-full max-w-6xl h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-scale-up">
+        {isQuestionBankModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/50 animate-fade-in no-print">
+          <div className="bg-white border border-classic-border rounded-classic w-full max-w-6xl h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-scale-up">
             {/* Top Modal Header Bar */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/70">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-classic-border bg-classic-surface-muted">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
-                  <FolderTree className="w-5 h-5" />
+                <div className="w-10 h-10 rounded-classic bg-blue-50 text-classic-navy flex items-center justify-center border border-classic-border shadow-xs">
+                  <FolderTree className="w-5 h-5 text-classic-navy" />
                 </div>
                 <div>
                   <div className="flex items-center space-x-2.5">
-                    <h2 className="font-bold text-base text-white">Question Bank Explorer</h2>
-                    <span className="text-xs px-2.5 py-0.5 bg-indigo-500/20 text-indigo-300 rounded-full font-mono font-semibold border border-indigo-500/30">
+                    <h2 className="font-bold text-base text-classic-text">Question Bank Explorer</h2>
+                    <span className="text-xs px-2.5 py-0.5 bg-white text-classic-navy rounded-classic font-mono font-semibold border border-classic-border shadow-xs">
                       Showing {filteredModalQuestions.length} of {bankQuestions.length}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-classic-muted mt-0.5">
                     Select Class Folder &amp; Subject &bull; Select questions using checkboxes &bull; Adjust marks &bull; Insert directly into Canvas
                   </p>
                 </div>
@@ -7678,16 +9440,16 @@ export const PaperDesigner: React.FC = () => {
                   href="/bank"
                   target="_blank"
                   rel="noreferrer"
-                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center space-x-1.5 transition-colors border border-slate-700 shadow-sm"
+                  className="classic-button-secondary rounded-classic px-3 py-1.5 text-xs font-semibold flex items-center space-x-1.5 transition-colors border border-classic-border shadow-xs"
                   title="Open full Question Bank management in a new tab"
                 >
-                  <ExternalLink className="w-3.5 h-3.5 text-indigo-400" />
+                  <ExternalLink className="w-3.5 h-3.5 text-classic-navy" />
                   <span>Full Bank Page ↗</span>
                 </a>
                 <button
                   type="button"
                   onClick={() => setIsQuestionBankModalOpen(false)}
-                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+                  className="p-2 rounded-classic text-classic-muted hover:text-classic-text hover:bg-slate-100 transition-colors"
                   title="Close Explorer"
                 >
                   <X className="w-5 h-5" />
@@ -7696,12 +9458,12 @@ export const PaperDesigner: React.FC = () => {
             </div>
 
             {/* Filter Ribbon */}
-            <div className="px-6 py-3 border-b border-slate-800 bg-slate-950/60 space-y-2.5">
+            <div className="px-6 py-3 border-b border-classic-border bg-white space-y-2.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs">
                 {/* 1. Folder / Class Dropdown */}
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-400 flex items-center space-x-1">
-                    <Folder className="w-3.5 h-3.5 text-indigo-400" />
+                  <label className="text-xs font-semibold text-classic-text-secondary flex items-center space-x-1">
+                    <Folder className="w-3.5 h-3.5 text-classic-navy" />
                     <span>Class Folder:</span>
                   </label>
                   <select
@@ -7712,7 +9474,7 @@ export const PaperDesigner: React.FC = () => {
                       setBankChapterFilter('all');
                       setBankSubTopicFilter('all');
                     }}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-200 text-xs focus:outline-none focus:border-indigo-500 font-medium truncate"
+                    className="classic-input rounded-classic w-full px-2.5 py-1.5 text-classic-text text-xs font-medium truncate"
                   >
                     <option value="all">📁 All Classes</option>
                     {folders.map((f) => (
@@ -7725,8 +9487,8 @@ export const PaperDesigner: React.FC = () => {
 
                 {/* 2. Subject Dropdown */}
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-400 flex items-center space-x-1">
-                    <Filter className="w-3.5 h-3.5 text-cyan-400" />
+                  <label className="text-xs font-semibold text-classic-text-secondary flex items-center space-x-1">
+                    <Filter className="w-3.5 h-3.5 text-classic-navy" />
                     <span>Subject:</span>
                   </label>
                   <select
@@ -7736,7 +9498,7 @@ export const PaperDesigner: React.FC = () => {
                       setBankChapterFilter('all');
                       setBankSubTopicFilter('all');
                     }}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-200 text-xs focus:outline-none focus:border-indigo-500 font-medium truncate"
+                    className="classic-input rounded-classic w-full px-2.5 py-1.5 text-classic-text text-xs font-medium truncate"
                   >
                     <option value="all">🔬 All Subjects</option>
                     {(() => {
@@ -7769,8 +9531,8 @@ export const PaperDesigner: React.FC = () => {
 
                 {/* 3. Chapter / Topic Dropdown (Sub-filter 1) */}
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-400 flex items-center space-x-1">
-                    <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+                  <label className="text-xs font-semibold text-classic-text-secondary flex items-center space-x-1">
+                    <BookOpen className="w-3.5 h-3.5 text-classic-navy" />
                     <span>Chapter / Topic:</span>
                   </label>
                   <select
@@ -7779,7 +9541,7 @@ export const PaperDesigner: React.FC = () => {
                       setBankChapterFilter(e.target.value);
                       setBankSubTopicFilter('all');
                     }}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-200 text-xs focus:outline-none focus:border-emerald-500 font-medium truncate"
+                    className="classic-input rounded-classic w-full px-2.5 py-1.5 text-classic-text text-xs font-medium truncate"
                   >
                     <option value="all">📖 All Chapters / Topics</option>
                     {getAvailableChapters(bankFolderFilter, bankSubjectFilter).map((ch: any) => (
@@ -7792,15 +9554,15 @@ export const PaperDesigner: React.FC = () => {
 
                 {/* 4. Sub-Topic / DPP Dropdown (Sub-filter 2) */}
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-400 flex items-center space-x-1">
-                    <Bookmark className="w-3.5 h-3.5 text-amber-400" />
+                  <label className="text-xs font-semibold text-classic-text-secondary flex items-center space-x-1">
+                    <Bookmark className="w-3.5 h-3.5 text-classic-navy" />
                     <span>Sub-Topic / DPP:</span>
                   </label>
                   <select
                     value={bankSubTopicFilter}
                     onChange={(e) => setBankSubTopicFilter(e.target.value)}
                     disabled={bankChapterFilter === 'all' && getAvailableSubTopics(bankFolderFilter, bankSubjectFilter, bankChapterFilter).length === 0}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-200 text-xs focus:outline-none focus:border-amber-500 font-medium truncate disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="classic-input rounded-classic w-full px-2.5 py-1.5 text-classic-text text-xs font-medium truncate disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <option value="all">
                       {bankChapterFilter !== 'all' ? '🔖 All Sub-Topics / DPPs' : '🔖 Sub-Topic (Select Chapter)'}
@@ -7815,14 +9577,14 @@ export const PaperDesigner: React.FC = () => {
 
                 {/* 5. Difficulty Dropdown */}
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-400 flex items-center space-x-1">
-                    <Award className="w-3.5 h-3.5 text-purple-400" />
+                  <label className="text-xs font-semibold text-classic-text-secondary flex items-center space-x-1">
+                    <Award className="w-3.5 h-3.5 text-classic-navy" />
                     <span>Difficulty:</span>
                   </label>
                   <select
                     value={bankDifficultyFilter}
                     onChange={(e) => setBankDifficultyFilter(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-200 text-xs focus:outline-none focus:border-purple-500 font-medium truncate"
+                    className="classic-input rounded-classic w-full px-2.5 py-1.5 text-classic-text text-xs font-medium truncate"
                   >
                     <option value="all">⚡ All Difficulties</option>
                     <option value="EASY">🟢 Easy</option>
@@ -7833,24 +9595,24 @@ export const PaperDesigner: React.FC = () => {
 
                 {/* 6. Search Bar */}
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-400 flex items-center space-x-1">
-                    <Search className="w-3.5 h-3.5 text-pink-400" />
+                  <label className="text-xs font-semibold text-classic-text-secondary flex items-center space-x-1">
+                    <Search className="w-3.5 h-3.5 text-classic-navy" />
                     <span>Search Questions:</span>
                   </label>
                   <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
+                    <Search className="w-3.5 h-3.5 text-classic-muted absolute left-2.5 top-2.5" />
                     <input
                       type="text"
                       placeholder="Keywords, formulas..."
                       value={bankSearchQuery}
                       onChange={(e) => setBankSearchQuery(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-7 pr-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-indigo-500"
+                      className="classic-input rounded-classic w-full pl-7 pr-3 py-1.5 text-classic-text text-xs"
                     />
                     {bankSearchQuery && (
                       <button
                         type="button"
                         onClick={() => setBankSearchQuery('')}
-                        className="absolute right-2.5 top-2.5 text-slate-400 hover:text-white text-xs"
+                        className="absolute right-2.5 top-2 text-classic-muted hover:text-classic-text text-xs"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -7866,10 +9628,10 @@ export const PaperDesigner: React.FC = () => {
                 bankSubTopicFilter !== 'all' ||
                 bankDifficultyFilter !== 'all' ||
                 bankSearchQuery) && (
-                <div className="flex items-center flex-wrap gap-1.5 pt-1 text-[11px]">
-                  <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mr-1">Active Filters:</span>
+                <div className="flex items-center flex-wrap gap-1.5 pt-1 text-xs">
+                  <span className="text-classic-muted text-xs font-bold uppercase tracking-wider mr-1">Active Filters:</span>
                   {bankFolderFilter !== 'all' && (
-                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-lg bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-classic bg-blue-50 text-classic-navy border border-blue-200">
                       <span>Class: {folders.find((f) => f.id === bankFolderFilter)?.name || bankFolderFilter}</span>
                       <button
                         type="button"
@@ -7879,14 +9641,14 @@ export const PaperDesigner: React.FC = () => {
                           setBankChapterFilter('all');
                           setBankSubTopicFilter('all');
                         }}
-                        className="hover:text-white"
+                        className="hover:text-black ml-1"
                       >
                         <X className="w-3 h-3" />
                       </button>
                     </span>
                   )}
                   {bankSubjectFilter !== 'all' && (
-                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-lg bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-classic bg-indigo-50 text-indigo-700 border border-indigo-200">
                       <span>
                         Subject:{' '}
                         {(() => {
@@ -7904,14 +9666,14 @@ export const PaperDesigner: React.FC = () => {
                           setBankChapterFilter('all');
                           setBankSubTopicFilter('all');
                         }}
-                        className="hover:text-white"
+                        className="hover:text-black ml-1"
                       >
                         <X className="w-3 h-3" />
                       </button>
                     </span>
                   )}
                   {bankChapterFilter !== 'all' && (
-                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-classic bg-emerald-50 text-emerald-800 border border-emerald-200">
                       <span>
                         Chapter:{' '}
                         {getAvailableChapters(bankFolderFilter, bankSubjectFilter).find(
@@ -7924,14 +9686,14 @@ export const PaperDesigner: React.FC = () => {
                           setBankChapterFilter('all');
                           setBankSubTopicFilter('all');
                         }}
-                        className="hover:text-white"
+                        className="hover:text-black ml-1"
                       >
                         <X className="w-3 h-3" />
                       </button>
                     </span>
                   )}
                   {bankSubTopicFilter !== 'all' && (
-                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-classic bg-amber-50 text-amber-800 border border-amber-200">
                       <span>
                         Sub-Topic:{' '}
                         {getAvailableSubTopics(bankFolderFilter, bankSubjectFilter, bankChapterFilter).find(
@@ -7941,24 +9703,24 @@ export const PaperDesigner: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setBankSubTopicFilter('all')}
-                        className="hover:text-white"
+                        className="hover:text-black ml-1"
                       >
                         <X className="w-3 h-3" />
                       </button>
                     </span>
                   )}
                   {bankDifficultyFilter !== 'all' && (
-                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-classic bg-purple-50 text-purple-800 border border-purple-200">
                       <span>Difficulty: {bankDifficultyFilter}</span>
-                      <button type="button" onClick={() => setBankDifficultyFilter('all')} className="hover:text-white">
+                      <button type="button" onClick={() => setBankDifficultyFilter('all')} className="hover:text-black ml-1">
                         <X className="w-3 h-3" />
                       </button>
                     </span>
                   )}
                   {bankSearchQuery && (
-                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-lg bg-pink-500/15 text-pink-300 border border-pink-500/30">
+                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-classic bg-slate-100 text-classic-text border border-classic-border">
                       <span>Search: "{bankSearchQuery}"</span>
-                      <button type="button" onClick={() => setBankSearchQuery('')} className="hover:text-white">
+                      <button type="button" onClick={() => setBankSearchQuery('')} className="hover:text-black ml-1">
                         <X className="w-3 h-3" />
                       </button>
                     </span>
@@ -7973,7 +9735,7 @@ export const PaperDesigner: React.FC = () => {
                       setBankDifficultyFilter('all');
                       setBankSearchQuery('');
                     }}
-                    className="text-[10px] text-slate-400 hover:text-rose-300 underline ml-2 cursor-pointer font-medium"
+                    className="text-xs text-rose-600 hover:text-rose-800 underline ml-2 cursor-pointer font-medium"
                   >
                     Clear All
                   </button>
@@ -7982,14 +9744,14 @@ export const PaperDesigner: React.FC = () => {
             </div>
 
             {/* Questions Grid / Main Content */}
-            <div className="flex-1 overflow-y-auto p-5 bg-slate-950/50">
+            <div className="flex-1 overflow-y-auto p-5 bg-classic-surface-muted">
               {filteredModalQuestions.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-3">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-800 text-slate-400 flex items-center justify-center border border-slate-700">
+                  <div className="w-14 h-14 rounded-classic bg-white text-classic-muted flex items-center justify-center border border-classic-border shadow-xs">
                     <Search className="w-7 h-7" />
                   </div>
-                  <h3 className="font-bold text-slate-200 text-sm">No Questions Found</h3>
-                  <p className="text-slate-400 text-xs max-w-md">
+                  <h3 className="font-bold text-classic-text text-sm">No Questions Found</h3>
+                  <p className="text-classic-muted text-xs max-w-md">
                     No questions in the Question Bank match your current folder, subject, chapter, or search filters.
                   </p>
                   <button
@@ -8002,7 +9764,7 @@ export const PaperDesigner: React.FC = () => {
                       setBankDifficultyFilter('all');
                       setBankSearchQuery('');
                     }}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs shadow-md transition-all"
+                    className="classic-button-primary rounded-classic px-4 py-2 font-semibold text-xs shadow-classic transition-all"
                   >
                     Reset All Filters
                   </button>
@@ -8022,12 +9784,12 @@ export const PaperDesigner: React.FC = () => {
                       <div
                         key={q.id}
                         onClick={() => handleToggleSelectModalQuestion(q.id)}
-                        className={`rounded-2xl border p-4 space-y-3 transition-all cursor-pointer select-none flex flex-col justify-between ${
+                        className={`rounded-classic border p-4 space-y-3 transition-all cursor-pointer select-none flex flex-col justify-between ${
                           isSelected
-                            ? 'bg-indigo-950/40 border-indigo-500 ring-2 ring-indigo-500/50 shadow-xl shadow-indigo-950/60'
+                            ? 'bg-blue-50/50 border-classic-navy ring-2 ring-classic-navy/30 shadow-xs'
                             : isAlreadyOnCanvas
-                            ? 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
-                            : 'bg-slate-900/90 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900'
+                            ? 'bg-slate-50/80 border-classic-border hover:border-classic-navy'
+                            : 'bg-white border-classic-border hover:border-classic-navy hover:shadow-xs'
                         }`}
                       >
                         <div className="space-y-2.5">
@@ -8041,9 +9803,9 @@ export const PaperDesigner: React.FC = () => {
                                 type="checkbox"
                                 checked={isSelected}
                                 onChange={() => handleToggleSelectModalQuestion(q.id)}
-                                className="w-4 h-4 rounded text-indigo-600 bg-slate-950 border-slate-700 focus:ring-indigo-500 cursor-pointer"
+                                className="w-4 h-4 rounded-classic text-classic-navy bg-white border-classic-border focus:ring-classic-navy cursor-pointer"
                               />
-                              <span className="font-mono font-extrabold text-xs text-indigo-300">
+                              <span className="font-mono font-extrabold text-xs text-classic-navy">
                                 Q{q.questionNumber || q.id.slice(0, 4)}
                               </span>
                             </label>
@@ -8055,7 +9817,7 @@ export const PaperDesigner: React.FC = () => {
                                     e.stopPropagation();
                                     setBankChapterFilter(q.folder.parent.name);
                                   }}
-                                  className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950/50 text-emerald-300 font-medium border border-emerald-500/40 hover:bg-emerald-800/50 cursor-pointer transition-colors"
+                                  className="text-xs px-2 py-0.5 rounded-classic bg-emerald-50 text-emerald-800 font-medium border border-emerald-200 hover:bg-emerald-100 cursor-pointer transition-colors"
                                   title={`Click to filter by Chapter "${q.folder.parent.name}"`}
                                 >
                                   {q.folder.parent.name}
@@ -8067,7 +9829,7 @@ export const PaperDesigner: React.FC = () => {
                                     e.stopPropagation();
                                     setBankChapterFilter(q.folder.name);
                                   }}
-                                  className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 hover:bg-indigo-900/60 hover:text-indigo-200 hover:border-indigo-500 text-slate-300 font-medium border border-slate-700 transition-all cursor-pointer"
+                                  className="text-xs px-2 py-0.5 rounded-classic bg-slate-100 hover:bg-slate-200 text-classic-text-secondary font-medium border border-classic-border transition-all cursor-pointer"
                                   title={`Click to filter by "${q.folder.name}"`}
                                 >
                                   {q.folder.name}
@@ -8075,19 +9837,19 @@ export const PaperDesigner: React.FC = () => {
                               )}
                               {q.difficulty && (
                                 <span
-                                  className={`text-[9px] px-1.5 py-0.5 rounded-md font-mono font-bold ${
+                                  className={`text-xs px-1.5 py-0.5 rounded-classic font-mono font-bold ${
                                     q.difficulty.toUpperCase() === 'EASY'
-                                      ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
+                                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                                       : q.difficulty.toUpperCase() === 'HARD'
-                                      ? 'bg-rose-500/10 text-rose-300 border border-rose-500/30'
-                                      : 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
+                                      ? 'bg-rose-50 text-rose-800 border border-rose-200'
+                                      : 'bg-amber-50 text-amber-800 border border-amber-200'
                                   }`}
                                 >
                                   {q.difficulty.toUpperCase()}
                                 </span>
                               )}
                               {isAlreadyOnCanvas && (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold border border-emerald-500/40">
+                                <span className="text-xs px-2 py-0.5 rounded-classic bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200">
                                   ✓ On Canvas
                                 </span>
                               )}
@@ -8095,7 +9857,7 @@ export const PaperDesigner: React.FC = () => {
                           </div>
 
                           {/* Question Stem with Math Renderer */}
-                          <div className="text-slate-200 text-xs leading-relaxed max-h-32 overflow-y-auto pr-1">
+                          <div className="text-classic-text text-xs leading-relaxed max-h-32 overflow-y-auto pr-1">
                             <MathRenderer content={q.questionText || ''} />
                           </div>
 
@@ -8103,7 +9865,7 @@ export const PaperDesigner: React.FC = () => {
                           {diagrams.length > 0 && (
                             <div className="flex flex-wrap items-center gap-2 pt-1">
                               {diagrams.map((d: any, dIdx: number) => (
-                                <div key={dIdx} className="bg-slate-950 p-1 rounded-lg border border-slate-800">
+                                <div key={dIdx} className="bg-white p-1 rounded-classic border border-classic-border">
                                   <img
                                     src={d.relative_url}
                                     alt="Figure"
@@ -8114,16 +9876,46 @@ export const PaperDesigner: React.FC = () => {
                             </div>
                           )}
 
-                          {/* Options Preview if any */}
+                          {/* Options Preview if any (Hidden by default, expandable on click) */}
                           {options.length > 0 && (
-                            <div className="grid grid-cols-2 gap-1.5 pt-1 text-[11px] text-slate-400">
+                            <div className="pt-1">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setModalExpandedOptionIds((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(q.id)) next.delete(q.id);
+                                    else next.add(q.id);
+                                    return next;
+                                  });
+                                }}
+                                className="text-xs text-classic-navy hover:underline font-semibold flex items-center space-x-1"
+                              >
+                                {modalExpandedOptionIds.has(q.id) ? (
+                                  <>
+                                    <ChevronUp className="w-3 h-3" />
+                                    <span>Hide Options</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Eye className="w-3 h-3" />
+                                    <span>View Options ({options.length})</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          )}
+
+                          {options.length > 0 && modalExpandedOptionIds.has(q.id) && (
+                            <div className="grid grid-cols-2 gap-1.5 pt-1 text-xs text-classic-text-secondary animate-fade-in">
                               {options.slice(0, 4).map((opt: any, optIdx: number) => (
                                 <div
                                   key={optIdx}
-                                  className="bg-slate-950/70 p-1.5 rounded-lg border border-slate-800/80 flex items-start space-x-1.5"
+                                  className="bg-slate-50 p-1.5 rounded-classic border border-classic-border flex items-start space-x-1.5"
                                 >
-                                  <span className="font-bold text-indigo-400">{opt.key || String.fromCharCode(65 + optIdx)}.</span>
-                                  <div className="truncate text-slate-300">
+                                  <span className="font-bold text-classic-navy">{opt.key || String.fromCharCode(65 + optIdx)}.</span>
+                                  <div className="truncate text-classic-text">
                                     <MathRenderer content={opt.text || ''} />
                                   </div>
                                 </div>
@@ -8134,15 +9926,15 @@ export const PaperDesigner: React.FC = () => {
 
                         {/* Card Bottom Row: Assign Marks Stepper & Presets */}
                         <div
-                          className="pt-2.5 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2"
+                          className="pt-2.5 border-t border-classic-border flex flex-wrap items-center justify-between gap-2"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <div className="inline-flex items-center space-x-1.5 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800">
-                            <span className="text-[11px] font-semibold text-slate-400 select-none">Marks:</span>
+                          <div className="inline-flex items-center space-x-1.5 bg-slate-50 px-2 py-1 rounded-classic border border-classic-border">
+                            <span className="text-xs font-semibold text-classic-text-secondary select-none">Marks:</span>
                             <button
                               type="button"
                               onClick={() => handleUpdateModalQuestionMarks(q.id, Math.max(0.5, currentMarks - (currentMarks > 1 ? 1 : 0.5)))}
-                              className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center"
+                              className="w-5 h-5 rounded-classic bg-white hover:bg-slate-100 text-classic-text font-bold text-xs flex items-center justify-center border border-classic-border shadow-xs"
                               title="Decrease marks"
                             >
                               -
@@ -8156,29 +9948,29 @@ export const PaperDesigner: React.FC = () => {
                                 const val = parseFloat(e.target.value);
                                 handleUpdateModalQuestionMarks(q.id, isNaN(val) ? 0 : val);
                               }}
-                              className="w-12 bg-slate-900 text-indigo-300 font-mono font-bold text-xs text-center rounded border border-slate-700 py-0.5 focus:outline-none focus:border-indigo-400"
+                              className="classic-input rounded-classic w-12 text-classic-navy font-mono font-bold text-xs text-center py-0.5 px-1"
                               title="Set marks directly"
                             />
                             <button
                               type="button"
                               onClick={() => handleUpdateModalQuestionMarks(q.id, currentMarks + (currentMarks < 1 ? 0.5 : 1))}
-                              className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center"
+                              className="w-5 h-5 rounded-classic bg-white hover:bg-slate-100 text-classic-text font-bold text-xs flex items-center justify-center border border-classic-border shadow-xs"
                               title="Increase marks"
                             >
                               +
                             </button>
 
                             {/* Quick Marks Presets */}
-                            <div className="flex items-center space-x-1 pl-1 border-l border-slate-800">
+                            <div className="flex items-center space-x-1 pl-1 border-l border-classic-border">
                               {[1, 2, 3, 5].map((m) => (
                                 <button
                                   key={m}
                                   type="button"
                                   onClick={() => handleUpdateModalQuestionMarks(q.id, m)}
-                                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold transition-all ${
+                                  className={`px-1.5 py-0.5 rounded-classic text-xs font-mono font-bold transition-all ${
                                     currentMarks === m
-                                      ? 'bg-indigo-600 text-white shadow-sm'
-                                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
+                                      ? 'bg-classic-navy text-white shadow-xs'
+                                      : 'text-classic-muted hover:text-classic-text hover:bg-slate-200'
                                   }`}
                                   title={`Set ${m} Mark${m > 1 ? 's' : ''}`}
                                 >
@@ -8188,14 +9980,14 @@ export const PaperDesigner: React.FC = () => {
                             </div>
                           </div>
 
-                          <div className="text-[11px] font-mono text-slate-400">
+                          <div className="text-xs font-mono">
                             {isSelected ? (
-                              <span className="text-indigo-400 font-semibold flex items-center space-x-1">
-                                <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span className="text-classic-navy font-semibold flex items-center space-x-1">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-classic-navy" />
                                 <span>Selected</span>
                               </span>
                             ) : (
-                              <span className="text-slate-500">Click to select</span>
+                              <span className="text-classic-muted">Click to select</span>
                             )}
                           </div>
                         </div>
@@ -8207,9 +9999,9 @@ export const PaperDesigner: React.FC = () => {
             </div>
 
             {/* Bottom Sticky Action Footer */}
-            <div className="px-6 py-3.5 border-t border-slate-800 bg-slate-950 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="px-6 py-3.5 border-t border-classic-border bg-white flex flex-wrap items-center justify-between gap-3 text-xs">
               <div className="flex flex-wrap items-center gap-3">
-                <label className="flex items-center space-x-2 cursor-pointer select-none font-semibold text-slate-300">
+                <label className="flex items-center space-x-2 cursor-pointer select-none font-semibold text-classic-text">
                   <input
                     type="checkbox"
                     checked={
@@ -8219,18 +10011,18 @@ export const PaperDesigner: React.FC = () => {
                     onChange={() =>
                       handleToggleSelectAllFilteredModal(filteredModalQuestions.map((q) => q.id))
                     }
-                    className="w-4 h-4 rounded text-indigo-600 bg-slate-950 border-slate-700 focus:ring-indigo-500 cursor-pointer"
+                    className="w-4 h-4 rounded-classic text-classic-navy bg-white border-classic-border focus:ring-classic-navy cursor-pointer"
                   />
                   <span>Select All Filtered ({filteredModalQuestions.length})</span>
                 </label>
 
                 {modalSelectedQIds.size > 0 && (
                   <>
-                    <span className="text-slate-700">|</span>
-                    <span className="px-2.5 py-1 rounded-lg bg-indigo-600/20 text-indigo-300 font-semibold border border-indigo-500/30">
+                    <span className="text-classic-border">|</span>
+                    <span className="px-2.5 py-1 rounded-classic bg-blue-50 text-classic-navy font-semibold border border-blue-200">
                       {modalSelectedQIds.size} Question{modalSelectedQIds.size !== 1 ? 's' : ''} Selected
                     </span>
-                    <span className="px-2.5 py-1 rounded-lg bg-emerald-600/20 text-emerald-300 font-mono font-bold border border-emerald-500/30">
+                    <span className="px-2.5 py-1 rounded-classic bg-emerald-50 text-emerald-800 font-mono font-bold border border-emerald-200">
                       Total: {bankQuestions
                         .filter((q) => modalSelectedQIds.has(q.id))
                         .reduce((sum, q) => sum + (modalQuestionMarksMap[q.id] !== undefined ? modalQuestionMarksMap[q.id] : (Number(q.marks) || 1)), 0)}{' '}
@@ -8239,7 +10031,7 @@ export const PaperDesigner: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setModalSelectedQIds(new Set())}
-                      className="text-slate-400 hover:text-slate-200 text-xs underline"
+                      className="text-classic-muted hover:text-classic-text text-xs underline"
                     >
                       Clear Selection
                     </button>
@@ -8251,7 +10043,7 @@ export const PaperDesigner: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsQuestionBankModalOpen(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl transition-all"
+                  className="classic-button-secondary rounded-classic px-4 py-2 font-semibold transition-all"
                 >
                   Cancel
                 </button>
@@ -8260,7 +10052,7 @@ export const PaperDesigner: React.FC = () => {
                   type="button"
                   onClick={handleInsertQuestionsFromModalToCanvas}
                   disabled={modalSelectedQIds.size === 0}
-                  className="px-5 py-2 bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-40 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/30 flex items-center space-x-2 transition-all"
+                  className="classic-button-primary rounded-classic px-5 py-2 disabled:opacity-40 font-bold shadow-classic flex items-center space-x-2 transition-all"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Insert Selected ({modalSelectedQIds.size}) to Canvas</span>
@@ -8273,22 +10065,22 @@ export const PaperDesigner: React.FC = () => {
 
       {/* SAVED GENERATED QUESTION PAPER POPUP NOTIFICATION MODAL */}
       {savedPopupInfo && savedPopupInfo.isOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in no-print">
-          <div className="bg-slate-900 border border-emerald-500/50 rounded-3xl w-full max-w-lg p-6 shadow-2xl shadow-emerald-950/60 space-y-5 animate-scale-in">
-            {/* Header with glowing success check */}
-            <div className="flex items-start justify-between pb-3 border-b border-slate-800">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 no-print">
+          <div className="bg-white border border-[#D1D5DB] rounded-lg w-full max-w-lg p-6 shadow-classic-md space-y-5">
+            {/* Header with success check */}
+            <div className="flex items-start justify-between pb-3 border-b border-[#E5E7EB]">
               <div className="flex items-center space-x-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/40 shadow-inner">
-                  <CheckCircle2 className="w-7 h-7 text-emerald-400 animate-pulse" />
+                <div className="w-11 h-11 rounded-md bg-[#DCFCE7] text-[#166534] flex items-center justify-center border border-[#BBF7D0]">
+                  <CheckCircle2 className="w-6 h-6 text-[#166534]" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-extrabold text-white flex items-center space-x-2">
+                  <h2 className="text-base font-bold text-[#111827] flex items-center space-x-2">
                     <span>Paper Saved Successfully!</span>
-                    <span className="text-[10px] px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded-full font-mono font-bold">
+                    <span className="text-xs px-2 py-0.5 bg-[#DCFCE7] text-[#166534] border border-[#86EFAC] rounded font-mono font-bold">
                       SYNCED
                     </span>
                   </h2>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-[#4B5563]">
                     Your generated question paper is stored in physical storage &amp; database.
                   </p>
                 </div>
@@ -8296,7 +10088,7 @@ export const PaperDesigner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSavedPopupInfo(null)}
-                className="text-slate-400 hover:text-white text-lg font-bold p-1 rounded-lg hover:bg-slate-800 transition-colors"
+                className="text-[#6B7280] hover:text-[#111827] text-lg font-bold p-1 rounded hover:bg-[#F3F4F6] transition-colors"
                 title="Close"
               >
                 ✕
@@ -8304,56 +10096,56 @@ export const PaperDesigner: React.FC = () => {
             </div>
 
             {/* Paper Summary Card */}
-            <div className="bg-slate-950/80 rounded-2xl p-4 border border-slate-800 space-y-3">
+            <div className="bg-[#F9FAFB] rounded-md p-4 border border-[#E5E7EB] space-y-3">
               <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Paper Title:</div>
-                <div className="text-sm font-extrabold text-indigo-300 leading-snug">
+                <div className="text-xs font-bold text-[#4B5563] uppercase tracking-wider">Paper Title:</div>
+                <div className="text-sm font-bold text-[#0B1F3A] leading-snug">
                   {savedPopupInfo.title}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2.5 pt-1 text-xs">
-                <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
-                  <div className="text-[10px] font-semibold text-slate-400">Exam Code:</div>
-                  <div className="font-mono font-bold text-white text-xs">{savedPopupInfo.examCode}</div>
+                <div className="bg-white p-2.5 rounded-md border border-[#D1D5DB]">
+                  <div className="text-xs font-semibold text-[#6B7280]">Exam Code:</div>
+                  <div className="font-mono font-bold text-[#111827] text-xs">{savedPopupInfo.examCode}</div>
                 </div>
-                <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
-                  <div className="text-[10px] font-semibold text-slate-400">Class &amp; Subject:</div>
-                  <div className="font-semibold text-slate-200 text-xs truncate">
+                <div className="bg-white p-2.5 rounded-md border border-[#D1D5DB]">
+                  <div className="text-xs font-semibold text-[#6B7280]">Class &amp; Subject:</div>
+                  <div className="font-semibold text-[#111827] text-xs truncate">
                     {savedPopupInfo.className} &gt; {savedPopupInfo.subjectName}
                   </div>
                 </div>
-                <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
-                  <div className="text-[10px] font-semibold text-slate-400">Questions:</div>
-                  <div className="font-bold text-emerald-400 text-xs">
+                <div className="bg-white p-2.5 rounded-md border border-[#D1D5DB]">
+                  <div className="text-xs font-semibold text-[#6B7280]">Questions:</div>
+                  <div className="font-bold text-[#166534] text-xs">
                     {savedPopupInfo.questionCount} Questions
                   </div>
                 </div>
-                <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
-                  <div className="text-[10px] font-semibold text-slate-400">Max Marks:</div>
-                  <div className="font-mono font-bold text-amber-400 text-xs">
+                <div className="bg-white p-2.5 rounded-md border border-[#D1D5DB]">
+                  <div className="text-xs font-semibold text-[#6B7280]">Max Marks:</div>
+                  <div className="font-mono font-bold text-[#111827] text-xs">
                     {savedPopupInfo.totalMarks} Marks
                   </div>
                 </div>
               </div>
 
               {/* Physical Storage Destination Card */}
-              <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
-                <div className="flex items-center space-x-1.5 text-[11px] font-bold text-slate-300">
-                  <HardDrive className="w-3.5 h-3.5 text-indigo-400" />
+              <div className="pt-2 border-t border-[#E5E7EB] space-y-1.5">
+                <div className="flex items-center space-x-1.5 text-xs font-bold text-[#111827]">
+                  <HardDrive className="w-3.5 h-3.5 text-[#0B1F3A]" />
                   <span>Physical Storage Directory:</span>
                 </div>
-                <div className="font-mono text-[10px] text-emerald-400 bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 break-all select-all">
+                <div className="font-mono text-xs text-[#0B1F3A] bg-white px-3 py-2 rounded-md border border-[#D1D5DB] break-all select-all font-semibold">
                   {savedPopupInfo.storagePath}
                 </div>
-                <div className="flex items-center space-x-2 pt-0.5 text-[10px] text-slate-400">
-                  <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20 font-mono">
+                <div className="flex items-center space-x-2 pt-0.5 text-xs">
+                  <span className="px-2 py-0.5 rounded bg-[#EFF6FF] text-[#1D4ED8] border border-[#BFDBFE] font-mono">
                     ✓ Word .doc
                   </span>
-                  <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-mono">
+                  <span className="px-2 py-0.5 rounded bg-[#F0FDF4] text-[#166534] border border-[#BBF7D0] font-mono">
                     ✓ Excel .csv
                   </span>
-                  <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">
+                  <span className="px-2 py-0.5 rounded bg-[#FFFBEB] text-[#92400E] border border-[#FDE68A] font-mono">
                     ✓ Backup .json
                   </span>
                 </div>
@@ -8369,10 +10161,10 @@ export const PaperDesigner: React.FC = () => {
                     handleExportWord();
                     setSavedPopupInfo(null);
                   }}
-                  className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center space-x-1.5"
+                  className="classic-button classic-button-primary !py-1.5 !px-3 !text-xs"
                   title="Download editable Microsoft Word document"
                 >
-                  <FileText className="w-3.5 h-3.5" />
+                  <FileText className="w-3.5 h-3.5 text-white" />
                   <span>Download Word (.doc)</span>
                 </button>
                 <button
@@ -8381,10 +10173,10 @@ export const PaperDesigner: React.FC = () => {
                     handlePrintPaper();
                     setSavedPopupInfo(null);
                   }}
-                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition-all border border-slate-700 flex items-center space-x-1.5"
+                  className="classic-button classic-button-secondary !py-1.5 !px-3 !text-xs"
                   title="Print paper or save as PDF"
                 >
-                  <Printer className="w-3.5 h-3.5" />
+                  <Printer className="w-3.5 h-3.5 text-[#0B1F3A]" />
                   <span>Print / PDF</span>
                 </button>
               </div>
@@ -8395,17 +10187,17 @@ export const PaperDesigner: React.FC = () => {
                   onClick={() => {
                     navigate('/papers');
                   }}
-                  className="px-3 py-2 bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition-all border border-slate-700 flex items-center space-x-1"
+                  className="classic-button classic-button-secondary !py-1.5 !px-3 !text-xs"
                 >
-                  <Folder className="w-3.5 h-3.5" />
+                  <Folder className="w-3.5 h-3.5 text-[#0B1F3A]" />
                   <span>Paper Bank</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setSavedPopupInfo(null)}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-emerald-600/30 flex items-center space-x-1.5"
+                  className="classic-button !bg-[#166534] hover:!bg-[#14532D] !text-white !py-1.5 !px-4 !text-xs"
                 >
-                  <Check className="w-4 h-4" />
+                  <Check className="w-4 h-4 text-white" />
                   <span>OK, Done</span>
                 </button>
               </div>
@@ -8416,44 +10208,44 @@ export const PaperDesigner: React.FC = () => {
 
       {/* ===== OPEN SAVED PAPER MODAL ===== */}
       {isOpenSavedPaperModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col" style={{ maxHeight: '85vh' }}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-[#D1D5DB] rounded-lg w-full max-w-2xl shadow-classic-md flex flex-col" style={{ maxHeight: '85vh' }}>
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB]">
               <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
-                  <FolderTree className="w-5 h-5" />
+                <div className="w-9 h-9 rounded-md bg-[#EFF6FF] text-[#0B1F3A] flex items-center justify-center border border-[#BFDBFE]">
+                  <FolderTree className="w-5 h-5 text-[#0B1F3A]" />
                 </div>
                 <div>
-                  <h2 className="font-bold text-base text-white">Open Saved Paper</h2>
-                  <p className="text-[11px] text-slate-400">Browse and open a previously saved question paper</p>
+                  <h2 className="font-bold text-base text-[#111827]">Open Saved Paper</h2>
+                  <p className="text-xs text-[#6B7280]">Browse and open a previously saved question paper</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsOpenSavedPaperModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                className="p-1.5 text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6] rounded-md transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Search & Filter */}
-            <div className="flex items-center space-x-2 px-6 py-3 border-b border-slate-800/80">
+            <div className="flex items-center space-x-2 px-6 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB]">
               <div className="flex-1 relative">
-                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-[#6B7280] absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={savedPaperSearchQuery}
                   onChange={(e) => setSavedPaperSearchQuery(e.target.value)}
                   placeholder="Search papers by title, exam code, subject..."
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                  className="w-full bg-white border border-[#D1D5DB] rounded-md pl-8 pr-3 py-1.5 text-xs text-[#111827] placeholder-[#6B7280] focus:outline-none focus:border-[#0B1F3A] transition-colors"
                 />
               </div>
               <select
                 value={savedPaperClassFilter}
                 onChange={(e) => setSavedPaperClassFilter(e.target.value)}
-                className="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="bg-white border border-[#D1D5DB] rounded-md px-2.5 py-1.5 text-xs text-[#111827] focus:outline-none focus:border-[#0B1F3A]"
               >
                 <option value="ALL">All Classes</option>
                 {Array.from(new Set(papers.map((p: any) => {
@@ -8465,9 +10257,9 @@ export const PaperDesigner: React.FC = () => {
               <button
                 type="button"
                 onClick={handleStartNewPaper}
-                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg flex items-center space-x-1 transition-all shadow-sm"
+                className="classic-button classic-button-primary !py-1.5 !px-3 !text-xs"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5 text-white" />
                 <span>New Paper</span>
               </button>
             </div>
@@ -8475,8 +10267,8 @@ export const PaperDesigner: React.FC = () => {
             {/* Papers List */}
             <div className="overflow-y-auto flex-1 px-6 py-4 space-y-2">
               {papers.length === 0 ? (
-                <div className="text-center py-12 text-slate-500 text-sm">
-                  <FileSpreadsheet className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <div className="text-center py-12 text-[#6B7280] text-sm">
+                  <FileSpreadsheet className="w-10 h-10 mx-auto mb-3 opacity-40 text-[#6B7280]" />
                   <p>No saved papers found.</p>
                   <p className="text-xs mt-1">Create your first paper to see it here.</p>
                 </div>
@@ -8491,7 +10283,7 @@ export const PaperDesigner: React.FC = () => {
                 });
 
                 if (filtered.length === 0) return (
-                  <div className="text-center py-8 text-slate-500 text-xs">
+                  <div className="text-center py-8 text-[#6B7280] text-xs">
                     <p>No papers match your search.</p>
                   </div>
                 );
@@ -8510,35 +10302,35 @@ export const PaperDesigner: React.FC = () => {
                     <div
                       key={p.id}
                       onClick={() => handleOpenSavedPaper(p)}
-                      className={`cursor-pointer group p-4 rounded-xl border transition-all ${
+                      className={`cursor-pointer group p-4 rounded-lg border transition-all ${
                         isActive
-                          ? 'bg-indigo-950/50 border-indigo-500/60 ring-1 ring-indigo-500/30'
-                          : 'bg-slate-950/60 border-slate-800 hover:border-indigo-500/40 hover:bg-slate-900/80'
+                          ? 'bg-[#EFF6FF] border-[#93C5FD] ring-1 ring-[#3B82F6]'
+                          : 'bg-white border-[#D1D5DB] hover:border-[#9CA3AF] hover:bg-[#F9FAFB]'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex items-center space-x-2">
-                            <h4 className={`font-bold text-sm truncate ${isActive ? 'text-indigo-300' : 'text-white group-hover:text-indigo-300'} transition-colors`}>
+                            <h4 className="font-bold text-sm truncate text-[#111827]">
                               {p.title}
                             </h4>
-                            <span className="font-mono text-[10px] text-indigo-400 bg-indigo-950/80 border border-indigo-500/40 px-1.5 py-0.2 rounded shrink-0">
+                            <span className="font-mono text-xs text-[#0B1F3A] bg-[#F3F4F6] border border-[#D1D5DB] px-1.5 py-0.5 rounded shrink-0 font-semibold">
                               {p.examCode}
                             </span>
-                            <span className={`text-[10px] px-1.5 py-0.2 rounded font-semibold shrink-0 ${
+                            <span className={`text-xs px-1.5 py-0.5 rounded font-semibold shrink-0 ${
                               p.status === 'FINALIZED'
-                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                ? 'bg-[#DCFCE7] text-[#166534] border border-[#BBF7D0]'
+                                : 'bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]'
                             }`}>
                               {p.status === 'FINALIZED' ? '✓ Finalized' : 'Draft'}
                             </span>
                             {isActive && (
-                              <span className="text-[10px] px-1.5 py-0.2 bg-indigo-600/40 text-indigo-300 border border-indigo-500/50 rounded font-bold">
+                              <span className="text-xs px-1.5 py-0.5 bg-[#DBEAFE] text-[#1D4ED8] border border-[#93C5FD] rounded font-bold">
                                 Currently Open
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center space-x-3 text-[11px] text-slate-400">
+                          <div className="flex items-center space-x-3 text-xs text-[#6B7280]">
                             <span>📁 {settings.className || 'Unknown'} › {settings.subjectName || p.subjectName || 'Unknown'}</span>
                             <span>•</span>
                             <span>{questionCount} Questions</span>
@@ -8557,10 +10349,10 @@ export const PaperDesigner: React.FC = () => {
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); handleOpenSavedPaper(p); }}
-                            className={`px-3 py-1.5 text-xs font-bold rounded-lg flex items-center space-x-1 transition-all ${
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-md flex items-center space-x-1 transition-all ${
                               isActive
-                                ? 'bg-indigo-600 text-white shadow-md'
-                                : 'bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/40'
+                                ? 'classic-button classic-button-primary'
+                                : 'classic-button classic-button-secondary'
                             }`}
                           >
                             <Edit3 className="w-3 h-3" />
@@ -8569,10 +10361,10 @@ export const PaperDesigner: React.FC = () => {
                           <button
                             type="button"
                             onClick={(e) => handleDeleteSavedPaperFromModal(e, p.id, p.title)}
-                            className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
+                            className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-md transition-colors"
                             title="Delete this paper permanently"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3.5 h-3.5 text-rose-700" />
                           </button>
                         </div>
                       </div>
@@ -8583,14 +10375,14 @@ export const PaperDesigner: React.FC = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-3 border-t border-slate-800 flex items-center justify-between text-xs">
-              <span className="text-slate-500">
+            <div className="px-6 py-3 border-t border-[#E5E7EB] bg-[#F9FAFB] flex items-center justify-between text-xs">
+              <span className="text-[#6B7280]">
                 {papers.length} paper{papers.length !== 1 ? 's' : ''} in Paper Bank
               </span>
               <button
                 type="button"
                 onClick={() => setIsOpenSavedPaperModalOpen(false)}
-                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition-colors"
+                className="classic-button classic-button-secondary !py-1 !px-4 !text-xs"
               >
                 Close
               </button>

@@ -19,10 +19,19 @@ import {
   FlaskConical,
   FileText,
   Layers,
+  ChevronLeft,
+  ChevronRight,
+  UploadCloud,
+  FileUp,
+  Image as ImageIcon,
+  Check,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { MathRenderer } from '../components/common/MathRenderer';
 import { FormulaEditorModal } from '../components/common/FormulaEditorModal';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { ConfidenceBadge } from '../components/ui/Badge';
 
 export const SnippingWorkspace: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -31,6 +40,11 @@ export const SnippingWorkspace: React.FC = () => {
   const pageNum = parseInt(searchParams.get('pageNum') || '1', 10);
 
   const [document, setDocument] = useState<any | null>(null);
+  const [allDocs, setAllDocs] = useState<any[]>([]);
+  const [loadingDoc, setLoadingDoc] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [pageImageUrl, setPageImageUrl] = useState<string>('');
   const [imgAttempt, setImgAttempt] = useState(0);
   const [zoom, setZoom] = useState(1.0);
@@ -39,6 +53,8 @@ export const SnippingWorkspace: React.FC = () => {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [overlayOpacity, setOverlayOpacity] = useState(0.5);
   const [showOverlay, setShowOverlay] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const resolveImageUrl = (rawUrl: string, attempt: number = 0) => {
     if (!rawUrl) return '';
@@ -57,6 +73,143 @@ export const SnippingWorkspace: React.FC = () => {
     return `http://localhost:5010${cleanPath}?retry=${Date.now()}`;
   };
 
+  // Fetch list of documents for switching
+  const fetchDocsList = async () => {
+    try {
+      const res = await api.get('/documents');
+      const docs = res.data.documents || [];
+      setAllDocs(docs);
+      return docs;
+    } catch (e) {
+      console.error('Error fetching documents list:', e);
+      return [];
+    }
+  };
+
+  // Load a document and render/fetch its page image
+  const loadDocumentPage = async (targetDocId: string, targetPageNum: number) => {
+    if (!targetDocId) return;
+    setLoadingDoc(true);
+    setImgAttempt(0);
+    setCurrentBox(null);
+    setSnipResult(null);
+    try {
+      try { localStorage.setItem('pg_active_doc_id', targetDocId); } catch {}
+      const res = await api.get(`/documents/${targetDocId}`);
+      const doc = res.data.document;
+      setDocument(doc);
+
+      const existingPage = doc?.pages?.find((p: any) => p.pageNumber === targetPageNum);
+      if (existingPage?.imageUrl) {
+        setPageImageUrl(existingPage.imageUrl);
+      }
+
+      // Ensure page is rendered by calling process-page
+      try {
+        const pageRes = await api.post(`/documents/${targetDocId}/process-page/${targetPageNum}`);
+        const rendered =
+          pageRes.data.extracted?.page_image ||
+          pageRes.data.page?.imageUrl ||
+          pageRes.data.page_image ||
+          existingPage?.imageUrl ||
+          '';
+        if (rendered) {
+          setPageImageUrl(rendered);
+        }
+      } catch (procErr: any) {
+        console.warn('Process-page request non-fatal error:', procErr.message);
+        if (existingPage?.imageUrl) {
+          setPageImageUrl(existingPage.imageUrl);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading document:', err);
+    } finally {
+      setLoadingDoc(false);
+    }
+  };
+
+  // Initialization: auto-load docId from URL, localStorage, or latest available document
+  useEffect(() => {
+    const init = async () => {
+      const docs = await fetchDocsList();
+      let targetId = docId;
+
+      if (!targetId) {
+        try {
+          const savedId = localStorage.getItem('pg_active_doc_id');
+          if (savedId && docs.some((d: any) => d.id === savedId)) {
+            targetId = savedId;
+          } else if (docs.length > 0) {
+            targetId = docs[0].id;
+          }
+        } catch {
+          if (docs.length > 0) targetId = docs[0].id;
+        }
+      }
+
+      if (targetId) {
+        if (targetId !== docId) {
+          navigate(`/snip?docId=${targetId}&pageNum=${pageNum}`, { replace: true });
+        }
+        await loadDocumentPage(targetId, pageNum);
+      }
+    };
+
+    init();
+  }, [docId, pageNum]);
+
+  // Handle document switch from dropdown
+  const handleSelectDoc = (newDocId: string) => {
+    if (!newDocId) return;
+    navigate(`/snip?docId=${newDocId}&pageNum=1`);
+  };
+
+  // Handle page pagination
+  const handlePageChange = (newPageNum: number) => {
+    const total = document?.pageCount || 1;
+    if (newPageNum < 1 || newPageNum > total) return;
+    navigate(`/snip?docId=${docId || document?.id}&pageNum=${newPageNum}`);
+  };
+
+  // Direct upload of a document or page image
+  const handleUploadFile = async (file: File) => {
+    if (!file) return;
+    setUploadingFile(true);
+    setUploadProgress(`Uploading ${file.name}...`);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('profile', 'BALANCED');
+      formData.append('sourceType', 'FILE');
+
+      const res = await api.post('/documents/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const newDoc = res.data.document;
+      try { localStorage.setItem('pg_active_doc_id', newDoc.id); } catch {}
+
+      setUploadProgress('Rendering page 1 for visual snipping...');
+      const pageRes = await api.post(`/documents/${newDoc.id}/process-page/1`);
+      const img =
+        pageRes.data.extracted?.page_image ||
+        pageRes.data.page?.imageUrl ||
+        pageRes.data.page_image ||
+        '';
+
+      setDocument(newDoc);
+      setPageImageUrl(img);
+      await fetchDocsList();
+      navigate(`/snip?docId=${newDoc.id}&pageNum=1`, { replace: true });
+    } catch (err: any) {
+      alert(`Upload failed: ${err.response?.data?.error || err.message}`);
+    } finally {
+      setUploadingFile(false);
+      setUploadProgress('');
+    }
+  };
+
   // Drawing crop box
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null);
@@ -68,27 +221,37 @@ export const SnippingWorkspace: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  useEffect(() => {
-    const fetchDoc = async () => {
-      if (!docId) return;
-      try {
-        const res = await api.get(`/documents/${docId}`);
-        const doc = res.data.document;
-        setDocument(doc);
-        const existingPage = doc?.pages?.find((p: any) => p.pageNumber === pageNum);
-        if (existingPage?.imageUrl) {
-          setPageImageUrl(existingPage.imageUrl);
-        }
-        // Request page render image
-        const pageRes = await api.post(`/documents/${docId}/process-page/${pageNum}`);
-        setPageImageUrl(pageRes.data.extracted?.page_image || existingPage?.imageUrl || '');
-      } catch (err) {
-        console.error(err);
-      }
-    };
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!imgRef.current || e.touches.length !== 1) return;
+    const rect = imgRef.current.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = (touch.clientX - rect.left) / zoom;
+    const y = (touch.clientY - rect.top) / zoom;
 
-    fetchDoc();
-  }, [docId, pageNum]);
+    setIsDrawing(true);
+    setStartPos({ x, y });
+    setCurrentBox({ x, y, w: 0, h: 0 });
+    setSnipResult(null);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDrawing || !startPos || !imgRef.current || e.touches.length !== 1) return;
+    const rect = imgRef.current.getBoundingClientRect();
+    const touch = e.touches[0];
+    const curX = (touch.clientX - rect.left) / zoom;
+    const curY = (touch.clientY - rect.top) / zoom;
+
+    const x = Math.min(startPos.x, curX);
+    const y = Math.min(startPos.y, curY);
+    const w = Math.abs(curX - startPos.x);
+    const h = Math.abs(curY - startPos.y);
+
+    setCurrentBox({ x, y, w, h });
+  };
+
+  const handleTouchEnd = () => {
+    setIsDrawing(false);
+  };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!imgRef.current) return;
@@ -206,44 +369,115 @@ export const SnippingWorkspace: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Hidden File Input for Direct Upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={(e) => {
+          if (e.target.files?.[0]) {
+            handleUploadFile(e.target.files[0]);
+            e.target.value = '';
+          }
+        }}
+        accept=".pdf,image/png,image/jpeg,image/webp,image/jpg"
+        className="hidden"
+      />
+
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 glass-panel p-4 rounded-2xl">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-lg bg-violet-600/20 text-violet-400 flex items-center justify-center">
-            <Scissors className="w-4 h-4" />
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white border border-[#D1D5DB] rounded-lg shadow-xs p-5">
+        <div className="flex items-center space-x-3.5">
+          <div className="w-11 h-11 rounded-lg bg-[#0B1F3A] text-white flex items-center justify-center shrink-0">
+            <Scissors className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="font-bold text-base text-white">Visual Snipping & Formula Workspace</h1>
-            <p className="text-xs text-slate-400">
-              Interactive bounding boxes &bull; Structural Math/Physics/Chemistry Recognition &bull; KaTeX Validation
+            <h1 className="font-bold text-xl sm:text-2xl text-[#111827]">Visual Snipping &amp; Formula Extraction</h1>
+            <p className="text-sm text-[#374151]">
+              Interactive drag-to-select regions &bull; Formula/Diagram OCR &bull; KaTeX Mathematical Validation
             </p>
           </div>
         </div>
 
         {/* Toolbar Controls */}
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-1 bg-slate-900 px-2 py-1 rounded-xl border border-slate-800 text-xs">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Document Picker Dropdown */}
+          {allDocs.length > 0 && (
+            <div className="flex items-center space-x-1.5">
+              <span className="text-xs font-bold text-[#4B5563] hidden xl:inline">Doc:</span>
+              <select
+                value={document?.id || docId || ''}
+                onChange={(e) => handleSelectDoc(e.target.value)}
+                className="bg-white border border-[#D1D5DB] text-xs font-semibold rounded-md px-3 py-2 text-[#111827] focus:outline-none focus:ring-2 focus:ring-blue-700 max-w-[200px] truncate"
+                title="Select document to snip from"
+              >
+                {allDocs.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.filename} ({d.pageCount || 1} pg)
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Page Navigation Switcher */}
+          {document && (
+            <div className="flex items-center space-x-1 bg-slate-50 px-2.5 py-1 rounded-md border border-[#D1D5DB] text-xs">
+              <button
+                type="button"
+                disabled={pageNum <= 1 || loadingDoc}
+                onClick={() => handlePageChange(pageNum - 1)}
+                className="p-1 hover:bg-slate-200 disabled:opacity-30 rounded text-[#111827] transition-colors"
+                title="Previous Page"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="font-mono text-[#0B1F3A] font-bold px-2 select-none">
+                Page {pageNum} of {document.pageCount || 1}
+              </span>
+              <button
+                type="button"
+                disabled={pageNum >= (document.pageCount || 1) || loadingDoc}
+                onClick={() => handlePageChange(pageNum + 1)}
+                className="p-1 hover:bg-slate-200 disabled:opacity-30 rounded text-[#111827] transition-colors"
+                title="Next Page"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Direct Upload Button */}
+          <Button
+            variant="secondary"
+            onClick={() => fileInputRef.current?.click()}
+            loading={uploadingFile}
+            icon={<UploadCloud className="w-4 h-4" />}
+          >
+            Upload Page / Doc
+          </Button>
+
+          {/* Zoom & Rotate Controls */}
+          <div className="flex items-center space-x-1 bg-slate-50 px-2 py-1 rounded-md border border-[#D1D5DB] text-xs">
             <button
               onClick={() => setZoom((z) => Math.max(0.5, z - 0.2))}
-              className="p-1 hover:bg-slate-800 rounded text-slate-300"
+              className="p-1.5 hover:bg-slate-200 rounded text-[#111827]"
               title="Zoom Out"
             >
-              <ZoomOut className="w-3.5 h-3.5" />
+              <ZoomOut className="w-4 h-4" />
             </button>
-            <span className="font-mono text-indigo-300 font-semibold px-1">{Math.round(zoom * 100)}%</span>
+            <span className="font-mono text-[#111827] font-bold px-1.5">{Math.round(zoom * 100)}%</span>
             <button
               onClick={() => setZoom((z) => Math.min(2.5, z + 0.2))}
-              className="p-1 hover:bg-slate-800 rounded text-slate-300"
+              className="p-1.5 hover:bg-slate-200 rounded text-[#111827]"
               title="Zoom In"
             >
-              <ZoomIn className="w-3.5 h-3.5" />
+              <ZoomIn className="w-4 h-4" />
             </button>
             <button
               onClick={() => setRotation((r) => (r + 90) % 360)}
-              className="p-1 hover:bg-slate-800 rounded text-slate-300 ml-1 border-l border-slate-800 pl-2"
+              className="p-1.5 hover:bg-slate-200 rounded text-[#111827] ml-1 border-l border-[#D1D5DB] pl-2"
               title="Rotate 90°"
             >
-              <RotateCw className="w-3.5 h-3.5" />
+              <RotateCw className="w-4 h-4" />
             </button>
           </div>
 
@@ -251,7 +485,7 @@ export const SnippingWorkspace: React.FC = () => {
           <select
             value={mode}
             onChange={(e) => setMode(e.target.value)}
-            className="bg-slate-900 border border-slate-700 text-xs rounded-xl px-3 py-1.5 text-slate-200 focus:outline-none focus:border-indigo-500"
+            className="bg-white border border-[#D1D5DB] text-xs font-semibold rounded-md px-3 py-2 text-[#111827] focus:outline-none focus:ring-2 focus:ring-blue-700"
           >
             <option value="AUTO">Auto Detect</option>
             <option value="MATH">Math / Formula (LaTeX)</option>
@@ -262,83 +496,85 @@ export const SnippingWorkspace: React.FC = () => {
             <option value="ALL">Run All Appropriate</option>
           </select>
 
-          <button
+          <Button
+            variant="primary"
             onClick={handleProcessSnip}
             disabled={!currentBox || processing}
-            className="bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white text-xs font-semibold px-4 py-2 rounded-xl flex items-center space-x-1.5 shadow-md shadow-violet-600/20 transition-all"
+            loading={processing}
+            icon={<Crop className="w-4 h-4" />}
           >
-            {processing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Crop className="w-3.5 h-3.5" />}
-            <span>Process Crop</span>
-          </button>
+            Process Crop
+          </Button>
         </div>
       </div>
 
       {/* Formula Recognition Action Strip (When Box is Active) */}
       {currentBox && (
-        <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-900/90 border border-violet-500/30 rounded-2xl animate-fade-in shadow-lg">
-          <div className="flex items-center space-x-2 text-xs font-semibold text-slate-300">
-            <Sparkles className="w-4 h-4 text-violet-400" />
+        <Card className="p-4 border-[#D1D5DB] flex flex-wrap items-center justify-between gap-3 bg-blue-50/50">
+          <div className="flex items-center space-x-2 text-sm font-bold text-[#0B1F3A]">
+            <Sparkles className="w-4 h-4 text-[#0B1F3A]" />
             <span>Targeted Recognition Paths:</span>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => handleProcessSnipWithMode('TEXT')}
               disabled={processing}
-              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium border border-slate-700 flex items-center space-x-1.5 transition-all"
+              className="px-3 py-1.5 bg-white hover:bg-slate-50 text-[#111827] rounded-md text-xs font-bold border border-[#D1D5DB] flex items-center space-x-1.5 shadow-xs transition-colors"
             >
-              <FileText className="w-3.5 h-3.5 text-slate-400" />
-              <span>Run Normal OCR</span>
+              <FileText className="w-4 h-4 text-[#4B5563]" />
+              <span>Normal OCR</span>
             </button>
             <button
               onClick={() => handleProcessSnipWithMode('MATH')}
               disabled={processing}
-              className="px-2.5 py-1.5 bg-violet-950/60 hover:bg-violet-800/80 text-violet-200 rounded-xl text-xs font-medium border border-violet-600/50 flex items-center space-x-1.5 transition-all"
+              className="px-3 py-1.5 bg-white hover:bg-blue-50 text-[#0B1F3A] rounded-md text-xs font-bold border border-blue-300 flex items-center space-x-1.5 shadow-xs transition-colors"
             >
-              <Calculator className="w-3.5 h-3.5 text-violet-400" />
-              <span>Recognize Mathematics</span>
+              <Calculator className="w-4 h-4 text-[#0B1F3A]" />
+              <span>Mathematics</span>
             </button>
             <button
               onClick={() => handleProcessSnipWithMode('PHYSICS')}
               disabled={processing}
-              className="px-2.5 py-1.5 bg-cyan-950/60 hover:bg-cyan-800/80 text-cyan-200 rounded-xl text-xs font-medium border border-cyan-600/50 flex items-center space-x-1.5 transition-all"
+              className="px-3 py-1.5 bg-white hover:bg-cyan-50 text-cyan-950 rounded-md text-xs font-bold border border-cyan-300 flex items-center space-x-1.5 shadow-xs transition-colors"
             >
-              <Atom className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Recognize Physics</span>
+              <Atom className="w-4 h-4 text-cyan-800" />
+              <span>Physics</span>
             </button>
             <button
               onClick={() => handleProcessSnipWithMode('CHEMISTRY')}
               disabled={processing}
-              className="px-2.5 py-1.5 bg-amber-950/60 hover:bg-amber-800/80 text-amber-200 rounded-xl text-xs font-medium border border-amber-600/50 flex items-center space-x-1.5 transition-all"
+              className="px-3 py-1.5 bg-white hover:bg-amber-50 text-amber-950 rounded-md text-xs font-bold border border-amber-300 flex items-center space-x-1.5 shadow-xs transition-colors"
             >
-              <FlaskConical className="w-3.5 h-3.5 text-amber-400" />
-              <span>Recognize Chemistry</span>
+              <FlaskConical className="w-4 h-4 text-amber-800" />
+              <span>Chemistry</span>
             </button>
             <button
               onClick={() => handleProcessSnipWithMode('DIAGRAM')}
               disabled={processing}
-              className="px-2.5 py-1.5 bg-emerald-950/60 hover:bg-emerald-800/80 text-emerald-200 rounded-xl text-xs font-medium border border-emerald-600/50 flex items-center space-x-1.5 transition-all"
+              className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-950 rounded-md text-xs font-bold border border-emerald-300 flex items-center space-x-1.5 shadow-xs transition-colors"
             >
-              <Crop className="w-3.5 h-3.5 text-emerald-400" />
+              <Crop className="w-4 h-4 text-emerald-800" />
               <span>Analyze Diagram</span>
             </button>
             <button
               onClick={() => handleProcessSnipWithMode('AUTO')}
               disabled={processing}
-              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium border border-slate-700 flex items-center space-x-1.5 transition-all"
+              className="px-3 py-1.5 bg-white hover:bg-slate-50 text-[#111827] rounded-md text-xs font-bold border border-[#D1D5DB] flex items-center space-x-1.5 shadow-xs transition-colors"
             >
-              <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+              <Sparkles className="w-4 h-4 text-[#0B1F3A]" />
               <span>Auto Detect</span>
             </button>
-            <button
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => handleProcessSnipWithMode('ALL')}
               disabled={processing}
-              className="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-violet-600/20 flex items-center space-x-1.5 transition-all"
+              icon={<Layers className="w-4 h-4" />}
             >
-              <Layers className="w-3.5 h-3.5 text-white" />
-              <span>Run All Appropriate</span>
-            </button>
+              Run All
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Main Snipping Canvas Grid */}
@@ -346,7 +582,7 @@ export const SnippingWorkspace: React.FC = () => {
         {/* Left Snipping Canvas View */}
         <div
           ref={containerRef}
-          className="lg:col-span-8 glass-panel rounded-2xl p-4 overflow-auto bg-slate-950 flex items-center justify-center relative select-none border border-slate-900"
+          className="lg:col-span-8 bg-slate-100 rounded-lg p-4 overflow-auto flex items-center justify-center relative select-none border border-[#CBD5E1] shadow-xs"
         >
           {pageImageUrl ? (
             <div
@@ -354,16 +590,21 @@ export const SnippingWorkspace: React.FC = () => {
               style={{
                 transform: `scale(${zoom}) rotate(${rotation}deg)`,
                 transformOrigin: 'top center',
+                touchAction: 'none',
               }}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchEnd}
             >
               <img
                 ref={imgRef}
                 src={resolveImageUrl(pageImageUrl, imgAttempt)}
                 alt="Document page"
-                className="max-w-none rounded-lg shadow-xl cursor-crosshair"
+                className="max-w-none rounded shadow-md cursor-crosshair border border-slate-300 bg-white"
                 draggable={false}
                 onError={(e) => {
                   console.warn(`[Snipping Preview] Image load attempt ${imgAttempt} failed:`, e.currentTarget.src);
@@ -376,7 +617,7 @@ export const SnippingWorkspace: React.FC = () => {
               {/* Current Active Crop Box */}
               {currentBox && (
                 <div
-                  className="absolute border-2 border-dashed border-violet-400 bg-violet-500/20 pointer-events-none"
+                  className="absolute border-2 border-[#0B1F3A] bg-blue-500/25 pointer-events-none"
                   style={{
                     left: `${currentBox.x}px`,
                     top: `${currentBox.y}px`,
@@ -384,112 +625,189 @@ export const SnippingWorkspace: React.FC = () => {
                     height: `${currentBox.h}px`,
                   }}
                 >
-                  <div className="absolute -top-6 left-0 bg-violet-600 text-white text-[10px] font-mono px-1.5 py-0.5 rounded shadow">
-                    {Math.round(currentBox.w)} x {Math.round(currentBox.h)} px
+                  <div className="absolute -top-7 left-0 bg-[#0B1F3A] text-white text-xs font-mono font-bold px-2 py-0.5 rounded shadow">
+                    {Math.round(currentBox.w)} × {Math.round(currentBox.h)} px
                   </div>
                 </div>
               )}
             </div>
+          ) : loadingDoc || uploadingFile ? (
+            <div className="text-center py-24 space-y-4">
+              <RefreshCw className="w-10 h-10 text-[#0B1F3A] animate-spin mx-auto" />
+              <div className="space-y-1.5">
+                <p className="text-base font-bold text-[#111827]">
+                  {uploadingFile ? (uploadProgress || 'Uploading and rendering document...') : 'Rendering document page for snipping...'}
+                </p>
+                <p className="text-sm text-[#4B5563]">
+                  Preparing high-resolution canvas with formula &amp; diagram recognition...
+                </p>
+              </div>
+            </div>
           ) : (
-            <div className="text-center py-20 text-xs text-slate-400">
-              No document page loaded. Open a document from Ingestion or Review.
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDraggingOver(true); }}
+              onDragLeave={() => setIsDraggingOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDraggingOver(false);
+                if (e.dataTransfer.files?.[0]) {
+                  handleUploadFile(e.dataTransfer.files[0]);
+                }
+              }}
+              className={`text-center py-16 px-6 max-w-lg mx-auto rounded-lg border-2 border-dashed transition-all bg-white shadow-xs ${
+                isDraggingOver
+                  ? 'border-[#0B1F3A] bg-blue-50'
+                  : 'border-[#D1D5DB] hover:border-[#0B1F3A]'
+              }`}
+            >
+              <div className="w-14 h-14 rounded-full bg-slate-100 border border-[#D1D5DB] flex items-center justify-center mx-auto mb-4 text-[#0B1F3A]">
+                <UploadCloud className="w-8 h-8" />
+              </div>
+              <h3 className="text-lg font-bold text-[#111827] mb-1">
+                Upload a Page or Document to Snip
+              </h3>
+              <p className="text-sm text-[#4B5563] mb-6 leading-relaxed">
+                Drag and drop your question paper PDF or scanned page image here, or upload from your device to begin localized formula &amp; diagram recognition.
+              </p>
+
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Button
+                  variant="primary"
+                  onClick={() => fileInputRef.current?.click()}
+                  icon={<FileUp className="w-4 h-4" />}
+                >
+                  Choose File to Upload
+                </Button>
+
+                {allDocs.length > 0 && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      if (allDocs[0]?.id) handleSelectDoc(allDocs[0].id);
+                    }}
+                  >
+                    Open Latest ({allDocs[0].filename})
+                  </Button>
+                )}
+              </div>
+
+              {allDocs.length > 0 && (
+                <div className="mt-6 pt-5 border-t border-[#E5E7EB] text-left">
+                  <span className="text-xs font-bold text-[#4B5563] uppercase tracking-wider block mb-2">
+                    Or select an existing ingested document:
+                  </span>
+                  <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                    {allDocs.slice(0, 6).map((d) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => handleSelectDoc(d.id)}
+                        className="w-full text-left p-3 rounded-md bg-slate-50 hover:bg-blue-50 border border-[#E5E7EB] hover:border-blue-300 flex items-center justify-between text-xs text-[#111827] transition-all"
+                      >
+                        <span className="truncate max-w-[260px] font-semibold text-sm">
+                          {d.filename}
+                        </span>
+                        <span className="text-xs text-[#6B7280] font-mono shrink-0 ml-2">
+                          {d.pageCount || 1} pg
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {/* Right Crop Result & Actions Panel */}
-        <div className="lg:col-span-4 glass-panel rounded-2xl p-5 flex flex-col justify-between space-y-6">
+        <Card className="lg:col-span-4 p-5 flex flex-col justify-between space-y-6 border-[#D1D5DB]">
           <div className="space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                Localized Crop Recognition
-              </span>
-              <Sparkles className="w-4 h-4 text-violet-400" />
+            <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+              <span className="text-sm font-bold uppercase tracking-wider text-[#111827]">Localized Crop Recognition</span>
+              <Sparkles className="w-5 h-5 text-[#0B1F3A]" />
             </div>
 
             {snipResult ? (
               <div className="space-y-4">
                 {/* Crop Image Preview */}
-                <div className="p-2 bg-slate-950 rounded-xl border border-slate-800 text-center">
+                <div className="p-3 bg-slate-50 rounded-md border border-[#E5E7EB] text-center">
                   <img
                     src={snipResult.snip?.imageUrl}
                     alt="Snippet Crop"
-                    className="max-h-40 mx-auto rounded-lg"
+                    className="max-h-44 mx-auto rounded border border-slate-200 bg-white p-1"
                   />
-                  <div className="text-[10px] text-slate-400 font-mono mt-1">
-                    {snipResult.aiData?.width}x{snipResult.aiData?.height}px &bull; Mode: {mode}
+                  <div className="text-xs text-[#6B7280] font-mono mt-1.5 font-semibold">
+                    {snipResult.aiData?.width} × {snipResult.aiData?.height} px &bull; Mode: {mode}
                   </div>
                 </div>
 
                 {/* Recognized Content with KaTeX */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="block text-xs font-semibold text-slate-300">
+                    <label className="block text-sm font-semibold text-[#111827]">
                       Recognized Formula / Content:
                     </label>
                     <button
                       type="button"
                       onClick={() => setIsEditorOpen(true)}
-                      className="text-violet-400 hover:text-violet-300 text-[11px] font-medium flex items-center space-x-1"
+                      className="text-[#0B1F3A] hover:underline text-xs font-bold flex items-center space-x-1"
                     >
-                      <Edit3 className="w-3 h-3" />
+                      <Edit3 className="w-3.5 h-3.5" />
                       <span>Edit in Formula Editor</span>
                     </button>
                   </div>
-                  <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 text-xs text-slate-200 font-mono">
+                  <div className="p-3.5 bg-slate-50 rounded-md border border-[#E5E7EB] text-sm text-[#111827] font-mono overflow-x-auto">
                     <MathRenderer content={snipResult.aiData?.extracted_text || 'No text detected'} />
                   </div>
                 </div>
 
                 {/* Multi-Dimensional Confidence Metrics */}
-                <div className="space-y-2 p-3 bg-slate-950/70 rounded-xl border border-slate-800 text-xs">
+                <div className="space-y-2 p-3.5 bg-slate-50 rounded-md border border-[#E5E7EB] text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Overall Confidence:</span>
-                    <span className="font-mono font-semibold text-emerald-400">
-                      {Math.round((snipResult.aiData?.confidence || 0.95) * 100)}%
-                    </span>
+                    <span className="text-[#4B5563] font-semibold">Overall Confidence:</span>
+                    <ConfidenceBadge confidence={snipResult.aiData?.confidence || 0.95} />
                   </div>
                   {snipResult.aiData?.scientific_result?.confidence && (
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-400">
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#E5E7EB] text-xs font-mono text-[#4B5563]">
                       <div>
-                        Recognition: <span className="text-slate-200">{Math.round((snipResult.aiData.scientific_result.confidence.recognition_confidence || 0.95) * 100)}%</span>
+                        Recognition: <span className="text-[#111827] font-bold">{Math.round((snipResult.aiData.scientific_result.confidence.recognition_confidence || 0.95) * 100)}%</span>
                       </div>
                       <div>
-                        Visual Match: <span className="text-slate-200">{Math.round((snipResult.aiData.scientific_result.confidence.visual_similarity || 0.90) * 100)}%</span>
+                        Visual Match: <span className="text-[#111827] font-bold">{Math.round((snipResult.aiData.scientific_result.confidence.visual_similarity || 0.90) * 100)}%</span>
                       </div>
                       <div>
-                        Structure: <span className="text-slate-200">{Math.round((snipResult.aiData.scientific_result.confidence.structural_confidence || 0.95) * 100)}%</span>
+                        Structure: <span className="text-[#111827] font-bold">{Math.round((snipResult.aiData.scientific_result.confidence.structural_confidence || 0.95) * 100)}%</span>
                       </div>
                       <div>
-                        Domain Check: <span className="text-slate-200">{Math.round((snipResult.aiData.scientific_result.confidence.domain_validation || 0.92) * 100)}%</span>
+                        Domain Validation: <span className="text-[#111827] font-bold">{Math.round((snipResult.aiData.scientific_result.confidence.domain_validation || 0.92) * 100)}%</span>
                       </div>
                     </div>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="text-xs text-slate-400 py-16 text-center space-y-2">
-                <Crop className="w-8 h-8 mx-auto text-slate-600" />
-                <p>Click and drag on the page image to select a region, then choose a recognition path above.</p>
+              <div className="text-sm text-[#4B5563] py-20 text-center space-y-3">
+                <Crop className="w-10 h-10 mx-auto text-[#6B7280]" />
+                <p>Click and drag on the document page image to select a region, then select a recognition path above.</p>
               </div>
             )}
           </div>
 
           {/* Action Buttons */}
-          <div className="space-y-3 pt-4 border-t border-slate-800">
+          <div className="space-y-3 pt-4 border-t border-[#E5E7EB]">
             {snipResult && (
-              <div className="space-y-1.5 p-2.5 bg-slate-900/90 rounded-xl border border-slate-800">
-                <span className="block text-[11px] font-semibold text-slate-300">
+              <div className="space-y-2 p-3 bg-slate-50 rounded-md border border-[#E5E7EB]">
+                <span className="block text-xs font-bold text-[#111827]">
                   Place Image / Diagram in:
                 </span>
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setSnipDestination('BODY')}
-                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold border transition-all text-left flex items-center space-x-1.5 ${
+                    className={`px-3 py-2 rounded-md text-xs font-bold border transition-all text-left flex items-center space-x-1.5 ${
                       snipDestination === 'BODY'
-                        ? 'bg-violet-600 border-violet-500 text-white shadow-sm'
-                        : 'bg-slate-950 border-slate-700 text-slate-300 hover:bg-slate-800'
+                        ? 'bg-[#0B1F3A] border-[#0B1F3A] text-white shadow-xs'
+                        : 'bg-white border-[#D1D5DB] text-[#111827] hover:bg-slate-100'
                     }`}
                   >
                     <span>📌 Question Body</span>
@@ -499,10 +817,10 @@ export const SnippingWorkspace: React.FC = () => {
                       key={opt}
                       type="button"
                       onClick={() => setSnipDestination(opt)}
-                      className={`px-2 py-1.5 rounded-lg text-xs font-semibold border transition-all text-left flex items-center space-x-1.5 ${
+                      className={`px-3 py-2 rounded-md text-xs font-bold border transition-all text-left flex items-center space-x-1.5 ${
                         snipDestination === opt
-                          ? 'bg-emerald-600 border-emerald-500 text-white shadow-sm'
-                          : 'bg-slate-950 border-slate-700 text-slate-300 hover:bg-slate-800'
+                          ? 'bg-emerald-800 border-emerald-800 text-white shadow-xs'
+                          : 'bg-white border-[#D1D5DB] text-[#111827] hover:bg-slate-100'
                       }`}
                     >
                       <span>Option ({opt})</span>
@@ -512,16 +830,17 @@ export const SnippingWorkspace: React.FC = () => {
               </div>
             )}
 
-            <button
+            <Button
+              variant="primary"
               onClick={handleCreateQuestionFromSnip}
               disabled={!snipResult}
-              className="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white text-xs font-semibold py-2.5 px-4 rounded-xl shadow-md shadow-violet-600/20 flex items-center justify-center space-x-1.5 transition-all"
+              className="w-full"
+              icon={<FolderPlus className="w-4 h-4" />}
             >
-              <FolderPlus className="w-4 h-4" />
-              <span>Create New Question in Bank</span>
-            </button>
+              Create New Question in Bank
+            </Button>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Formula Editor Modal */}
@@ -539,4 +858,3 @@ export const SnippingWorkspace: React.FC = () => {
     </div>
   );
 };
-

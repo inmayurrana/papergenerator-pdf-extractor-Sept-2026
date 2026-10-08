@@ -28,8 +28,15 @@ import {
   ScanLine,
   Download,
   Upload,
+  Pencil,
+  X,
+  Shield,
+  User as UserIcon,
+  Lock,
 } from 'lucide-react';
 import { api } from '../lib/api';
+import { useAuthStore } from '../lib/authStore';
+import { triggerFileDownload, extractErrorMessage } from '../lib/downloadHelper';
 import {
   LanguageTranslatorBar,
   SUPPORTED_LANGUAGES,
@@ -37,6 +44,9 @@ import {
 
 export const Ingestion: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
+
   const [ingestionMode, setIngestionMode] = useState<'FILE' | 'PASTE' | 'IMAGE_OCR' | 'TRANSLATE'>('FILE');
   const [file, setFile] = useState<File | null>(null);
   const [pastedText, setPastedText] = useState('');
@@ -50,6 +60,12 @@ export const Ingestion: React.FC = () => {
   const [documents, setDocuments] = useState<any[]>([]);
   const [deleteConfirmDoc, setDeleteConfirmDoc] = useState<{ id: string; filename: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Rename Document Modal State
+  const [renameModalDoc, setRenameModalDoc] = useState<{ id: string; filename: string } | null>(null);
+  const [renameInput, setRenameInput] = useState('');
+  const [renaming, setRenaming] = useState(false);
+  const [renameError, setRenameError] = useState('');
 
   // Dedicated Translation Suite State
   const [studioSourceText, setStudioSourceText] = useState('');
@@ -104,6 +120,54 @@ export const Ingestion: React.FC = () => {
     }
   };
 
+  const handleOpenRename = (doc: { id: string; filename: string }) => {
+    setRenameModalDoc({ id: doc.id, filename: doc.filename });
+    setRenameInput(doc.filename);
+    setRenameError('');
+  };
+
+  const handleSaveRename = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!renameModalDoc || !renameInput.trim()) return;
+    if (renameInput.trim() === renameModalDoc.filename) {
+      setRenameModalDoc(null);
+      return;
+    }
+    setRenaming(true);
+    setRenameError('');
+    try {
+      const res = await api.patch(`/documents/${renameModalDoc.id}/rename`, {
+        newFilename: renameInput.trim(),
+      });
+      const updated = res.data.document;
+      setDocuments((prev) =>
+        prev.map((d) => (d.id === renameModalDoc.id ? { ...d, filename: updated.filename } : d))
+      );
+      setRenameModalDoc(null);
+    } catch (err: any) {
+      setRenameError(err.response?.data?.error || err.message || 'Failed to rename document');
+    } finally {
+      setRenaming(false);
+    }
+  };
+
+  const formatDateTime = (dateStr: string) => {
+    if (!dateStr) return 'Recently uploaded';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
   useEffect(() => {
     fetchDocs();
   }, []);
@@ -138,10 +202,19 @@ export const Ingestion: React.FC = () => {
 
     try {
       const defaultTitle = `Pasted_Document_${new Date().toISOString().slice(0, 10)}`;
+      const chosenTitle = pastedTitle.trim() || defaultTitle;
+      let detectedSourceType = 'PASTE';
+      if (chosenTitle.toLowerCase().startsWith('ocr_') || chosenTitle.toLowerCase().startsWith('ocr_extracted')) {
+        detectedSourceType = 'IMAGE_OCR';
+      } else if (chosenTitle.toLowerCase().startsWith('translated_') || chosenTitle.toLowerCase().startsWith('translated_exam')) {
+        detectedSourceType = 'TRANSLATE';
+      }
+
       const res = await api.post('/documents/paste-text', {
-        title: pastedTitle.trim() || defaultTitle,
+        title: chosenTitle,
         rawText: pastedText,
         profile,
+        sourceType: detectedSourceType,
       });
 
       if (res.data.isDuplicate) {
@@ -153,6 +226,7 @@ export const Ingestion: React.FC = () => {
 
       const doc = res.data.document;
       setActiveDoc(doc);
+      try { localStorage.setItem('pg_active_doc_id', doc.id); } catch {}
       const totalPages = doc.pageCount || 1;
 
       // Process ALL pages sequentially
@@ -187,6 +261,7 @@ export const Ingestion: React.FC = () => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('profile', profile);
+    formData.append('sourceType', 'FILE');
 
     try {
       const res = await api.post('/documents/upload', formData, {
@@ -202,6 +277,7 @@ export const Ingestion: React.FC = () => {
 
       const doc = res.data.document;
       setActiveDoc(doc);
+      try { localStorage.setItem('pg_active_doc_id', doc.id); } catch {}
       const totalPages = doc.pageCount || 1;
 
       // Process ALL pages sequentially so every question is extracted
@@ -222,6 +298,105 @@ export const Ingestion: React.FC = () => {
       }, 800);
     } catch (err: any) {
       alert(`Upload failed: ${err.response?.data?.error || err.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleIngestOcrDocument = async () => {
+    if (!ocrResult?.extracted_text) return;
+    setUploading(true);
+    setProgressMsg('Ingesting OCR extracted document into pipeline...');
+    setDuplicateWarning(null);
+
+    try {
+      const ocrTitle = `OCR_Extracted_${(ocrResult.language_name || 'Document').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}`;
+      const res = await api.post('/documents/paste-text', {
+        title: ocrTitle,
+        rawText: ocrResult.extracted_text,
+        profile,
+        sourceType: 'IMAGE_OCR',
+      });
+
+      if (res.data.isDuplicate) {
+        setDuplicateWarning(res.data);
+        setActiveDoc(res.data.document);
+        setUploading(false);
+        return;
+      }
+
+      const doc = res.data.document;
+      setActiveDoc(doc);
+      try { localStorage.setItem('pg_active_doc_id', doc.id); } catch {}
+      const totalPages = doc.pageCount || 1;
+
+      for (let pg = 1; pg <= totalPages; pg++) {
+        setProgressMsg(`Processing Page ${pg} of ${totalPages}...`);
+        try {
+          await api.post(`/documents/${doc.id}/process-page/${pg}`);
+        } catch (pgErr: any) {
+          console.warn(`Page ${pg} processing error:`, pgErr.message);
+        }
+      }
+
+      setProgressMsg(`✅ OCR Document ingested successfully! Loading review...`);
+      await fetchDocs();
+
+      setTimeout(() => {
+        navigate(`/review?docId=${doc.id}`);
+      }, 800);
+    } catch (err: any) {
+      alert(`OCR Document Ingestion failed: ${err.response?.data?.error || err.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleIngestTranslatedDocument = async () => {
+    const textToIngest = studioTranslatedText || studioSourceText;
+    if (!textToIngest || !textToIngest.trim()) return;
+    setUploading(true);
+    setProgressMsg('Ingesting translated document into pipeline...');
+    setDuplicateWarning(null);
+
+    try {
+      const transTitle = `Translated_Exam_${studioTargetLang.toUpperCase()}_${new Date().toISOString().slice(0, 10)}`;
+      const res = await api.post('/documents/paste-text', {
+        title: transTitle,
+        rawText: textToIngest,
+        profile,
+        sourceType: 'TRANSLATE',
+      });
+
+      if (res.data.isDuplicate) {
+        setDuplicateWarning(res.data);
+        setActiveDoc(res.data.document);
+        setUploading(false);
+        return;
+      }
+
+      const doc = res.data.document;
+      setActiveDoc(doc);
+      try { localStorage.setItem('pg_active_doc_id', doc.id); } catch {}
+      const totalPages = doc.pageCount || 1;
+
+      for (let pg = 1; pg <= totalPages; pg++) {
+        setProgressMsg(`Processing Page ${pg} of ${totalPages}...`);
+        try {
+          await api.post(`/documents/${doc.id}/process-page/${pg}`);
+        } catch (pgErr: any) {
+          console.warn(`Page ${pg} processing error:`, pgErr.message);
+        }
+      }
+
+      setProgressMsg(`✅ Translated Document ingested successfully! Loading review...`);
+      await fetchDocs();
+
+      setTimeout(() => {
+        navigate(`/review?docId=${doc.id}`);
+      }, 800);
+    } catch (err: any) {
+      alert(`Translated Document Ingestion failed: ${err.response?.data?.error || err.message}`);
     } finally {
       setUploading(false);
     }
@@ -314,15 +489,11 @@ export const Ingestion: React.FC = () => {
       };
 
       const blob = new Blob([res.data], { type: mimeTypes[format] || 'text/plain' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
       const safeTitle = (title || 'Exported_Text').replace(/[^a-zA-Z0-9_-]/g, '_');
-      link.download = `${safeTitle}.${extensions[format] || 'txt'}`;
-      link.click();
-      window.URL.revokeObjectURL(url);
+      triggerFileDownload(blob, `${safeTitle}.${extensions[format] || 'txt'}`);
     } catch (err: any) {
-      alert(`Export failed: ${err.response?.data?.error || err.message}`);
+      const msg = await extractErrorMessage(err);
+      alert(`Export failed: ${msg}`);
     }
   };
 
@@ -502,83 +673,134 @@ export const Ingestion: React.FC = () => {
     };
   };
 
+  const getDocumentSourceType = (doc: any): 'FILE' | 'PASTE' | 'IMAGE_OCR' | 'TRANSLATE' => {
+    if (doc.sourceType === 'FILE' || doc.sourceType === 'PASTE' || doc.sourceType === 'IMAGE_OCR' || doc.sourceType === 'TRANSLATE') {
+      return doc.sourceType;
+    }
+    const name = (doc.filename || '').toLowerCase();
+    if (name.startsWith('translated_') || name.includes('translated_exam')) {
+      return 'TRANSLATE';
+    }
+    if (name.startsWith('ocr_') || name.startsWith('ocr_extracted') || name.includes('ocr_extracted')) {
+      return 'IMAGE_OCR';
+    }
+    if (name.startsWith('pasted_') || name.includes('pasted_document')) {
+      return 'PASTE';
+    }
+    return 'FILE';
+  };
+
+  const fileDocs = documents.filter((d) => getDocumentSourceType(d) === 'FILE');
+  const pasteDocs = documents.filter((d) => getDocumentSourceType(d) === 'PASTE');
+  const ocrDocs = documents.filter((d) => getDocumentSourceType(d) === 'IMAGE_OCR');
+  const translateDocs = documents.filter((d) => getDocumentSourceType(d) === 'TRANSLATE');
+
+  const currentTabDocs =
+    ingestionMode === 'FILE'
+      ? fileDocs
+      : ingestionMode === 'PASTE'
+      ? pasteDocs
+      : ingestionMode === 'IMAGE_OCR'
+      ? ocrDocs
+      : translateDocs;
+
   return (
     <div className="space-y-6 w-full">
       {/* Title */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-extrabold text-white tracking-tight font-display">Document Ingestion</h1>
-        <p className="text-sm text-slate-400">
-          Upload PDF, Word (<code className="text-indigo-300">.docx, .doc</code>), Excel (<code className="text-indigo-300">.xlsx, .xls, .csv</code>), Images, extract text from images to digital text in the same language, or copy &amp; paste text with multi-language detection and translation.
+        <h1 className="text-3xl font-extrabold text-black tracking-tight font-display">Document Ingestion</h1>
+        <p className="text-sm text-slate-700 font-medium">
+          Upload PDF, Word (<code className="text-blue-700 bg-blue-50 px-1 py-0.5 rounded border border-blue-200 font-mono font-bold">.docx, .doc</code>), Excel (<code className="text-blue-700 bg-blue-50 px-1 py-0.5 rounded border border-blue-200 font-mono font-bold">.xlsx, .xls, .csv</code>), Images, extract text from images to digital text in the same language, or copy &amp; paste text with multi-language detection and translation.
         </p>
       </div>
 
       {/* Mode Switcher Tabs */}
-      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-900/80 border border-slate-800 rounded-2xl w-fit">
+      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100 border border-slate-300 rounded-2xl w-fit shadow-sm">
         <button
           type="button"
           onClick={() => setIngestionMode('FILE')}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
             ingestionMode === 'FILE'
-              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-[#0B1F3A] text-white shadow-sm border border-[#0B1F3A]'
+              : 'bg-white text-[#111827] border border-[#D1D5DB] hover:bg-[#F3F4F6]'
           }`}
         >
-          <UploadCloud className="w-4 h-4" />
+          <UploadCloud className={`w-4 h-4 ${ingestionMode === 'FILE' ? 'text-white' : 'text-slate-700'}`} />
           <span>Upload File (PDF / Word / Excel / Images)</span>
+          <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
+            ingestionMode === 'FILE' ? 'bg-white text-[#0B1F3A] shadow-xs' : 'bg-slate-200 text-[#111827]'
+          }`}>
+            {fileDocs.length}
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => setIngestionMode('PASTE')}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
             ingestionMode === 'PASTE'
-              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-[#0B1F3A] text-white shadow-sm border border-[#0B1F3A]'
+              : 'bg-white text-[#111827] border border-[#D1D5DB] hover:bg-[#F3F4F6]'
           }`}
         >
-          <Clipboard className="w-4 h-4" />
+          <Clipboard className={`w-4 h-4 ${ingestionMode === 'PASTE' ? 'text-white' : 'text-slate-700'}`} />
           <span>Copy &amp; Paste Text (Direct Ingestion)</span>
+          <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
+            ingestionMode === 'PASTE' ? 'bg-white text-[#0B1F3A] shadow-xs' : 'bg-slate-200 text-[#111827]'
+          }`}>
+            {pasteDocs.length}
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => setIngestionMode('IMAGE_OCR')}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
             ingestionMode === 'IMAGE_OCR'
-              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-[#0B1F3A] text-white shadow-sm border border-[#0B1F3A]'
+              : 'bg-white text-[#111827] border border-[#D1D5DB] hover:bg-[#F3F4F6]'
           }`}
         >
-          <ImageIcon className="w-4 h-4 text-amber-400" />
+          <ImageIcon className={`w-4 h-4 ${ingestionMode === 'IMAGE_OCR' ? 'text-white' : 'text-amber-600'}`} />
           <span>Extract Text from Image (OCR in Same Language)</span>
+          <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
+            ingestionMode === 'IMAGE_OCR' ? 'bg-white text-[#0B1F3A] shadow-xs' : 'bg-slate-200 text-[#111827]'
+          }`}>
+            {ocrDocs.length}
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => setIngestionMode('TRANSLATE')}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
             ingestionMode === 'TRANSLATE'
-              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-[#0B1F3A] text-white shadow-sm border border-[#0B1F3A]'
+              : 'bg-white text-[#111827] border border-[#D1D5DB] hover:bg-[#F3F4F6]'
           }`}
         >
-          <Languages className="w-4 h-4" />
+          <Languages className={`w-4 h-4 ${ingestionMode === 'TRANSLATE' ? 'text-white' : 'text-blue-700'}`} />
           <span>Live Translation &amp; Language Detector</span>
+          <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
+            ingestionMode === 'TRANSLATE' ? 'bg-white text-[#0B1F3A] shadow-xs' : 'bg-slate-200 text-[#111827]'
+          }`}>
+            {translateDocs.length}
+          </span>
         </button>
       </div>
 
       {/* Ingestion Content Box */}
-      <div className="glass-panel p-8 rounded-3xl space-y-6">
+      <div className="bg-white border border-[#D1D5DB] p-8 rounded-xl shadow-sm space-y-6">
         {ingestionMode === 'FILE' && (
           /* File Upload Zone */
           <div className="space-y-4">
             <div
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleFileDrop}
-              className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer ${
+              className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
                 file
-                  ? 'border-indigo-500 bg-indigo-500/5'
-                  : 'border-slate-700/80 hover:border-indigo-500/50 hover:bg-slate-900/40'
+                  ? 'border-[#0B1F3A] bg-blue-50/40'
+                  : 'border-[#D1D5DB] hover:border-[#0B1F3A] hover:bg-gray-50/70'
               }`}
               onClick={() => {
                 const input = document.createElement('input');
@@ -598,20 +820,20 @@ export const Ingestion: React.FC = () => {
                   const isImage = ['png', 'jpg', 'jpeg', 'webp', 'tiff', 'tif'].includes(ext);
                   return (
                     <div className="space-y-3">
-                      <div className="w-16 h-16 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto">
+                      <div className="w-16 h-16 rounded-xl bg-[#0B1F3A]/5 border border-[#0B1F3A]/15 text-[#0B1F3A] flex items-center justify-center mx-auto">
                         <Icon className="w-8 h-8" />
                       </div>
                       <div className="space-y-1">
-                        <div className="text-base font-semibold text-white">{file.name}</div>
+                        <div className="text-base font-bold text-[#111827]">{file.name}</div>
                         <div className="flex items-center justify-center space-x-2 text-xs">
-                          <span className={`px-2.5 py-0.5 rounded-full border text-[11px] font-medium ${info.color}`}>
+                          <span className={`px-2.5 py-0.5 rounded-md border text-xs font-semibold ${info.color}`}>
                             {info.badge}
                           </span>
-                          <span className="text-slate-400 font-mono">
+                          <span className="text-[#6B7280] font-mono">
                             {(file.size / (1024 * 1024)).toFixed(2)} MB &bull; Ready to ingest
                           </span>
                         </div>
-                        <div className="text-xs text-indigo-300/80 pt-1">{info.sublabel}</div>
+                        <div className="text-xs text-[#4B5563] pt-1">{info.sublabel}</div>
 
                         {/* Instant OCR Quick Action for Images */}
                         {isImage && (
@@ -637,33 +859,33 @@ export const Ingestion: React.FC = () => {
                 })()
               ) : (
                 <div className="space-y-4">
-                  <div className="w-16 h-16 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto">
+                  <div className="w-16 h-16 rounded-xl bg-[#0B1F3A]/5 border border-[#0B1F3A]/15 text-[#0B1F3A] flex items-center justify-center mx-auto">
                     <UploadCloud className="w-8 h-8" />
                   </div>
                   <div className="space-y-1">
-                    <div className="text-base font-semibold text-slate-200">
+                    <div className="text-base font-bold text-[#111827]">
                       Drag and drop your question paper or document here
                     </div>
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-[#6B7280]">
                       Click to browse or drop any document up to 100MB
                     </div>
                   </div>
 
                   {/* Format Badges */}
                   <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-                    <span className="px-3 py-1 bg-rose-500/10 border border-rose-500/20 text-rose-300 rounded-xl text-xs flex items-center space-x-1">
+                    <span className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 rounded-md text-xs font-semibold flex items-center space-x-1">
                       <FileText className="w-3.5 h-3.5" />
                       <span>PDF (.pdf)</span>
                     </span>
-                    <span className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-300 rounded-xl text-xs flex items-center space-x-1">
+                    <span className="px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-md text-xs font-semibold flex items-center space-x-1">
                       <FileText className="w-3.5 h-3.5" />
                       <span>Word (.docx, .doc)</span>
                     </span>
-                    <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 rounded-xl text-xs flex items-center space-x-1">
+                    <span className="px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-md text-xs font-semibold flex items-center space-x-1">
                       <FileSpreadsheet className="w-3.5 h-3.5" />
                       <span>Excel (.xlsx, .xls, .csv)</span>
                     </span>
-                    <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-xl text-xs flex items-center space-x-1">
+                    <span className="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-md text-xs font-semibold flex items-center space-x-1">
                       <FileCode className="w-3.5 h-3.5" />
                       <span>Images (PNG, JPG, TIFF)</span>
                     </span>
@@ -680,7 +902,7 @@ export const Ingestion: React.FC = () => {
             {/* Title & Clipboard Actions Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex-1 min-w-[260px]">
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold text-[#374151] mb-1.5">
                   Document / Exam Title
                 </label>
                 <input
@@ -688,7 +910,7 @@ export const Ingestion: React.FC = () => {
                   value={pastedTitle}
                   onChange={(e) => setPastedTitle(e.target.value)}
                   placeholder={`e.g. Physics Final Exam - ${new Date().toISOString().slice(0, 10)}`}
-                  className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-white border border-[#D1D5DB] focus:border-[#0B1F3A] rounded-lg px-4 py-2 text-xs text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-[#0B1F3A]"
                 />
               </div>
 
@@ -696,10 +918,10 @@ export const Ingestion: React.FC = () => {
                 <button
                   type="button"
                   onClick={handlePasteFromClipboard}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center space-x-2 transition-all shadow-md ${
+                  className={`px-4 py-2 rounded-lg text-xs font-semibold flex items-center space-x-2 transition-all shadow-xs cursor-pointer ${
                     pasteSuccessNotice
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40'
+                      ? 'bg-emerald-700 text-white'
+                      : 'bg-[#0B1F3A] hover:bg-[#16365F] text-white'
                   }`}
                   title="Reads text from clipboard and pastes verbatim"
                 >
@@ -711,7 +933,7 @@ export const Ingestion: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setPastedText('')}
-                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl text-xs font-medium border border-slate-700 transition-colors"
+                    className="px-3 py-2 bg-white hover:bg-gray-50 text-[#4B5563] rounded-lg text-xs font-medium border border-[#D1D5DB] transition-colors cursor-pointer"
                   >
                     Clear Text
                   </button>
@@ -720,14 +942,14 @@ export const Ingestion: React.FC = () => {
             </div>
 
             {/* Verbatim Source Preservation Notice */}
-            <div className="p-3 bg-indigo-500/10 border border-indigo-500/25 rounded-2xl flex items-center justify-between text-xs">
-              <div className="flex items-center space-x-2.5 text-indigo-300">
-                <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
+            <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between text-xs text-[#0B1F3A]">
+              <div className="flex items-center space-x-2.5 text-[#0B1F3A]">
+                <CheckCircle2 className="w-4 h-4 text-[#0B1F3A] shrink-0" />
                 <span>
                   <strong>Verbatim Source Fidelity Active:</strong> Pasted text is collected and preserved exactly as copied from your source without altered whitespace, distorted characters, or lost math equations.
                 </span>
               </div>
-              <div className="text-[11px] font-mono text-indigo-300/80 shrink-0 ml-3">
+              <div className="text-xs font-mono text-[#4B5563] shrink-0 ml-3">
                 {pastedLines} lines &bull; {pastedWords} words &bull; {pastedChars} chars
               </div>
             </div>
@@ -744,7 +966,7 @@ export const Ingestion: React.FC = () => {
                 rows={12}
                 value={pastedText}
                 onChange={(e) => setPastedText(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700/80 rounded-2xl p-4 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-indigo-500 leading-relaxed shadow-inner"
+                className="w-full bg-white border border-[#D1D5DB] rounded-xl p-4 text-xs text-[#111827] placeholder-[#9CA3AF] font-mono focus:outline-none focus:border-[#0B1F3A] focus:ring-1 focus:ring-[#0B1F3A] leading-relaxed shadow-xs"
                 placeholder={`Paste exam paper or question text directly from your source document, webpage, Word file, or notes...\n\nSupports any language (Hindi, Punjabi, Gujarati, Urdu, Sanskrit, Bengali, Marathi, etc.) with KaTeX math equations preserved:\n\n1. Find the roots of the quadratic equation ax^2 + bx + c = 0.\n   (A) x = (-b +- sqrt(D))/(2a)\n   (B) x = (-b +- D)/(2a)\n   (C) x = (b +- sqrt(D))/(a)\n   (D) x = -b / (2a)\n   Ans: A [3 Marks]\n\n2. Define Newton's second law of motion F = ma.\n   [2 Marks]`}
               />
             </div>
@@ -754,13 +976,13 @@ export const Ingestion: React.FC = () => {
         {ingestionMode === 'IMAGE_OCR' && (
           /* Dedicated Image to Digital Text (Same Language) Extractor */
           <div className="space-y-6">
-            <div className="p-4 bg-gradient-to-r from-amber-950/30 to-orange-950/30 border border-amber-500/30 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-1">
-                <div className="flex items-center space-x-2 text-white font-bold text-sm">
-                  <ScanLine className="w-4 h-4 text-amber-400" />
+                <div className="flex items-center space-x-2 text-[#111827] font-bold text-sm">
+                  <ScanLine className="w-4 h-4 text-amber-700" />
                   <span>Image Document to Digital Text Extractor (Same Language OCR)</span>
                 </div>
-                <p className="text-xs text-slate-300">
+                <p className="text-xs text-[#4B5563]">
                   Upload, drop, or paste any exam paper photo, scanned worksheet, or screenshot. The offline OCR engine extracts the text verbatim in its <strong>original language</strong> (Hindi, Gujarati, English, Punjabi, Urdu, etc.) with questions, options, and marks preserved!
                 </p>
               </div>
@@ -769,7 +991,7 @@ export const Ingestion: React.FC = () => {
                 <button
                   type="button"
                   onClick={handlePasteImageFromClipboard}
-                  className="px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all"
+                  className="px-4 py-2 bg-white hover:bg-gray-50 text-[#0B1F3A] border border-[#D1D5DB] rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-xs cursor-pointer"
                   title="Paste screenshot or copied image from clipboard"
                 >
                   <Clipboard className="w-3.5 h-3.5" />
@@ -796,21 +1018,21 @@ export const Ingestion: React.FC = () => {
                 };
                 input.click();
               }}
-              className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer ${
+              className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${
                 ocrImageFile
-                  ? 'border-amber-500/50 bg-amber-500/5'
-                  : 'border-slate-700/80 hover:border-amber-500/50 hover:bg-slate-900/40'
+                  ? 'border-amber-400 bg-amber-50/40'
+                  : 'border-[#D1D5DB] hover:border-amber-400 hover:bg-gray-50/70'
               }`}
             >
               {ocrImageFile ? (
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center space-x-3 text-left">
-                    <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                    <div className="w-12 h-12 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700">
                       <ImageIcon className="w-6 h-6" />
                     </div>
                     <div>
-                      <div className="text-sm font-semibold text-white">{ocrImageFile.name}</div>
-                      <div className="text-xs text-slate-400 font-mono">
+                      <div className="text-sm font-bold text-[#111827]">{ocrImageFile.name}</div>
+                      <div className="text-xs text-[#6B7280] font-mono">
                         {(ocrImageFile.size / (1024 * 1024)).toFixed(2)} MB &bull; Ready for OCR extraction
                       </div>
                     </div>
@@ -824,7 +1046,7 @@ export const Ingestion: React.FC = () => {
                         handleRunOcrExtraction();
                       }}
                       disabled={isExtractingOcr}
-                      className="px-5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-bold rounded-xl shadow-lg flex items-center space-x-1.5 transition-all disabled:opacity-50"
+                      className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow-sm flex items-center space-x-1.5 transition-all disabled:opacity-50 cursor-pointer"
                     >
                       {isExtractingOcr ? (
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -842,7 +1064,7 @@ export const Ingestion: React.FC = () => {
                         setOcrImagePreview(null);
                         setOcrResult(null);
                       }}
-                      className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-xl transition-colors"
+                      className="px-3 py-2 bg-white hover:bg-gray-50 text-[#374151] text-xs font-medium rounded-lg border border-[#D1D5DB] transition-colors cursor-pointer"
                     >
                       Change Image
                     </button>
@@ -850,14 +1072,14 @@ export const Ingestion: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+                  <div className="w-14 h-14 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center mx-auto">
                     <ImageIcon className="w-7 h-7" />
                   </div>
                   <div className="space-y-1">
-                    <div className="text-sm font-semibold text-slate-200">
+                    <div className="text-sm font-bold text-[#111827]">
                       Drag &amp; drop an image document here, or click to browse
                     </div>
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-[#6B7280]">
                       Supports PNG, JPG, JPEG, WEBP, TIFF, BMP (Question papers, textbook pages, worksheets)
                     </div>
                   </div>
@@ -884,12 +1106,12 @@ export const Ingestion: React.FC = () => {
                       <span>Original Image Document</span>
                     </span>
                     {ocrImageFile && (
-                      <span className="text-[11px] font-mono text-slate-400">
+                      <span className="text-xs font-mono text-slate-400">
                         {ocrImageFile.name}
                       </span>
                     )}
                   </div>
-                  <div className="bg-slate-950 border border-slate-800 rounded-2xl p-2 max-h-[460px] overflow-auto flex items-center justify-center shadow-inner">
+                  <div className="bg-gray-50 border border-[#D1D5DB] rounded-xl p-2 max-h-[460px] overflow-auto flex items-center justify-center shadow-xs">
                     {ocrImagePreview ? (
                       <img
                         src={ocrImagePreview}
@@ -897,7 +1119,7 @@ export const Ingestion: React.FC = () => {
                         className="max-w-full h-auto object-contain rounded-lg"
                       />
                     ) : (
-                      <div className="p-8 text-center text-xs text-slate-500">Image preview not available</div>
+                      <div className="p-8 text-center text-xs text-[#9CA3AF]">Image preview not available</div>
                     )}
                   </div>
                 </div>
@@ -930,7 +1152,7 @@ export const Ingestion: React.FC = () => {
 
                   {/* Language & Stats Badge */}
                   {ocrResult && (
-                    <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex flex-wrap items-center justify-between text-[11px] gap-2">
+                    <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex flex-wrap items-center justify-between text-xs gap-2">
                       <div className="flex items-center space-x-1.5 text-emerald-300 font-medium">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                         <span>
@@ -957,49 +1179,49 @@ export const Ingestion: React.FC = () => {
                         ? 'Extracting digital text from image in same language...'
                         : 'Click "Extract Text (Same Language)" above to read digital text from the image...'
                     }
-                    className="w-full bg-slate-950 border border-slate-700/80 rounded-2xl p-4 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-amber-500 leading-relaxed shadow-inner"
+                    className="w-full bg-white border border-[#D1D5DB] rounded-xl p-4 text-xs text-[#111827] placeholder-[#9CA3AF] font-mono focus:outline-none focus:border-[#0B1F3A] focus:ring-1 focus:ring-[#0B1F3A] leading-relaxed shadow-xs"
                   />
 
                   {/* Action & Export Buttons for Extracted Text */}
                   {ocrResult?.extracted_text && (
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200">
                       {/* Export Suite */}
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-[11px] font-semibold text-slate-400 mr-1">Export:</span>
+                        <span className="text-xs font-bold text-slate-700 mr-1">Export:</span>
                         <button
                           type="button"
                           onClick={() => handleExportTextContent(ocrResult.extracted_text, `OCR_${(ocrResult.language_name || 'Extracted').replace(/\s+/g, '_')}`, 'word', ocrResult.language_name)}
-                          className="px-2.5 py-1 bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/40 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all"
+                          className="px-3 py-1.5 bg-[#0B1F3A] hover:bg-[#16365F] text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-all shadow-sm cursor-pointer"
                           title="Export extracted text as Word document (.doc)"
                         >
-                          <FileText className="w-3 h-3" />
+                          <FileText className="w-3.5 h-3.5 text-white" />
                           <span>Word (.doc)</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => handleExportTextContent(ocrResult.extracted_text, `OCR_${(ocrResult.language_name || 'Extracted').replace(/\s+/g, '_')}`, 'pdf', ocrResult.language_name)}
-                          className="px-2.5 py-1 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all"
+                          className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-all shadow-sm"
                           title="Export extracted text as formatted A4 PDF (.pdf)"
                         >
-                          <Download className="w-3 h-3" />
+                          <Download className="w-3.5 h-3.5 text-white" />
                           <span>PDF (.pdf)</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => handleExportTextContent(ocrResult.extracted_text, `OCR_${(ocrResult.language_name || 'Extracted').replace(/\s+/g, '_')}`, 'json', ocrResult.language_name)}
-                          className="px-2.5 py-1 bg-teal-600/20 hover:bg-teal-600 text-teal-300 hover:text-white border border-teal-500/40 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all"
+                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-all shadow-sm"
                           title="Export extracted text as structured JSON (.json)"
                         >
-                          <FileCode className="w-3 h-3" />
+                          <FileCode className="w-3.5 h-3.5 text-white" />
                           <span>JSON (.json)</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => handleExportTextContent(ocrResult.extracted_text, `OCR_${(ocrResult.language_name || 'Extracted').replace(/\s+/g, '_')}`, 'txt', ocrResult.language_name)}
-                          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all"
+                          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-all shadow-sm"
                           title="Export extracted text as Plain Text (.txt)"
                         >
-                          <AlignLeft className="w-3 h-3" />
+                          <AlignLeft className="w-3.5 h-3.5 text-white" />
                           <span>TXT (.txt)</span>
                         </button>
                       </div>
@@ -1009,19 +1231,30 @@ export const Ingestion: React.FC = () => {
                         <button
                           type="button"
                           onClick={handleTransferOcrToTranslate}
-                          className="px-3.5 py-1.5 bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/30 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all"
+                          className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all shadow-sm"
                         >
-                          <Languages className="w-3.5 h-3.5" />
+                          <Languages className="w-3.5 h-3.5 text-white" />
                           <span>Translate this Text</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={handleTransferOcrToIngestion}
-                          className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow flex items-center space-x-1.5 transition-all"
+                          className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all shadow-sm"
+                          title="Transfer to Copy & Paste tab to edit before ingesting"
                         >
-                          <FileUp className="w-3.5 h-3.5" />
-                          <span>Ingest as Document</span>
+                          <FileUp className="w-3.5 h-3.5 text-slate-800" />
+                          <span>Edit in Paste Tab</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleIngestOcrDocument}
+                          disabled={uploading}
+                          className="px-4 py-2 bg-[#0B1F3A] hover:bg-[#16365F] text-white font-bold rounded-lg text-xs shadow-sm flex items-center space-x-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                        >
+                          <FileUp className="w-3.5 h-3.5 text-white" />
+                          <span>{uploading ? 'Ingesting OCR...' : 'Ingest as Document'}</span>
                         </button>
                       </div>
                     </div>
@@ -1035,14 +1268,14 @@ export const Ingestion: React.FC = () => {
         {ingestionMode === 'TRANSLATE' && (
           /* Dedicated Language Detection & Translation Studio */
           <div className="space-y-6">
-            <div className="p-4 bg-gradient-to-r from-indigo-900/30 to-violet-900/30 border border-indigo-500/30 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+            <div className="p-4 bg-slate-100 border border-slate-300 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-sm">
               <div className="space-y-1">
-                <div className="flex items-center space-x-2 text-white font-bold text-sm">
-                  <Languages className="w-4 h-4 text-indigo-400" />
+                <div className="flex items-center space-x-2 text-slate-900 font-bold text-sm">
+                  <Languages className="w-4 h-4 text-blue-600" />
                   <span>Exam Paper &amp; Question Translation Studio</span>
                 </div>
-                <p className="text-xs text-slate-300">
-                  Translate questions, instructions, and entire exam papers across 17+ languages. KaTeX math formulas (<code className="text-indigo-300">$...$</code>), option markers <code className="text-indigo-300">(A)-(D)</code>, and marks brackets <code className="text-indigo-300">[X Marks]</code> are strictly preserved!
+                <p className="text-xs text-slate-700 font-medium">
+                  Translate questions, instructions, and entire exam papers across 17+ languages. KaTeX math formulas (<code className="text-blue-700 bg-blue-50 px-1 py-0.5 rounded border border-blue-200 font-mono font-bold">$...$</code>), option markers <code className="text-blue-700 bg-blue-50 px-1 py-0.5 rounded border border-blue-200 font-mono font-bold">(A)-(D)</code>, and marks brackets <code className="text-blue-700 bg-blue-50 px-1 py-0.5 rounded border border-blue-200 font-mono font-bold">[X Marks]</code> are strictly preserved!
                 </p>
               </div>
 
@@ -1051,30 +1284,40 @@ export const Ingestion: React.FC = () => {
                   type="button"
                   onClick={handleTransferStudioToIngestion}
                   disabled={!studioTranslatedText && !studioSourceText}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow flex items-center space-x-1.5 transition-all disabled:opacity-40"
+                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all disabled:opacity-40 shadow-sm"
+                  title="Transfer to Copy & Paste tab to edit before ingesting"
                 >
-                  <FileUp className="w-3.5 h-3.5" />
-                  <span>Transfer to Ingestion Pipeline</span>
+                  <FileUp className="w-3.5 h-3.5 text-slate-800" />
+                  <span>Edit in Paste Tab</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleIngestTranslatedDocument}
+                  disabled={uploading || (!studioTranslatedText && !studioSourceText)}
+                  className="px-4 py-2 bg-[#0B1F3A] hover:bg-[#16365F] text-white text-xs font-bold rounded-lg shadow-sm flex items-center space-x-1.5 transition-all disabled:opacity-40 cursor-pointer"
+                >
+                  <FileUp className="w-3.5 h-3.5 text-white" />
+                  <span>{uploading ? 'Ingesting...' : 'Ingest as Document'}</span>
                 </button>
               </div>
             </div>
 
             {/* Translation Controls Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-900 border border-slate-800 rounded-2xl text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-white border border-slate-300 rounded-2xl text-xs shadow-sm">
               <div className="flex items-center space-x-2">
                 <button
                   type="button"
                   onClick={handleStudioDetect}
                   disabled={isStudioDetecting || !studioSourceText.trim()}
-                  className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all disabled:opacity-40"
+                  className="px-3.5 py-2 bg-[#0B1F3A] hover:bg-[#16365F] text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-all disabled:opacity-40 shadow-sm cursor-pointer"
                 >
-                  {isStudioDetecting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
+                  {isStudioDetecting ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" /> : <Globe className="w-3.5 h-3.5 text-white" />}
                   <span>{isStudioDetecting ? 'Detecting Language...' : 'Detect Source Language'}</span>
                 </button>
 
                 {studioDetected && (
-                  <div className="flex items-center space-x-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-300 font-medium">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <div className="flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-900 font-bold">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     <span>
                       Detected: <strong>{studioDetected.language_name}</strong> ({studioDetected.language.toUpperCase()})
                       {studioDetected.script ? ` &bull; ${studioDetected.script}` : ''}
@@ -1084,11 +1327,11 @@ export const Ingestion: React.FC = () => {
               </div>
 
               <div className="flex items-center space-x-2">
-                <span className="text-slate-400 font-semibold">Target Language:</span>
+                <span className="text-slate-800 font-bold">Target Language:</span>
                 <select
                   value={studioTargetLang}
                   onChange={(e) => setStudioTargetLang(e.target.value)}
-                  className="bg-slate-950 border border-slate-700 text-white rounded-xl px-3 py-1.5 text-xs font-medium focus:outline-none focus:border-indigo-500"
+                  className="bg-white border border-slate-300 text-black rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none focus:border-blue-600 shadow-sm cursor-pointer"
                 >
                   {SUPPORTED_LANGUAGES.map((l) => (
                     <option key={l.code} value={l.code}>
@@ -1118,8 +1361,8 @@ export const Ingestion: React.FC = () => {
               {/* Left Column: Source */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-300 flex items-center space-x-1.5">
-                    <AlignLeft className="w-3.5 h-3.5 text-indigo-400" />
+                  <span className="font-semibold text-[#374151] flex items-center space-x-1.5">
+                    <AlignLeft className="w-3.5 h-3.5 text-[#0B1F3A]" />
                     <span>Source Text (Original)</span>
                   </span>
                   <div className="flex items-center space-x-2">
@@ -1134,7 +1377,7 @@ export const Ingestion: React.FC = () => {
                       type="button"
                       onClick={() => translationFileInputRef.current?.click()}
                       disabled={isLoadingTranslationFile}
-                      className="text-violet-400 hover:text-violet-300 text-[11px] font-medium flex items-center space-x-1"
+                      className="text-[#0B1F3A] hover:underline text-xs font-semibold flex items-center space-x-1 cursor-pointer"
                       title="Load questions or text from Word (.docx), PDF (.pdf), or Text (.txt)"
                     >
                       <Upload className="w-3 h-3" />
@@ -1150,7 +1393,7 @@ export const Ingestion: React.FC = () => {
                           alert('Could not paste from clipboard automatically');
                         }
                       }}
-                      className="text-indigo-400 hover:text-indigo-300 text-[11px] font-medium"
+                      className="text-[#0B1F3A] hover:underline text-xs font-semibold cursor-pointer"
                     >
                       Paste Clipboard
                     </button>
@@ -1158,7 +1401,7 @@ export const Ingestion: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setStudioSourceText('')}
-                        className="text-slate-400 hover:text-white text-[11px]"
+                        className="text-[#6B7280] hover:text-[#111827] text-xs cursor-pointer"
                       >
                         Clear
                       </button>
@@ -1170,9 +1413,9 @@ export const Ingestion: React.FC = () => {
                   value={studioSourceText}
                   onChange={(e) => setStudioSourceText(e.target.value)}
                   placeholder="Paste questions or text to detect and translate..."
-                  className="w-full bg-slate-950 border border-slate-700/80 rounded-2xl p-4 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-indigo-500 leading-relaxed shadow-inner"
+                  className="w-full bg-white border border-[#D1D5DB] rounded-xl p-4 text-xs text-[#111827] placeholder-[#9CA3AF] font-mono focus:outline-none focus:border-[#0B1F3A] focus:ring-1 focus:ring-[#0B1F3A] leading-relaxed shadow-xs"
                 />
-                <div className="text-[11px] font-mono text-slate-400 text-right">
+                <div className="text-xs font-mono text-[#6B7280] text-right">
                   {studioSourceText.length} characters &bull; {studioSourceText.trim() ? studioSourceText.trim().split(/\s+/).length : 0} words
                 </div>
               </div>
@@ -1180,8 +1423,8 @@ export const Ingestion: React.FC = () => {
               {/* Right Column: Translated */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-300 flex items-center space-x-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="font-semibold text-[#374151] flex items-center space-x-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
                     <span>
                       Translated Text (
                       {SUPPORTED_LANGUAGES.find((l) => l.code === studioTargetLang)?.name || studioTargetLang}
@@ -1196,9 +1439,9 @@ export const Ingestion: React.FC = () => {
                         setStudioCopied(true);
                         setTimeout(() => setStudioCopied(false), 2000);
                       }}
-                      className="text-emerald-400 hover:text-emerald-300 text-[11px] font-medium flex items-center space-x-1"
+                      className="text-emerald-800 hover:text-emerald-900 text-xs font-semibold flex items-center space-x-1 cursor-pointer"
                     >
-                      {studioCopied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      {studioCopied ? <Check className="w-3 h-3 text-emerald-700" /> : <Copy className="w-3 h-3" />}
                       <span>{studioCopied ? 'Copied' : 'Copy Result'}</span>
                     </button>
                   )}
@@ -1208,10 +1451,10 @@ export const Ingestion: React.FC = () => {
                   value={studioTranslatedText}
                   readOnly
                   placeholder="Translated text will appear here with formulas ($...$), options (A)-(D), and marks brackets intact..."
-                  className="w-full bg-slate-950 border border-slate-700/80 rounded-2xl p-4 text-xs text-slate-200 placeholder-slate-600 font-mono focus:outline-none leading-relaxed shadow-inner"
+                  className="w-full bg-gray-50 border border-[#D1D5DB] rounded-xl p-4 text-xs text-[#111827] placeholder-[#9CA3AF] font-mono focus:outline-none leading-relaxed shadow-xs"
                 />
-                <div className="flex items-center justify-between text-[11px] text-slate-400">
-                  <span className="text-emerald-400 font-medium">✓ Formulas &amp; Options Preserved</span>
+                <div className="flex items-center justify-between text-xs text-[#6B7280]">
+                  <span className="text-emerald-800 font-semibold">✓ Formulas &amp; Options Preserved</span>
                   <span className="font-mono">
                     {studioTranslatedText.length} characters &bull; {studioTranslatedText.trim() ? studioTranslatedText.trim().split(/\s+/).length : 0} words
                   </span>
@@ -1221,7 +1464,7 @@ export const Ingestion: React.FC = () => {
                 {studioTranslatedText && (
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[11px] font-semibold text-slate-400 mr-1">Export:</span>
+                      <span className="text-xs font-bold text-slate-700 mr-1">Export:</span>
                       <button
                         type="button"
                         onClick={() =>
@@ -1232,10 +1475,10 @@ export const Ingestion: React.FC = () => {
                             studioTargetLang
                           )
                         }
-                        className="px-2.5 py-1 bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/40 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all"
+                        className="px-3 py-1.5 bg-[#0B1F3A] hover:bg-[#16365F] text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-all shadow-sm cursor-pointer"
                         title="Export translated text as Word document (.doc)"
                       >
-                        <FileText className="w-3 h-3" />
+                        <FileText className="w-3.5 h-3.5 text-white" />
                         <span>Word (.doc)</span>
                       </button>
                       <button
@@ -1248,10 +1491,10 @@ export const Ingestion: React.FC = () => {
                             studioTargetLang
                           )
                         }
-                        className="px-2.5 py-1 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all"
+                        className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-all shadow-sm"
                         title="Export translated text as publication-ready A4 PDF (.pdf)"
                       >
-                        <Download className="w-3 h-3" />
+                        <Download className="w-3.5 h-3.5 text-white" />
                         <span>PDF (.pdf)</span>
                       </button>
                       <button
@@ -1264,10 +1507,10 @@ export const Ingestion: React.FC = () => {
                             studioTargetLang
                           )
                         }
-                        className="px-2.5 py-1 bg-teal-600/20 hover:bg-teal-600 text-teal-300 hover:text-white border border-teal-500/40 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all"
+                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-all shadow-sm"
                         title="Export translated text as structured JSON (.json)"
                       >
-                        <FileCode className="w-3 h-3" />
+                        <FileCode className="w-3.5 h-3.5 text-white" />
                         <span>JSON (.json)</span>
                       </button>
                       <button
@@ -1280,10 +1523,10 @@ export const Ingestion: React.FC = () => {
                             studioTargetLang
                           )
                         }
-                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all"
+                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-all shadow-sm"
                         title="Export translated text as Plain Text (.txt)"
                       >
-                        <AlignLeft className="w-3 h-3" />
+                        <AlignLeft className="w-3.5 h-3.5 text-white" />
                         <span>TXT (.txt)</span>
                       </button>
                     </div>
@@ -1296,20 +1539,20 @@ export const Ingestion: React.FC = () => {
 
         {/* Duplicate Alert Banner if duplicate SHA-256 found */}
         {duplicateWarning && (
-          <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-start justify-between">
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start justify-between">
             <div className="flex items-start space-x-3">
-              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <AlertTriangle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <div className="text-sm font-semibold text-amber-300">Exact Duplicate Document Detected</div>
-                <div className="text-xs text-slate-300">
+                <div className="text-sm font-bold text-amber-900">Exact Duplicate Document Detected</div>
+                <div className="text-xs text-[#4B5563]">
                   {duplicateWarning.message} This file was previously uploaded as{' '}
-                  <span className="font-semibold text-white">{duplicateWarning.document.filename}</span>.
+                  <span className="font-bold text-[#111827]">{duplicateWarning.document.filename}</span>.
                 </div>
               </div>
             </div>
             <button
               onClick={() => navigate(`/review?docId=${duplicateWarning.document.id}`)}
-              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold text-xs px-4 py-2 rounded-xl transition-colors shrink-0"
+              className="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition-colors shrink-0 shadow-xs cursor-pointer"
             >
               Open Existing Document
             </button>
@@ -1319,7 +1562,7 @@ export const Ingestion: React.FC = () => {
         {/* Processing Profile Selector (for File and Paste modes) */}
         {(ingestionMode === 'FILE' || ingestionMode === 'PASTE') && (
           <div className="space-y-3">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#4B5563]">
               Select Processing Strategy Profile
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1330,24 +1573,24 @@ export const Ingestion: React.FC = () => {
                   <div
                     key={p.id}
                     onClick={() => setProfile(p.id)}
-                    className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                    className={`p-4 rounded-xl border cursor-pointer transition-all ${
                       isSelected
-                        ? 'bg-indigo-600/15 border-indigo-500 text-white shadow-lg shadow-indigo-500/10'
-                        : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                        ? 'bg-blue-50/70 border-[#0B1F3A] text-[#111827] shadow-sm ring-1 ring-[#0B1F3A]'
+                        : 'bg-white border-[#D1D5DB] text-[#4B5563] hover:border-gray-400 hover:bg-gray-50/60'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center space-x-2 font-semibold text-sm text-slate-100">
-                        <Icon className="w-4 h-4 text-indigo-400" />
+                      <div className="flex items-center space-x-2 font-bold text-sm text-[#111827]">
+                        <Icon className="w-4 h-4 text-[#0B1F3A]" />
                         <span>{p.name}</span>
                       </div>
-                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md ${
-                        isSelected ? 'bg-indigo-500/30 text-indigo-300' : 'bg-slate-800 text-slate-400'
+                      <span className={`text-xs font-mono px-2 py-0.5 rounded-md font-semibold ${
+                        isSelected ? 'bg-[#0B1F3A] text-white' : 'bg-gray-100 text-[#4B5563]'
                       }`}>
                         {p.badge}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-400 leading-relaxed">{p.desc}</p>
+                    <p className="text-xs text-[#6B7280] leading-relaxed">{p.desc}</p>
                   </div>
                 );
               })}
@@ -1374,7 +1617,7 @@ export const Ingestion: React.FC = () => {
                 (ingestionMode === 'FILE' && !file) ||
                 (ingestionMode === 'PASTE' && !pastedText.trim())
               }
-              className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium px-8 py-3 rounded-xl shadow-lg shadow-indigo-600/25 flex items-center justify-center space-x-2 transition-all disabled:opacity-50"
+              className="w-full sm:w-auto bg-[#0B1F3A] hover:bg-[#16365F] text-white text-sm font-semibold px-8 py-3 rounded-lg shadow-sm flex items-center justify-center space-x-2 transition-all disabled:opacity-50 cursor-pointer"
             >
               <span>
                 {uploading
@@ -1389,65 +1632,255 @@ export const Ingestion: React.FC = () => {
         )}
       </div>
 
-      {/* Document Library Table */}
-      <div className="glass-panel p-6 rounded-2xl space-y-4">
-        <h2 className="font-bold text-lg text-white">Ingested Document Library</h2>
-        <div className="divide-y divide-slate-800">
-          {documents.map((doc) => {
-            const info = getFileTypeInfo(doc.filename);
-            const Icon = info.icon;
-            return (
-              <div key={doc.id} className="py-3.5 flex items-center justify-between hover:bg-slate-900/40 px-2 rounded-xl transition-colors">
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-xl border ${info.color}`}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-sm text-slate-200">{doc.filename}</div>
-                    <div className="text-xs text-slate-400">
-                      {doc.pageCount} Pages &bull; Profile: <span className="font-mono text-indigo-300">{doc.profile}</span> &bull; {info.badge}
+      {/* Document Library Table - Separate per Tab */}
+      <div className="bg-white border border-[#D1D5DB] p-6 rounded-xl shadow-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E5E7EB] pb-3.5">
+          <div>
+            <h2 className="font-bold text-lg text-[#111827] flex items-center space-x-2.5 flex-wrap gap-y-1">
+              <span>
+                {ingestionMode === 'FILE' && 'Uploaded Files Library'}
+                {ingestionMode === 'PASTE' && 'Pasted Text Documents Library'}
+                {ingestionMode === 'IMAGE_OCR' && 'Image OCR Extracted Documents Library'}
+                {ingestionMode === 'TRANSLATE' && 'Translated Documents Library'}
+              </span>
+              <span className="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-[#0B1F3A]/5 text-[#0B1F3A] border border-[#0B1F3A]/20 font-mono">
+                {currentTabDocs.length} document{currentTabDocs.length === 1 ? '' : 's'}
+              </span>
+            </h2>
+            <p className="text-xs text-[#6B7280] mt-1">
+              {ingestionMode === 'FILE' && 'Showing all documents uploaded directly via the File Uploader tab'}
+              {ingestionMode === 'PASTE' && 'Showing documents ingested directly via the Copy & Paste Text tab'}
+              {ingestionMode === 'IMAGE_OCR' && 'Showing documents ingested via the Image OCR Extractor tab'}
+              {ingestionMode === 'TRANSLATE' && 'Showing documents ingested via the Live Translation Studio tab'}
+            </p>
+          </div>
+
+          {/* RBAC Access Badge */}
+          <div className="flex items-center space-x-2">
+            {isAdmin ? (
+              <span className="flex items-center space-x-1.5 text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300 px-3 py-1 rounded-md shadow-xs">
+                <Shield className="w-3.5 h-3.5 text-emerald-700" />
+                <span>RBAC: Admin Full Access (All Files)</span>
+              </span>
+            ) : (
+              <span className="flex items-center space-x-1.5 text-xs font-semibold bg-gray-100 text-[#374151] border border-[#D1D5DB] px-3 py-1 rounded-md">
+                <Shield className="w-3.5 h-3.5 text-[#0B1F3A]" />
+                <span>RBAC: {user?.role || 'User'} Access (My Files)</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        {currentTabDocs.length === 0 ? (
+          <div className="text-center py-10 space-y-2">
+            <div className="text-[#374151] text-sm font-semibold">
+              {ingestionMode === 'FILE' && 'No uploaded files in this library yet.'}
+              {ingestionMode === 'PASTE' && 'No pasted text documents in this library yet.'}
+              {ingestionMode === 'IMAGE_OCR' && 'No Image OCR documents in this library yet.'}
+              {ingestionMode === 'TRANSLATE' && 'No translated documents in this library yet.'}
+            </div>
+            <p className="text-xs text-[#6B7280]">
+              {ingestionMode === 'FILE' && 'Drop or select a PDF, Word, or Excel document above to ingest.'}
+              {ingestionMode === 'PASTE' && 'Paste question or paper text above and click "Ingest & Process Pasted Text".'}
+              {ingestionMode === 'IMAGE_OCR' && 'Select an image document above and click "Ingest as Document".'}
+              {ingestionMode === 'TRANSLATE' && 'Translate your exam paper or questions above and click "Ingest as Document".'}
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-[#E5E7EB]">
+            {currentTabDocs.map((doc) => {
+              const info = getFileTypeInfo(doc.filename);
+              const Icon = info.icon;
+              const canManage = isAdmin || !doc.userId || doc.userId === user?.id;
+              const uploaderName = doc.user?.fullName || doc.uploadedBy || 'Admin';
+              const uploaderRole = doc.user?.role || (uploaderName.toLowerCase().includes('admin') ? 'ADMIN' : null);
+
+              return (
+                <div
+                  key={doc.id}
+                  className="py-4 flex flex-col md:flex-row md:items-center justify-between hover:bg-gray-50/80 px-3.5 rounded-xl transition-colors gap-3 border-b border-[#E5E7EB]/60"
+                >
+                  <div className="flex items-start space-x-3.5 min-w-0 flex-1">
+                    <div className={`p-2.5 rounded-lg border mt-0.5 shrink-0 ${info.color}`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 space-y-1.5 flex-1">
+                      <div className="flex items-center space-x-2 flex-wrap">
+                        <span className="font-semibold text-sm text-[#111827] truncate" title={doc.filename}>
+                          {doc.filename}
+                        </span>
+                        {canManage && (
+                          <button
+                            onClick={() => handleOpenRename(doc)}
+                            className="p-1 text-[#6B7280] hover:text-[#0B1F3A] hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                            title="Rename document"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-[#6B7280]">
+                        <span className="text-[#374151] font-medium">{doc.pageCount} Pages</span>
+                        <span className="text-[#D1D5DB]">&bull;</span>
+                        <span>
+                          Profile: <span className="font-mono text-[#0B1F3A] font-semibold">{doc.profile}</span>
+                        </span>
+                        <span className="text-[#D1D5DB]">&bull;</span>
+                        <span className="flex items-center space-x-1 text-[#374151] font-medium" title="Upload Date & Time">
+                          <Clock className="w-3.5 h-3.5 text-[#0B1F3A]" />
+                          <span>{formatDateTime(doc.createdAt)}</span>
+                        </span>
+                        <span className="text-[#D1D5DB]">&bull;</span>
+                        <span className="flex items-center space-x-1.5 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200 text-[#374151]" title="Uploaded by User">
+                          <UserIcon className="w-3 h-3 text-[#0B1F3A]" />
+                          <span className="font-medium text-xs">{uploaderName}</span>
+                          {uploaderRole && (
+                            <span className="text-xs font-mono font-semibold px-1 py-0.2 rounded bg-[#0B1F3A]/5 text-[#0B1F3A] border border-[#0B1F3A]/20">
+                              {uploaderRole}
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-[#D1D5DB]">&bull;</span>
+                        <span className="text-[#6B7280] text-xs">{info.badge}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => navigate(`/review?docId=${doc.id}`)}
-                    className="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 text-xs font-semibold px-3 py-1.5 rounded-lg border border-indigo-500/30 transition-colors"
-                  >
-                    Review &amp; Compare
-                  </button>
-                  <button
-                    onClick={() => setDeleteConfirmDoc({ id: doc.id, filename: doc.filename })}
-                    className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded-lg border border-rose-500/20 text-xs font-medium flex items-center space-x-1 transition-colors"
-                    title="Delete document"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete</span>
-                  </button>
+                  <div className="flex items-center space-x-2 shrink-0 self-end md:self-center">
+                    <button
+                      onClick={() => navigate(`/review?docId=${doc.id}`)}
+                      className="bg-white hover:bg-gray-50 text-[#0B1F3A] text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#D1D5DB] shadow-xs transition-colors cursor-pointer"
+                    >
+                      Review &amp; Compare
+                    </button>
+
+                    {canManage ? (
+                      <button
+                        onClick={() => handleOpenRename(doc)}
+                        className="bg-white hover:bg-gray-50 text-[#374151] text-xs font-medium px-2.5 py-1.5 rounded-lg border border-[#D1D5DB] flex items-center space-x-1 transition-colors cursor-pointer"
+                        title="Rename document"
+                      >
+                        <Pencil className="w-3.5 h-3.5 text-[#4B5563]" />
+                        <span>Rename</span>
+                      </button>
+                    ) : (
+                      <span
+                        className="text-gray-400 text-xs px-2 py-1 flex items-center space-x-1"
+                        title="Admin permission required to rename this file"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                      </span>
+                    )}
+
+                    {canManage ? (
+                      <button
+                        onClick={() => setDeleteConfirmDoc({ id: doc.id, filename: doc.filename })}
+                        className="p-1.5 bg-white hover:bg-red-50 text-red-700 hover:text-red-800 rounded-lg border border-red-200 text-xs font-medium flex items-center space-x-1 transition-colors cursor-pointer"
+                        title="Delete document"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    ) : (
+                      <span
+                        className="text-gray-400 text-xs px-2 py-1 flex items-center space-x-1"
+                        title="Admin permission required to delete this file"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Delete Document Confirmation Modal */}
-      {deleteConfirmDoc && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4">
-            <div className="flex items-center space-x-3 text-rose-400 pb-2 border-b border-slate-800">
-              <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-rose-400" />
+      {/* Rename Document Modal */}
+      {renameModalDoc && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white border border-[#D1D5DB] rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+            <div className="flex items-center space-x-3 text-[#0B1F3A] pb-3 border-b border-[#E5E7EB]">
+              <div className="w-10 h-10 rounded-lg bg-[#0B1F3A]/5 border border-[#0B1F3A]/15 flex items-center justify-center">
+                <Pencil className="w-5 h-5 text-[#0B1F3A]" />
               </div>
               <div>
-                <h3 className="font-bold text-white text-base">Delete Document?</h3>
-                <p className="text-xs text-slate-400">This action cannot be undone</p>
+                <h3 className="font-bold text-[#111827] text-base">Rename Document</h3>
+                <p className="text-xs text-[#6B7280]">Update file display name in system registry</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-300">
-              Are you sure you want to permanently delete <strong className="text-white">"{deleteConfirmDoc.filename}"</strong>?
+            {renameError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 font-medium">
+                {renameError}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveRename} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#374151] mb-1.5">
+                  Document Filename
+                </label>
+                <input
+                  type="text"
+                  value={renameInput}
+                  onChange={(e) => setRenameInput(e.target.value)}
+                  placeholder="Enter new filename..."
+                  className="w-full bg-white border border-[#D1D5DB] focus:border-[#0B1F3A] rounded-lg px-3.5 py-2.5 text-sm text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#0B1F3A]"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRenameModalDoc(null)}
+                  disabled={renaming}
+                  className="px-4 py-2 bg-white hover:bg-gray-50 text-[#374151] border border-[#D1D5DB] text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={renaming || !renameInput.trim()}
+                  className="px-4 py-2 bg-[#0B1F3A] hover:bg-[#16365F] text-white text-xs font-semibold rounded-lg flex items-center space-x-1.5 transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
+                >
+                  {renaming ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Renaming...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Save Name</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Document Confirmation Modal */}
+      {deleteConfirmDoc && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white border border-[#D1D5DB] rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+            <div className="flex items-center space-x-3 text-red-700 pb-3 border-b border-[#E5E7EB]">
+              <div className="w-10 h-10 rounded-lg bg-red-50 border border-red-200 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-700" />
+              </div>
+              <div>
+                <h3 className="font-bold text-[#111827] text-base">Delete Document?</h3>
+                <p className="text-xs text-[#6B7280]">This action cannot be undone</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#4B5563] leading-relaxed">
+              Are you sure you want to permanently delete <strong className="text-[#111827]">"{deleteConfirmDoc.filename}"</strong>?
               All extracted pages and bounding regions will be removed.
             </p>
 
@@ -1456,7 +1889,7 @@ export const Ingestion: React.FC = () => {
                 type="button"
                 onClick={() => setDeleteConfirmDoc(null)}
                 disabled={deleting}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-colors"
+                className="px-4 py-2 bg-white hover:bg-gray-50 text-[#374151] border border-[#D1D5DB] text-xs font-semibold rounded-lg transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -1464,7 +1897,7 @@ export const Ingestion: React.FC = () => {
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={deleting}
-                className="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-rose-600/30 flex items-center space-x-1.5 transition-all disabled:opacity-50"
+                className="px-5 py-2 bg-red-700 hover:bg-red-800 text-white text-xs font-bold rounded-lg shadow-sm flex items-center space-x-1.5 transition-all disabled:opacity-50 cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>{deleting ? 'Deleting...' : 'Confirm Delete'}</span>

@@ -126,6 +126,7 @@ class Formula2DResult:
             "originalCrop": self.original_crop,
             "boundingBox": [float(x) for x in self.bbox],
             "plainText": self.plain_text,
+            "plainMath": self.plain_text,
             "latex": self.latex,
             "mathml": self.mathml,
             "structuredExpression": self.structured_expression,
@@ -328,9 +329,27 @@ class SpatialMathEngine:
             if i in skip_indices:
                 continue
 
-            # Check if next symbol is a subscript or superscript of current symbol
+            # Check if next symbol is a factorial, subscript, or superscript of current symbol
             if i + 1 < len(sorted_syms):
                 next_s = sorted_syms[i + 1]
+
+                # Postfix factorial check
+                if next_s.text.strip() == "!":
+                    base_node = cls._symbol_to_node(s)
+                    if i + 2 < len(sorted_syms) and sorted_syms[i + 2].text.strip() == "!":
+                        fact_struct = FormulaNode(NodeType.DOUBLE_FACTORIAL)
+                        fact_struct.add_child(base_node)
+                        elements.append(fact_struct)
+                        skip_indices.add(i + 1)
+                        skip_indices.add(i + 2)
+                        continue
+                    else:
+                        fact_struct = FormulaNode(NodeType.FACTORIAL)
+                        fact_struct.add_child(base_node)
+                        elements.append(fact_struct)
+                        skip_indices.add(i + 1)
+                        continue
+
                 is_sub = (
                     next_s.size < s.size * 0.88
                     and next_s.y0 > s.y0 + 1.2
@@ -378,6 +397,12 @@ class SpatialMathEngine:
             return FormulaNode(NodeType.NUMBER, value=t)
         elif t in ("+", "-", "*", "/", "="):
             return FormulaNode(NodeType.OPERATOR, value=t)
+        elif t in ("!", "!!"):
+            return FormulaNode(NodeType.OPERATOR, value=t)
+        elif t in ("...", "…", r"\cdots", r"\dots"):
+            return FormulaNode(NodeType.ELLIPSIS, attributes={"latex": r"\cdots"})
+        elif t in ("×", "·", "⋅", r"\times", r"\cdot"):
+            return FormulaNode(NodeType.MULTIPLY, value=r"\times" if t in ("×", r"\times") else r"\cdot")
         elif t in ("sin", "cos", "tan", "cot", "sec", "csc"):
             return FormulaNode(NodeType.FUNCTION, value=t)
         elif t in ("\\theta", "theta", "θ", "q"):
@@ -401,15 +426,53 @@ class SpatialMathEngine:
         if len(elements) == 1:
             return elements[0]
 
-        # Check for Equation '='
-        for i, el in enumerate(elements):
-            if isinstance(el, FormulaNode) and el.node_type == NodeType.OPERATOR and el.value == "=":
-                left = cls._assemble_binary_operations(elements[:i]) or FormulaNode(NodeType.VARIABLE, value="")
-                right = cls._assemble_binary_operations(elements[i + 1:]) or FormulaNode(NodeType.VARIABLE, value="")
-                eq_node = FormulaNode(NodeType.EQUATION, attributes={"operator": "="})
-                eq_node.add_child(left)
-                eq_node.add_child(right)
-                return eq_node
+        # Check for Equation '=' or multi-step Derivation
+        eq_indices = [
+            i for i, el in enumerate(elements)
+            if isinstance(el, FormulaNode) and el.node_type == NodeType.OPERATOR and el.value == "="
+        ]
+        if len(eq_indices) >= 2:
+            # Multi-step derivation!
+            steps = []
+            last_idx = 0
+            for eq_idx in eq_indices:
+                step_elements = elements[last_idx:eq_idx]
+                if step_elements:
+                    step_node = cls._assemble_binary_operations(step_elements)
+                    if step_node:
+                        steps.append(step_node)
+                last_idx = eq_idx + 1
+            final_elements = elements[last_idx:]
+            if final_elements:
+                step_node = cls._assemble_binary_operations(final_elements)
+                if step_node:
+                    steps.append(step_node)
+
+            if len(steps) >= 2:
+                deriv_node = FormulaNode(NodeType.DERIVATION)
+                for idx, st in enumerate(steps):
+                    trans = "EQUAL"
+                    if idx > 0:
+                        prev_latex = steps[idx - 1].to_latex()
+                        curr_latex = st.to_latex()
+                        if r"\cancel" in curr_latex or r"\cancel" in prev_latex:
+                            trans = "CANCEL"
+                        elif r"\times" in curr_latex and r"\times" not in prev_latex:
+                            trans = "EXPAND"
+                        elif len(curr_latex) < len(prev_latex):
+                            trans = "SIMPLIFY"
+                    step_leaf = FormulaNode(NodeType.DERIVATION_STEP, attributes={"step_index": idx, "transformation": trans})
+                    step_leaf.add_child(st)
+                    deriv_node.add_child(step_leaf)
+                return deriv_node
+        elif len(eq_indices) == 1:
+            eq_idx = eq_indices[0]
+            left = cls._assemble_binary_operations(elements[:eq_idx]) or FormulaNode(NodeType.VARIABLE, value="")
+            right = cls._assemble_binary_operations(elements[eq_idx + 1:]) or FormulaNode(NodeType.VARIABLE, value="")
+            eq_node = FormulaNode(NodeType.EQUATION, attributes={"operator": "="})
+            eq_node.add_child(left)
+            eq_node.add_child(right)
+            return eq_node
 
         # Split on '+' or '-' (additive level)
         terms = []
@@ -491,7 +554,42 @@ class SpatialMathEngine:
         if cleaned.startswith("$") and cleaned.endswith("$") and len(cleaned) >= 2:
             cleaned = cleaned[1:-1].strip()
 
-        # 1. Equation check (left = right)
+        # 1. Multi-step derivation check (A = B = C ...)
+        eq_parts = [s.strip() for s in re.split(r"(?<![<>!=])=(?![=])", cleaned)]
+        if len(eq_parts) >= 3:
+            step_nodes = []
+            for ep in eq_parts:
+                sn = cls._parse_str_sequence(ep)
+                if sn:
+                    step_nodes.append(sn)
+            if len(step_nodes) >= 2:
+                deriv_node = FormulaNode(NodeType.DERIVATION)
+                for idx, sn in enumerate(step_nodes):
+                    trans = "EQUAL"
+                    if idx > 0:
+                        prev_latex = step_nodes[idx - 1].to_latex()
+                        curr_latex = sn.to_latex()
+                        if r"\cancel" in curr_latex or r"\cancel" in prev_latex:
+                            trans = "CANCEL"
+                        elif r"\times" in curr_latex and r"\times" not in prev_latex:
+                            trans = "EXPAND"
+                        elif len(curr_latex) < len(prev_latex):
+                            trans = "SIMPLIFY"
+                    step_leaf = FormulaNode(NodeType.DERIVATION_STEP, attributes={"step_index": idx, "transformation": trans})
+                    step_leaf.add_child(sn)
+                    deriv_node.add_child(step_leaf)
+                return Formula2DResult(
+                    ast=deriv_node,
+                    latex=deriv_node.to_latex(),
+                    mathml=deriv_node.to_mathml(),
+                    plain_text=deriv_node.to_plain_text(),
+                    structured_expression=deriv_node.to_dict(),
+                    bbox=bbox,
+                    domain=domain,
+                    original_crop=original_crop,
+                )
+
+        # 1b. Single Equation check (left = right)
         eq_match = re.match(r"^(.+?)\s*(?<![<>!=])=(?![=])\s*(.+)$", cleaned)
         if eq_match:
             left_node = cls._parse_str_sequence(eq_match.group(1))
@@ -510,6 +608,43 @@ class SpatialMathEngine:
                     domain=domain,
                     original_crop=original_crop,
                 )
+
+        # 1b. Function / inverse trigonometric check:
+        # e.g. \tan^{-1}\left(\frac{4}{5}\right), \sin^{-1}(1/2), \tan^{-1}(m), \sin\left(\frac{\pi}{4}\right)
+        func_match = re.match(
+            r"^(?:\\)?(?P<fn>sin|cos|tan|cot|sec|csc|cosec|arctan|arcsin|arccos)(?P<pow>\^\{?[-–]?\d+\}?|[-–]?\d+)?\s*(?:\\left\s*\(|\()(?P<arg>.*?)(?:\\right\s*\)|\))$",
+            cleaned,
+            re.IGNORECASE
+        )
+        if func_match:
+            fn_name = func_match.group("fn").lower()
+            fn_pow = func_match.group("pow") or ""
+            fn_str = f"\\{fn_name}"
+            if fn_pow:
+                clean_pow = fn_pow.lstrip("^").strip("{}")
+                fn_str = f"\\{fn_name}^{{{clean_pow}}}"
+            arg_str = func_match.group("arg").strip()
+            arg_res = cls.parse_expression(arg_str)
+            arg_ast = arg_res.ast if arg_res else (cls._parse_str_sequence(arg_str) or FormulaNode(NodeType.VARIABLE, value=arg_str))
+
+            paren_node = FormulaNode(NodeType.PARENTHESES)
+            paren_node.add_child(arg_ast)
+
+            fn_node = FormulaNode(NodeType.FUNCTION, value=fn_str)
+            fn_node.add_child(paren_node)
+
+            spatial_rels = cls.extract_spatial_relationships_from_ast(fn_node)
+            return Formula2DResult(
+                ast=fn_node,
+                latex=fn_node.to_latex(),
+                mathml=fn_node.to_mathml(),
+                plain_text=fn_node.to_plain_text(),
+                structured_expression=fn_node.to_dict(),
+                spatial_relationships=spatial_rels,
+                bbox=bbox,
+                domain=domain,
+                original_crop=original_crop,
+            )
 
         # 2. Fraction check: via dedicated FractionTreeParser
         frac_ast = FractionTreeParser.parse_fraction_string(cleaned)
@@ -560,6 +695,104 @@ class SpatialMathEngine:
                 spatial_relationships=spatial_rels,
                 bbox=bbox,
                 domain=domain,
+                original_crop=original_crop,
+            )
+
+        # 3b. Piecewise / Cases: \begin{cases} ... \end{cases}
+        cases_match = re.search(r"\\begin\{cases\}(.+?)\\end\{cases\}", cleaned, re.DOTALL)
+        if cases_match:
+            cases_body = cases_match.group(1).strip()
+            raw_cases = [r.strip() for r in re.split(r"\\\\|\n", cases_body) if r.strip()]
+            parsed_cases = []
+            for rc in raw_cases:
+                parts = [p.strip() for p in re.split(r"&|\\text\{if\s*\}|if\s+", rc) if p.strip()]
+                if len(parts) >= 2:
+                    expr_n = cls._parse_str_sequence(parts[0]) or FormulaNode(NodeType.VARIABLE, value=parts[0])
+                    cond_n = cls._parse_str_sequence(parts[1]) or FormulaNode(NodeType.VARIABLE, value=parts[1])
+                    parsed_cases.append((expr_n, cond_n))
+                elif parts:
+                    expr_n = cls._parse_str_sequence(parts[0]) or FormulaNode(NodeType.VARIABLE, value=parts[0])
+                    parsed_cases.append((expr_n, FormulaNode(NodeType.TEXT, value="")))
+            if parsed_cases:
+                from .structural_tree import ExpressionTreeBuilder
+                pw_node = ExpressionTreeBuilder.build_piecewise(parsed_cases)
+                spatial_rels = cls.extract_spatial_relationships_from_ast(pw_node)
+                return Formula2DResult(
+                    ast=pw_node,
+                    latex=pw_node.to_latex(),
+                    mathml=pw_node.to_mathml(),
+                    plain_text=pw_node.to_plain_text(),
+                    structured_expression=pw_node.to_dict(),
+                    spatial_relationships=spatial_rels,
+                    bbox=bbox,
+                    domain="ADVANCED_MATH",
+                    original_crop=original_crop,
+                )
+
+        # 3c. Matrix: \begin{pmatrix} ... \end{pmatrix} or \begin{bmatrix} ... \end{bmatrix}
+        matrix_match = re.search(r"\\begin\{(pmatrix|bmatrix|matrix|vmatrix)\}(.+?)\\end\{\1\}", cleaned, re.DOTALL)
+        if matrix_match:
+            m_type = matrix_match.group(1)
+            m_body = matrix_match.group(2).strip()
+            raw_rows = [r.strip() for r in re.split(r"\\\\|\n", m_body) if r.strip()]
+            matrix_rows = []
+            for rr in raw_rows:
+                cells = [c.strip() for c in rr.split("&")]
+                parsed_cells = [cls._parse_str_sequence(c) or FormulaNode(NodeType.VARIABLE, value=c) for c in cells]
+                matrix_rows.append(parsed_cells)
+            if matrix_rows:
+                from .structural_tree import ExpressionTreeBuilder
+                m_node = ExpressionTreeBuilder.build_matrix(matrix_rows, matrix_type=m_type)
+                spatial_rels = cls.extract_spatial_relationships_from_ast(m_node)
+                return Formula2DResult(
+                    ast=m_node,
+                    latex=m_node.to_latex(),
+                    mathml=m_node.to_mathml(),
+                    plain_text=m_node.to_plain_text(),
+                    structured_expression=m_node.to_dict(),
+                    spatial_relationships=spatial_rels,
+                    bbox=bbox,
+                    domain="LINEAR_ALGEBRA",
+                    original_crop=original_crop,
+                )
+
+        # 3d. Integral with limits: \int_{lower}^{upper} expr d var or \int_0^\infty ...
+        int_match = re.match(r"^\\int(?:_\{?([^{}]+)\}?)?(?:\^\{?([^{}]+)\}?)?\s*(.+?)(?:\s*d([a-zA-Z]))?$", cleaned)
+        if int_match:
+            lower, upper, expr_str, var = int_match.group(1), int_match.group(2), int_match.group(3), int_match.group(4) or "x"
+            expr_n = cls._parse_str_sequence(expr_str) or FormulaNode(NodeType.VARIABLE, value=expr_str)
+            from .structural_tree import ExpressionTreeBuilder
+            int_node = ExpressionTreeBuilder.build_integral(expr_n, var=var, lower=lower, upper=upper)
+            spatial_rels = cls.extract_spatial_relationships_from_ast(int_node)
+            return Formula2DResult(
+                ast=int_node,
+                latex=int_node.to_latex(),
+                mathml=int_node.to_mathml(),
+                plain_text=int_node.to_plain_text(),
+                structured_expression=int_node.to_dict(),
+                spatial_relationships=spatial_rels,
+                bbox=bbox,
+                domain="CALCULUS",
+                original_crop=original_crop,
+            )
+
+        # 3e. Summation with limits: \sum_{lower}^{upper} expr
+        sum_match = re.match(r"^\\sum(?:_\{?([^{}]+)\}?)?(?:\^\{?([^{}]+)\}?)?\s*(.+)$", cleaned)
+        if sum_match:
+            lower, upper, expr_str = sum_match.group(1), sum_match.group(2), sum_match.group(3)
+            expr_n = cls._parse_str_sequence(expr_str) or FormulaNode(NodeType.VARIABLE, value=expr_str)
+            from .structural_tree import ExpressionTreeBuilder
+            sum_node = ExpressionTreeBuilder.build_summation(expr_n, lower=lower, upper=upper)
+            spatial_rels = cls.extract_spatial_relationships_from_ast(sum_node)
+            return Formula2DResult(
+                ast=sum_node,
+                latex=sum_node.to_latex(),
+                mathml=sum_node.to_mathml(),
+                plain_text=sum_node.to_plain_text(),
+                structured_expression=sum_node.to_dict(),
+                spatial_relationships=spatial_rels,
+                bbox=bbox,
+                domain="MATHEMATICS",
                 original_crop=original_crop,
             )
 
@@ -698,6 +931,120 @@ class SpatialMathEngine:
         if not cleaned:
             return None
 
+        # Parentheses / Left-Right wrapping: (n-1) or \left(...\right)
+        if (cleaned.startswith("(") and cleaned.endswith(")")) or (cleaned.startswith(r"\left(") and cleaned.endswith(r"\right)")):
+            if cleaned.startswith(r"\left("):
+                inner = cleaned[len(r"\left("):-len(r"\right)")].strip()
+            else:
+                inner = cleaned[1:-1].strip()
+            inner_node = cls._parse_str_sequence(inner)
+            if inner_node:
+                p_node = FormulaNode(NodeType.PARENTHESES)
+                p_node.add_child(inner_node)
+                return p_node
+
+        # Cancellation: \cancel{...}
+        cancel_match = re.match(r"^\\cancel\{(.+?)\}$", cleaned)
+        if cancel_match:
+            inner_node = cls._parse_str_term(cancel_match.group(1))
+            if inner_node:
+                node = FormulaNode(NodeType.CANCELLATION)
+                node.add_child(inner_node)
+                return node
+
+        # Double Factorial: e.g. n!! or 10!!
+        dfact_match = re.match(r"^(.+?)!!$", cleaned)
+        if dfact_match:
+            inner_node = cls._parse_str_term(dfact_match.group(1))
+            if inner_node:
+                node = FormulaNode(NodeType.DOUBLE_FACTORIAL)
+                node.add_child(inner_node)
+                return node
+
+        # Factorial: e.g. 20!, n!, (n-1)!
+        fact_match = re.match(r"^(.+?)!$", cleaned)
+        if fact_match:
+            inner_node = cls._parse_str_term(fact_match.group(1))
+            if inner_node:
+                node = FormulaNode(NodeType.FACTORIAL)
+                node.add_child(inner_node)
+                return node
+
+        # Ellipsis
+        if cleaned in ("...", "…", r"\cdots", r"\dots", r"\ldots"):
+            return FormulaNode(NodeType.ELLIPSIS, attributes={"latex": r"\cdots"})
+
+        # Vectors & Unit Vectors: \vec{x}, \hat{i}
+        vec_match = re.match(r"^\\vec\{([a-zA-Z]+)\}$", cleaned)
+        if vec_match:
+            v_node = FormulaNode(NodeType.VECTOR, value=vec_match.group(1))
+            v_node.add_child(FormulaNode(NodeType.VARIABLE, value=vec_match.group(1)))
+            return v_node
+        hat_match = re.match(r"^\\hat\{([a-zA-Z]+)\}$", cleaned)
+        if hat_match:
+            v_node = FormulaNode(NodeType.VECTOR, value=hat_match.group(1), attributes={"unit_vector": True})
+            v_node.add_child(FormulaNode(NodeType.VARIABLE, value=hat_match.group(1)))
+            return v_node
+
+        # Scientific notation: 1.25 \times 10^{-5}
+        sci_match = re.match(r"^(\d+(?:\.\d+)?)\s*(?:\\times|×|\*)\s*10\^\{?(-?\d+)\}?$", cleaned)
+        if sci_match:
+            from .structural_tree import ExpressionTreeBuilder
+            return ExpressionTreeBuilder.build_scientific_notation(sci_match.group(1), sci_match.group(2))
+
+        # Explicit multiplication: e.g. 20 \times 19 \times 18! or 6 \cdot 7 \cdot 8
+        mult_split = re.split(r"\s*(?:\\times|\\cdot|×|·|\*)\s*", cleaned)
+        if len(mult_split) > 1:
+            mult_node = FormulaNode(NodeType.MULTIPLY, attributes={"implicit": False})
+            for p in mult_split:
+                child = cls._parse_str_term(p)
+                if child:
+                    mult_node.add_child(child)
+            return mult_node
+
+        # Combined Subscript and Superscript: x_1^2 or x_{1}^{2} or x^2_1
+        sub_sup_match = re.match(r"^([a-zA-Zα-ωΑ-Ω]+)_\{?([0-9a-zA-Z]+)\}?\^\{?([0-9a-zA-Z\+\-]+)\}?$", cleaned)
+        if sub_sup_match:
+            base, sub, sup = sub_sup_match.group(1), sub_sup_match.group(2), sub_sup_match.group(3)
+            sub_node = FormulaNode(NodeType.SUBSCRIPT)
+            sub_node.add_child(FormulaNode(NodeType.VARIABLE, value=base))
+            sub_node.add_child(FormulaNode(NodeType.NUMBER if sub.isdigit() else NodeType.VARIABLE, value=sub))
+            pow_node = FormulaNode(NodeType.POWER)
+            pow_node.add_child(sub_node)
+            pow_node.add_child(FormulaNode(NodeType.NUMBER if sup.isdigit() else NodeType.VARIABLE, value=sup))
+            return pow_node
+
+        sup_sub_match = re.match(r"^([a-zA-Zα-ωΑ-Ω]+)\^\{?([0-9a-zA-Z\+\-]+)\}?_\{?([0-9a-zA-Z]+)\}?$", cleaned)
+        if sup_sub_match:
+            base, sup, sub = sup_sub_match.group(1), sup_sub_match.group(2), sup_sub_match.group(3)
+            sub_node = FormulaNode(NodeType.SUBSCRIPT)
+            sub_node.add_child(FormulaNode(NodeType.VARIABLE, value=base))
+            sub_node.add_child(FormulaNode(NodeType.NUMBER if sub.isdigit() else NodeType.VARIABLE, value=sub))
+            pow_node = FormulaNode(NodeType.POWER)
+            pow_node.add_child(sub_node)
+            pow_node.add_child(FormulaNode(NodeType.NUMBER if sup.isdigit() else NodeType.VARIABLE, value=sup))
+            return pow_node
+
+        # Chemical Ion with charge: e.g. Fe^{3+}, Fe^3+, SO_4^{2-}, SO4^2-
+        ion_match = re.match(r"^([A-Z][a-z]?(?:_\{?\d+\}?|\d+)*)\^\{?(\d*[\+\-])\}?$", cleaned)
+        if ion_match:
+            base_chem, charge = ion_match.group(1), ion_match.group(2)
+            base_node = cls._parse_str_term(base_chem) or FormulaNode(NodeType.VARIABLE, value=base_chem)
+            from .structural_tree import ExpressionTreeBuilder
+            return ExpressionTreeBuilder.build_chemical_ion(base_node, charge)
+
+        # Chemical Compound: e.g. H_2O, H2O, C_6H_{12}O_6, C6H12O6
+        chem_matches = re.findall(r"([A-Z][a-z]?)(?:_\{?(\d+)\}?|(\d+))?", cleaned)
+        if chem_matches:
+            reconstructed = "".join([f"{el}{f'_{{{s1}}}' if s1 else (s2 or '')}" for el, s1, s2 in chem_matches])
+            clean_recon = reconstructed.replace('_', '').replace('{', '').replace('}', '')
+            clean_orig = cleaned.replace('_', '').replace('{', '').replace('}', '')
+            common_elements = {"H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne", "Na", "Mg", "Al", "Si", "P", "S", "Cl", "Ar", "K", "Ca", "Fe", "Cu", "Zn", "Ag", "Au", "Pb", "Br", "I"}
+            if clean_recon == clean_orig and any(s1 or s2 for _, s1, s2 in chem_matches) and all(el in common_elements for el, _, _ in chem_matches):
+                components = [(el, s1 or s2 or None) for el, s1, s2 in chem_matches]
+                from .structural_tree import ExpressionTreeBuilder
+                return ExpressionTreeBuilder.build_chemical_compound(components)
+
         # Subscript: M_{1}, M_1, m_1, T_2
         sub_match = re.match(r"^([a-zA-Z]+)_\{?([0-9a-zA-Z]+)\}?$", cleaned)
         if sub_match:
@@ -736,16 +1083,24 @@ class SpatialMathEngine:
 
         if cleaned.isdigit():
             return FormulaNode(NodeType.NUMBER, value=cleaned)
-        if cleaned in ("\\theta", "theta", "θ"):
-            return FormulaNode(NodeType.GREEK_SYMBOL, value=r"\theta")
-        if cleaned in ("\\alpha", "alpha", "α"):
-            return FormulaNode(NodeType.GREEK_SYMBOL, value=r"\alpha")
-        if cleaned in ("\\beta", "beta", "β"):
-            return FormulaNode(NodeType.GREEK_SYMBOL, value=r"\beta")
+        greek_names = {
+            "\\theta": r"\theta", "theta": r"\theta", "θ": r"\theta",
+            "\\alpha": r"\alpha", "alpha": r"\alpha", "α": r"\alpha",
+            "\\beta": r"\beta", "beta": r"\beta", "β": r"\beta",
+            "\\gamma": r"\gamma", "gamma": r"\gamma", "γ": r"\gamma",
+            "\\delta": r"\delta", "delta": r"\delta", "δ": r"\delta",
+            "\\mu": r"\mu", "mu": r"\mu", "μ": r"\mu",
+            "\\lambda": r"\lambda", "lambda": r"\lambda", "λ": r"\lambda",
+            "\\omega": r"\omega", "omega": r"\omega", "ω": r"\omega",
+            "\\pi": r"\pi", "pi": r"\pi", "π": r"\pi",
+            "\\sigma": r"\sigma", "sigma": r"\sigma", "σ": r"\sigma",
+        }
+        if cleaned in greek_names:
+            return FormulaNode(NodeType.GREEK_SYMBOL, value=greek_names[cleaned])
         if cleaned in ("kg", "g", "N", "m", "s", "cm", "mm"):
             return FormulaNode(NodeType.UNIT, value=cleaned)
 
-        # Multi-factor term e.g. "m a" or "2 m"
+        # Multi-factor term e.g. "m a" or "2 m" or "6! 4!"
         parts = cleaned.split()
         if len(parts) > 1:
             mult = FormulaNode(NodeType.MULTIPLY, attributes={"implicit": True})
@@ -775,6 +1130,20 @@ class SpatialMathEngine:
         formula_objects: List[Dict[str, Any]] = []
         seen_keys = set()
 
+        # 0. Complete inverse trig and trigonometric expressions:
+        # e.g. \tan^{-1}\left(\frac{4}{5}\right), \sin^{-1}(1/2), \tan^{-1}(m), \tan^{-1}\left(\frac{5}{4}\right)
+        trig_exprs = re.findall(
+            r"(?:\\)?(?:sin|cos|tan|cot|sec|csc|cosec|arctan|arcsin|arccos)(?:\^\{?[-–]?\d+\}?|[-–]?\d+)?\s*(?:\\left\s*\(|\()?\s*(?:\\frac\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|[a-zA-Z0-9_\-\.\/]+)\s*(?:\\right\s*\)|\))?",
+            text, re.IGNORECASE
+        )
+        for te in trig_exprs:
+            te_clean = te.strip().strip("$")
+            if te_clean and te_clean not in seen_keys:
+                seen_keys.add(te_clean)
+                res = cls.parse_expression(te_clean, bbox=bbox, domain=domain, original_crop=original_crop)
+                if res:
+                    formula_objects.append(res.to_formula_object())
+
         # 1. Complex fraction expressions: \left( \frac{...}{...} \right) [A-Za-z0-9]?
         frac_exprs = re.findall(
             r"(?:\\left\s*\(|\()?\s*\\frac\s*\{[^{}]+(?:\{[^{}]*\}[^{}]*)*\}\s*\{[^{}]+(?:\{[^{}]*\}[^{}]*)*\}(?:\s*\\right\s*\)|\))?\s*[a-zA-Z0-9\\]?",
@@ -782,6 +1151,9 @@ class SpatialMathEngine:
         )
         for fe in frac_exprs:
             fe_clean = fe.strip()
+            # If already captured as part of a larger formula (e.g. inside \tan^{-1}\left(\frac{4}{5}\right))
+            if any(fe_clean in k for k in seen_keys):
+                continue
             if fe_clean and fe_clean not in seen_keys:
                 seen_keys.add(fe_clean)
                 res = cls.parse_expression(fe_clean, bbox=bbox, domain=domain, original_crop=original_crop)
@@ -809,9 +1181,12 @@ class SpatialMathEngine:
                     formula_objects.append(res.to_formula_object())
 
         # 4. Subscript variables: M_{1}, M_{2}, M_{3}, m_{1}, T_{2}, M₁, M₂, etc.
+        # Avoid promoting isolated diagram labels (e.g. T_2) into standalone formulas when real formulas exist
         sub_vars = re.findall(r"\b[A-Za-z]_\{?[0-9a-zA-Z]+\}?|[A-Za-z][₀-₉]+", text)
         for sv in sub_vars:
             sv_clean = sv.strip()
+            if len(formula_objects) > 0 and len(sv_clean) <= 6:
+                continue
             if sv_clean and sv_clean not in seen_keys:
                 seen_keys.add(sv_clean)
                 res = cls.parse_expression(sv_clean, bbox=bbox, domain=domain, original_crop=original_crop)
@@ -822,6 +1197,11 @@ class SpatialMathEngine:
         sup_vars = re.findall(r"\b[A-Za-z0-9]+\^\{?[0-9a-zA-Z\+\-]+\}?|[A-Za-z][⁰-⁹⁺⁻]+", text)
         for su in sup_vars:
             su_clean = su.strip()
+            # If already captured as part of a larger formula (e.g. \tan^{-1})
+            if any(su_clean in k or su_clean.replace("\\", "") in k.replace("\\", "") for k in seen_keys):
+                continue
+            if len(formula_objects) > 0 and len(su_clean) <= 6:
+                continue
             if su_clean and su_clean not in seen_keys:
                 seen_keys.add(su_clean)
                 res = cls.parse_expression(su_clean, bbox=bbox, domain=domain, original_crop=original_crop)

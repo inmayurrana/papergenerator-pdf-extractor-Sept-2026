@@ -27,6 +27,11 @@ model User {
   fullName     String
   role         Role       @default(TEACHER)
   isActive     Boolean    @default(true)
+  failedLoginAttempts Int  @default(0)
+  lockedUntil  DateTime?
+  lastLoginAt  DateTime?
+  lastLoginIp  String?
+  googleId     String?    @unique
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
@@ -36,6 +41,37 @@ model User {
   snapshots    PaperSnapshot[]
   evaluations  OMREvaluation[]
   auditLogs    AuditLog[]
+  documents    Document[]
+  sessions     UserSession[]
+}
+
+model UserSession {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyId    String   // Token family ID for rotation reuse detection
+  tokenHash   String   // SHA-256 hash of refresh token
+  deviceInfo  String   @default("Desktop")
+  browser     String   @default("Chrome")
+  ipAddress   String   @default("")
+  userAgent   String   @default("")
+  isRevoked   Boolean  @default(false)
+  lastUsedAt  DateTime @default(now())
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([familyId])
+}
+
+model RolePermission {
+  id         String   @id @default(uuid())
+  role       String
+  permission String
+  createdAt  DateTime @default(now())
+
+  @@unique([role, permission])
 }
 
 model AclRule {
@@ -72,6 +108,10 @@ model Document {
   isDigital     Boolean        @default(false)
   status        String         @default("UPLOADED") // UPLOADED, PROCESSING, COMPLETED, FAILED
   profile       String         @default("BALANCED")
+  sourceType    String         @default("FILE") // FILE, PASTE, IMAGE_OCR, TRANSLATE
+  userId        String?
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  uploadedBy    String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -236,10 +276,21 @@ model AuditLog {
   userId       String?
   user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   action       String   // "LOGIN", "CREATE_QUESTION", "UPDATE_QUESTION", "FINALIZE_PAPER", "EVALUATE_OMR", etc.
-  resourceType String   // "QUESTION", "PAPER", "OMR", "USER", "DOCUMENT"
+  resourceType String   // "QUESTION", "PAPER", "OMR", "USER", "DOCUMENT", "SECURITY", "AUTH"
   resourceId   String?
   detailsJson  String   @default("{}")
+  ipAddress    String?  @default("")
+  userAgent    String?  @default("")
+  status       String   @default("SUCCESS")
   timestamp    DateTime @default(now())
+}
+
+model SecuritySetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
 }
 
 model FormulaRegion {

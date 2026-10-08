@@ -11,6 +11,8 @@ import {
   HelpCircle,
   ChevronRight,
   ChevronDown,
+  ChevronUp,
+  Eye,
   Layers,
   Sparkles,
   Lock,
@@ -33,6 +35,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { api } from '../lib/api';
+import { triggerFileDownload, extractErrorMessage } from '../lib/downloadHelper';
 import { MathRenderer } from '../components/common/MathRenderer';
 import { QuestionEditorModal } from '../components/questions/QuestionEditorModal';
 import { ResizableImage } from '../components/common/ResizableImage';
@@ -216,6 +219,34 @@ export const QuestionBank: React.FC = () => {
   const [isBatchMoveModalOpen, setIsBatchMoveModalOpen] = useState(false);
   const [batchTargetFolderId, setBatchTargetFolderId] = useState('');
 
+  // Question Options Visibility (Hidden by default to display only questions; teachers can view full question on click)
+  const [expandedQuestionOptionIds, setExpandedQuestionOptionIds] = useState<Set<string>>(new Set());
+
+  const handleToggleQuestionOptions = (qId: string) => {
+    setExpandedQuestionOptionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(qId)) {
+        next.delete(qId);
+      } else {
+        next.add(qId);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleAllOptions = () => {
+    const questionsWithOptions = questions.filter((q) => {
+      const opts = typeof q.optionsJson === 'string' ? JSON.parse(q.optionsJson) : q.options || [];
+      return opts && opts.length > 0;
+    });
+    const allExpanded = questionsWithOptions.length > 0 && questionsWithOptions.every((q) => expandedQuestionOptionIds.has(q.id));
+    if (allExpanded) {
+      setExpandedQuestionOptionIds(new Set());
+    } else {
+      setExpandedQuestionOptionIds(new Set(questionsWithOptions.map((q) => q.id)));
+    }
+  };
+
   // Duplicate Questions Management State
   const [duplicateGroups, setDuplicateGroups] = useState<any[]>([]);
   const [duplicateSummary, setDuplicateSummary] = useState<{ total: number; scanned: number } | null>(null);
@@ -224,6 +255,9 @@ export const QuestionBank: React.FC = () => {
 
   // Universal Import & Export State
   const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
+  const [importExportModalMode, setImportExportModalMode] = useState<'IMPORT' | 'EXPORT'>('IMPORT');
+  const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<string | null>(null);
   const [importModalTab, setImportModalTab] = useState<'JSON' | 'WORD' | 'PDF' | 'IMAGE' | 'TEXT'>('JSON');
   const [pasteModalText, setPasteModalText] = useState('');
   const [pasteModalTargetFolder, setPasteModalTargetFolder] = useState('');
@@ -254,81 +288,114 @@ export const QuestionBank: React.FC = () => {
     setTimeout(() => setToastMsg(''), 3000);
   };
 
-  const handleExportWord = async () => {
+  const buildExportParams = (overrideFolderId?: string) => {
+    const params: Record<string, string> = {};
+    const targetFolder = overrideFolderId !== undefined ? overrideFolderId : (selectedFolderId || '');
+    if (targetFolder) {
+      params.folderId = targetFolder;
+    }
+    if (selectedBankQIds.size > 0) {
+      params.questionIds = Array.from(selectedBankQIds).join(',');
+    }
+    if (difficultyFilter) {
+      params.difficulty = difficultyFilter;
+    }
+    if (search) {
+      params.search = search;
+    }
+    return params;
+  };
+
+  const getExportScopeLabel = (overrideFolderId?: string) => {
+    if (selectedBankQIds.size > 0) {
+      return `${selectedBankQIds.size} Selected Question${selectedBankQIds.size > 1 ? 's' : ''}`;
+    }
+    const targetFolder = overrideFolderId !== undefined ? overrideFolderId : selectedFolderId;
+    if (targetFolder) {
+      const folderName = flatFolders.find((f) => f.id === targetFolder)?.name || 'Folder';
+      return `${folderName} (${questions.length} Questions)`;
+    }
+    return `All (${questions.length} Questions)`;
+  };
+
+  const handleExportWord = async (overrideFolderId?: string) => {
+    setExportingFormat('word');
     try {
       showToast('📄 Generating Microsoft Word document with solutions...');
-      const query = selectedFolderId ? `?folderId=${selectedFolderId}` : '';
-      const res = await api.get(`/questions/export/word${query}`, { responseType: 'blob' });
-      const blob = new Blob([res.data], { type: 'application/msword; charset=utf-8;' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const folderName = selectedFolderId ? (flatFolders.find((f) => f.id === selectedFolderId)?.name || 'Folder') : 'Question_Bank';
-      const safeTitle = folderName.replace(/[^a-zA-Z0-9_-]/g, '_');
-      link.download = `${safeTitle}_Questions_and_Answers.doc`;
-      link.click();
-      window.URL.revokeObjectURL(url);
+      const params = buildExportParams(overrideFolderId);
+      const res = await api.get('/questions/export/word', { params, responseType: 'blob' });
+      const targetFolder = overrideFolderId !== undefined ? overrideFolderId : selectedFolderId;
+      const folderName = targetFolder ? (flatFolders.find((f) => f.id === targetFolder)?.name || 'Folder') : 'Question_Bank';
+      const prefix = selectedBankQIds.size > 0 ? `Selected_${selectedBankQIds.size}_` : '';
+      const safeTitle = (prefix + folderName).replace(/[^a-zA-Z0-9_-]/g, '_');
+      triggerFileDownload(res.data, `${safeTitle}_Questions_and_Answers.doc`, 'application/msword; charset=utf-8');
       showToast('✓ Exported Questions & Solutions to Word (.doc)!');
     } catch (err: any) {
-      alert(`Word Export failed: ${err.message}`);
+      const msg = await extractErrorMessage(err);
+      alert(`Word Export failed: ${msg}`);
+    } finally {
+      setExportingFormat(null);
     }
   };
 
-  const handleExportPdf = async () => {
+  const handleExportPdf = async (overrideFolderId?: string) => {
+    setExportingFormat('pdf');
     try {
       showToast('📄 Generating A4 PDF of Questions & Answer Key...');
-      const query = selectedFolderId ? `?folderId=${selectedFolderId}` : '';
-      const res = await api.get(`/questions/export/pdf${query}`, { responseType: 'blob' });
-      const blob = new Blob([res.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const folderName = selectedFolderId ? (flatFolders.find((f) => f.id === selectedFolderId)?.name || 'Folder') : 'Question_Bank';
-      const safeTitle = folderName.replace(/[^a-zA-Z0-9_-]/g, '_');
-      link.download = `${safeTitle}_Questions_and_Answers.pdf`;
-      link.click();
-      window.URL.revokeObjectURL(url);
+      const params = buildExportParams(overrideFolderId);
+      const res = await api.get('/questions/export/pdf', { params, responseType: 'blob' });
+      const targetFolder = overrideFolderId !== undefined ? overrideFolderId : selectedFolderId;
+      const folderName = targetFolder ? (flatFolders.find((f) => f.id === targetFolder)?.name || 'Folder') : 'Question_Bank';
+      const prefix = selectedBankQIds.size > 0 ? `Selected_${selectedBankQIds.size}_` : '';
+      const safeTitle = (prefix + folderName).replace(/[^a-zA-Z0-9_-]/g, '_');
+      triggerFileDownload(res.data, `${safeTitle}_Questions_and_Answers.pdf`, 'application/pdf');
       showToast('✓ Downloaded Question Bank PDF with Solutions!');
     } catch (err: any) {
-      alert(`PDF Export failed: ${err.message}`);
+      const msg = await extractErrorMessage(err);
+      alert(`PDF Export failed: ${msg}`);
+    } finally {
+      setExportingFormat(null);
     }
   };
 
-  const handleExportJson = async () => {
+  const handleExportJson = async (overrideFolderId?: string) => {
+    setExportingFormat('json');
     try {
-      const query = selectedFolderId ? `?folderId=${selectedFolderId}` : '';
-      const res = await api.get(`/questions/export/json${query}`);
-      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const folderName = selectedFolderId ? (flatFolders.find((f) => f.id === selectedFolderId)?.name || 'Folder') : 'Question_Bank';
-      const safeTitle = folderName.replace(/[^a-zA-Z0-9_-]/g, '_');
-      link.download = `${safeTitle}_Questions_v2.json`;
-      link.click();
-      window.URL.revokeObjectURL(url);
+      showToast('📦 Generating Universal JSON export...');
+      const params = buildExportParams(overrideFolderId);
+      const res = await api.get('/questions/export/json', { params });
+      const targetFolder = overrideFolderId !== undefined ? overrideFolderId : selectedFolderId;
+      const folderName = targetFolder ? (flatFolders.find((f) => f.id === targetFolder)?.name || 'Folder') : 'Question_Bank';
+      const prefix = selectedBankQIds.size > 0 ? `Selected_${selectedBankQIds.size}_` : '';
+      const safeTitle = (prefix + folderName).replace(/[^a-zA-Z0-9_-]/g, '_');
+      const jsonStr = JSON.stringify(res.data, null, 2);
+      triggerFileDownload(jsonStr, `${safeTitle}_Questions_v2.json`, 'application/json; charset=utf-8');
       showToast('✓ Exported questions to Universal JSON format!');
     } catch (err: any) {
-      alert(`JSON Export failed: ${err.message}`);
+      const msg = await extractErrorMessage(err);
+      alert(`JSON Export failed: ${msg}`);
+    } finally {
+      setExportingFormat(null);
     }
   };
 
-  const handleExportCsv = async () => {
+  const handleExportCsv = async (overrideFolderId?: string) => {
+    setExportingFormat('csv');
     try {
-      const query = selectedFolderId ? `?folderId=${selectedFolderId}` : '';
-      const res = await api.get(`/questions/export/csv${query}`, { responseType: 'blob' });
-      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const folderName = selectedFolderId ? (flatFolders.find((f) => f.id === selectedFolderId)?.name || 'Folder') : 'Question_Bank';
-      const safeTitle = folderName.replace(/[^a-zA-Z0-9_-]/g, '_');
-      link.download = `${safeTitle}_Questions.csv`;
-      link.click();
-      window.URL.revokeObjectURL(url);
+      showToast('📊 Generating Multi-Language Excel CSV...');
+      const params = buildExportParams(overrideFolderId);
+      const res = await api.get('/questions/export/csv', { params, responseType: 'blob' });
+      const targetFolder = overrideFolderId !== undefined ? overrideFolderId : selectedFolderId;
+      const folderName = targetFolder ? (flatFolders.find((f) => f.id === targetFolder)?.name || 'Folder') : 'Question_Bank';
+      const prefix = selectedBankQIds.size > 0 ? `Selected_${selectedBankQIds.size}_` : '';
+      const safeTitle = (prefix + folderName).replace(/[^a-zA-Z0-9_-]/g, '_');
+      triggerFileDownload(res.data, `${safeTitle}_Questions.csv`, 'text/csv; charset=utf-8');
       showToast('✓ Exported questions to Excel CSV (UTF-8 Multi-Language)!');
     } catch (err: any) {
-      alert(`CSV Export failed: ${err.message}`);
+      const msg = await extractErrorMessage(err);
+      alert(`CSV Export failed: ${msg}`);
+    } finally {
+      setExportingFormat(null);
     }
   };
 
@@ -927,19 +994,21 @@ export const QuestionBank: React.FC = () => {
               <div
                 onClick={() => setSelectedFolderId(isSelected ? null : node.id)}
                 style={{ paddingLeft: `${depth * 14 + 10}px` }}
-                className={`group flex items-center justify-between py-2 pr-2 rounded-xl text-xs font-medium cursor-pointer transition-all ${
+                className={`group flex items-center justify-between py-2 px-2.5 rounded-classic text-xs font-semibold cursor-pointer transition-all ${
                   isSelected
-                    ? 'bg-indigo-600/25 text-indigo-300 border border-indigo-500/40 shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
+                    ? 'bg-classic-navy text-white shadow-classic font-bold border border-classic-navy'
+                    : 'text-classic-text-primary hover:bg-classic-surface-muted bg-white border border-classic-border-light'
                 }`}
               >
                 <div className="flex items-center space-x-2 truncate min-w-0 pr-2">
-                  <Folder className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-indigo-400' : 'text-slate-500 group-hover:text-indigo-400'}`} />
-                  <span className="truncate font-semibold">{node.name}</span>
+                  <Folder className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-white' : 'text-classic-navy'}`} />
+                  <span className="truncate font-bold">{node.name}</span>
                 </div>
 
                 <div className="flex items-center space-x-1 shrink-0">
-                  <span className="text-[9px] font-mono text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 uppercase font-semibold">
+                  <span className={`text-xs font-mono px-1.5 py-0.5 rounded-classic border uppercase font-black ${
+                    isSelected ? 'bg-white/20 text-white border-white/40' : 'bg-classic-surface-muted text-classic-text-secondary border-classic-border'
+                  }`}>
                     {node.type}
                   </span>
 
@@ -960,7 +1029,7 @@ export const QuestionBank: React.FC = () => {
                         setNewFolderName('');
                         setIsFolderModalOpen(true);
                       }}
-                      className="p-1 text-slate-400 hover:text-indigo-300 hover:bg-slate-800 rounded"
+                      className={`p-1 rounded-classic transition-colors ${isSelected ? 'text-white hover:bg-white/20' : 'text-classic-text-secondary hover:text-classic-text-primary hover:bg-classic-surface-muted'}`}
                       title={`Add subfolder inside "${node.name}"`}
                     >
                       <Plus className="w-3 h-3" />
@@ -974,7 +1043,7 @@ export const QuestionBank: React.FC = () => {
                         setNewParentFolderId(node.parentId || '');
                         setIsMoveModalOpen(true);
                       }}
-                      className="p-1 text-slate-400 hover:text-amber-300 hover:bg-slate-800 rounded"
+                      className={`p-1 rounded-classic transition-colors ${isSelected ? 'text-white hover:bg-white/20' : 'text-classic-text-secondary hover:text-amber-800 hover:bg-classic-surface-muted'}`}
                       title={`Move "${node.name}" to another parent`}
                     >
                       <Move className="w-3 h-3" />
@@ -989,7 +1058,7 @@ export const QuestionBank: React.FC = () => {
                         setEditFolderType(node.type);
                         setIsEditFolderModalOpen(true);
                       }}
-                      className="p-1 text-slate-400 hover:text-cyan-300 hover:bg-slate-800 rounded"
+                      className={`p-1 rounded-classic transition-colors ${isSelected ? 'text-white hover:bg-white/20' : 'text-classic-text-secondary hover:text-classic-navy hover:bg-classic-surface-muted'}`}
                       title={`Rename "${node.name}"`}
                     >
                       <Edit3 className="w-3 h-3" />
@@ -999,7 +1068,7 @@ export const QuestionBank: React.FC = () => {
                     <button
                       type="button"
                       onClick={(e) => handleDeleteFolder(node, e)}
-                      className="p-1 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded"
+                      className={`p-1 rounded-classic transition-colors ${isSelected ? 'text-white hover:bg-white/20' : 'text-classic-text-secondary hover:text-rose-700 hover:bg-classic-surface-muted'}`}
                       title={`Delete "${node.name}"`}
                     >
                       <Trash2 className="w-3 h-3" />
@@ -1027,14 +1096,14 @@ export const QuestionBank: React.FC = () => {
       )}
 
       {/* Top Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 glass-panel p-4 rounded-2xl">
+      <div className="flex flex-wrap items-center justify-between gap-4 classic-card p-4 rounded-classic">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
-            <FolderTree className="w-4 h-4" />
+          <div className="w-8 h-8 rounded-classic bg-classic-navy text-white flex items-center justify-center shadow-classic">
+            <FolderTree className="w-4 h-4 text-white" />
           </div>
           <div>
-            <h1 className="font-bold text-base text-white">Hierarchical Question Bank</h1>
-            <p className="text-xs text-slate-400">
+            <h1 className="font-bold text-base text-classic-text-primary">Hierarchical Question Bank</h1>
+            <p className="text-xs text-classic-text-muted font-medium">
               Taxonomy folders: Class &rarr; Subject &rarr; Chapter &rarr; Topic &bull; Move & Delete Folders
             </p>
           </div>
@@ -1046,13 +1115,13 @@ export const QuestionBank: React.FC = () => {
             type="button"
             onClick={handleCheckDuplicates}
             disabled={isCheckingDuplicates}
-            className="bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 text-xs font-semibold px-3.5 py-2 rounded-xl border border-amber-500/40 flex items-center space-x-1.5 transition-colors shadow-sm"
+            className="classic-button-secondary rounded-classic text-xs font-bold px-3.5 py-2 flex items-center space-x-1.5"
             title="Scan entire Question Bank for duplicate questions"
           >
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
             <span>{isCheckingDuplicates ? 'Scanning Duplicates...' : 'Detect Duplicates'}</span>
             {duplicateSummary && duplicateSummary.total > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 bg-amber-500 text-black rounded-full font-bold text-[10px]">
+              <span className="ml-1 px-1.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 rounded-full font-bold text-xs">
                 {duplicateSummary.total}
               </span>
             )}
@@ -1065,9 +1134,9 @@ export const QuestionBank: React.FC = () => {
               setNewFolderType('CLASS');
               setIsFolderModalOpen(true);
             }}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-4 py-2 rounded-xl border border-slate-700 flex items-center space-x-1.5 transition-colors"
+            className="classic-button-secondary rounded-classic text-xs font-bold px-4 py-2 flex items-center space-x-1.5"
           >
-            <FolderPlus className="w-3.5 h-3.5 text-indigo-400" />
+            <FolderPlus className="w-3.5 h-3.5 text-classic-text-secondary" />
             <span>New Folder</span>
           </button>
 
@@ -1075,23 +1144,137 @@ export const QuestionBank: React.FC = () => {
             type="button"
             onClick={() => {
               setPasteModalTargetFolder(selectedFolderId || '');
+              setImportExportModalMode('IMPORT');
               setIsPasteModalOpen(true);
             }}
-            className="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 text-xs font-semibold px-4 py-2 rounded-xl border border-emerald-500/40 flex items-center space-x-1.5 transition-colors shadow-sm"
+            className="classic-button-secondary rounded-classic text-xs font-bold px-4 py-2 flex items-center space-x-1.5 border-emerald-600/30 text-emerald-800 hover:bg-emerald-50"
             title="Import & extract questions and answers from Word (.docx), PDF (.pdf), JSON (.json), Image OCR, or raw text"
           >
-            <Upload className="w-3.5 h-3.5 text-emerald-400" />
+            <Upload className="w-3.5 h-3.5 text-emerald-700" />
             <span>Import & Extract Questions</span>
           </button>
+
+          {/* Prominent Export Questions Action with Dropdown Menu */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
+              className="classic-button-secondary rounded-classic text-xs font-bold px-4 py-2 flex items-center space-x-1.5 border-indigo-600/30 text-indigo-900 hover:bg-indigo-50"
+              title="Export questions to Word, PDF, JSON, or Excel CSV"
+            >
+              <Download className="w-3.5 h-3.5 text-indigo-700" />
+              <span>Export Questions</span>
+              {selectedBankQIds.size > 0 && (
+                <span className="ml-1 px-1.5 py-0.2 bg-indigo-600 text-white text-[10px] rounded-full font-bold">
+                  {selectedBankQIds.size}
+                </span>
+              )}
+              <ChevronDown className="w-3 h-3 text-indigo-600 ml-0.5" />
+            </button>
+
+            {isExportDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setIsExportDropdownOpen(false)}
+                />
+                <div className="absolute right-0 mt-1.5 w-72 bg-white border border-classic-border rounded-classic shadow-classic-md z-50 p-2 space-y-1 animate-fade-in text-xs">
+                  <div className="px-2.5 py-1.5 border-b border-classic-border-light text-[11px] font-bold text-classic-text-muted flex items-center justify-between">
+                    <span>EXPORT SCOPE</span>
+                    <span className="text-classic-navy font-semibold">{getExportScopeLabel()}</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsExportDropdownOpen(false);
+                      handleExportWord();
+                    }}
+                    disabled={exportingFormat !== null}
+                    className="w-full text-left px-3 py-2 rounded hover:bg-classic-surface-muted flex items-center space-x-2.5 transition-colors font-medium text-classic-text-primary"
+                  >
+                    <FileText className="w-4 h-4 text-blue-700 shrink-0" />
+                    <div>
+                      <div className="font-bold">Word (.doc) Document</div>
+                      <div className="text-[10px] text-classic-text-muted">Questions &amp; full Solutions / Diagrams</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsExportDropdownOpen(false);
+                      handleExportPdf();
+                    }}
+                    disabled={exportingFormat !== null}
+                    className="w-full text-left px-3 py-2 rounded hover:bg-rose-50 flex items-center space-x-2.5 transition-colors font-medium text-classic-text-primary"
+                  >
+                    <Download className="w-4 h-4 text-rose-600 shrink-0" />
+                    <div>
+                      <div className="font-bold text-rose-900">PDF (.pdf) Document</div>
+                      <div className="text-[10px] text-classic-text-muted">High-def A4 layout with Answer Key</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsExportDropdownOpen(false);
+                      handleExportJson();
+                    }}
+                    disabled={exportingFormat !== null}
+                    className="w-full text-left px-3 py-2 rounded hover:bg-classic-surface-muted flex items-center space-x-2.5 transition-colors font-medium text-classic-text-primary"
+                  >
+                    <FileJson className="w-4 h-4 text-amber-700 shrink-0" />
+                    <div>
+                      <div className="font-bold">Universal JSON (.json)</div>
+                      <div className="text-[10px] text-classic-text-muted">Universal Schema v2.0 for LMS &amp; apps</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsExportDropdownOpen(false);
+                      handleExportCsv();
+                    }}
+                    disabled={exportingFormat !== null}
+                    className="w-full text-left px-3 py-2 rounded hover:bg-emerald-50 flex items-center space-x-2.5 transition-colors font-medium text-classic-text-primary"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <div>
+                      <div className="font-bold text-emerald-900">Excel CSV (.csv)</div>
+                      <div className="text-[10px] text-classic-text-muted">UTF-8 multi-language spreadsheet</div>
+                    </div>
+                  </button>
+
+                  <div className="pt-1 border-t border-classic-border-light">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsExportDropdownOpen(false);
+                        setPasteModalTargetFolder(selectedFolderId || '');
+                        setImportExportModalMode('EXPORT');
+                        setIsPasteModalOpen(true);
+                      }}
+                      className="w-full text-center py-1.5 px-2 text-[11px] font-bold text-classic-navy hover:underline"
+                    >
+                      Open Universal Export Suite &rarr;
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
 
           <button
             onClick={() => {
               setEditingQuestion(null);
               setIsEditorOpen(true);
             }}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-md shadow-indigo-600/20 flex items-center space-x-1.5 transition-all"
+            className="classic-button-primary rounded-classic text-xs font-bold px-4 py-2 flex items-center space-x-1.5"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 text-white" />
             <span>Add Question</span>
           </button>
         </div>
@@ -1100,16 +1283,16 @@ export const QuestionBank: React.FC = () => {
       {/* Main Bank Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[700px]">
         {/* Left Column: Hierarchical Taxonomy Tree */}
-        <div className="lg:col-span-4 glass-panel rounded-2xl p-4 space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+        <div className="lg:col-span-4 classic-card rounded-classic p-4 space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-classic-border-light">
             <div className="flex items-center space-x-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Folders</span>
-              <span className="text-[10px] text-slate-400">({flatFolders.length})</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-classic-text-primary">Folders</span>
+              <span className="text-xs text-classic-text-muted font-bold">({flatFolders.length})</span>
             </div>
             {selectedFolderId && (
               <button
                 onClick={() => setSelectedFolderId(null)}
-                className="text-[11px] text-indigo-400 hover:underline font-semibold"
+                className="text-xs text-classic-navy hover:underline font-bold"
               >
                 Clear Filter
               </button>
@@ -1118,7 +1301,7 @@ export const QuestionBank: React.FC = () => {
 
           <div className="space-y-1 max-h-[620px] overflow-y-auto pr-1">
             {folders.length === 0 ? (
-              <div className="text-xs text-slate-400 py-10 text-center">
+              <div className="text-xs text-classic-text-muted py-10 text-center">
                 No folders created yet. Click "+ New Folder" above.
               </div>
             ) : (
@@ -1128,35 +1311,35 @@ export const QuestionBank: React.FC = () => {
         </div>
 
         {/* Right Column: Question List & Filters */}
-        <div className="lg:col-span-8 glass-panel rounded-2xl p-5 space-y-5">
+        <div className="lg:col-span-8 space-y-4">
           {/* Search and Filters Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="relative flex-1 min-w-[240px]">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              <Search className="w-4 h-4 text-classic-text-muted absolute left-3.5 top-3" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search questions by text or formula..."
-                className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full classic-input rounded-classic pl-10 pr-4 py-2 text-xs placeholder:text-classic-text-muted"
               />
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
               {/* Language / Script Filter */}
-              <div className="flex items-center space-x-1 bg-slate-900 border border-slate-700/80 rounded-xl px-2.5 py-1">
-                <Languages className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+              <div className="flex items-center space-x-1 bg-white border border-classic-border rounded-classic px-2.5 py-1 shadow-classic">
+                <Languages className="w-3.5 h-3.5 text-classic-navy shrink-0" />
                 <select
                   value={languageScript}
                   onChange={(e: any) => setLanguageScript(e.target.value)}
-                  className="bg-transparent text-xs text-slate-200 focus:outline-none cursor-pointer"
+                  className="bg-transparent text-xs text-classic-text-primary font-medium focus:outline-none cursor-pointer"
                   title="Filter or format script style for multi-language questions"
                 >
-                  <option value="all" className="bg-slate-900">All Languages</option>
-                  <option value="hindi" className="bg-slate-900">Hindi (हिन्दी)</option>
-                  <option value="sanskrit" className="bg-slate-900">Sanskrit (संस्कृतम्)</option>
-                  <option value="punjabi" className="bg-slate-900">Punjabi (ਪੰਜਾਬੀ)</option>
-                  <option value="urdu" className="bg-slate-900">Urdu (اردو)</option>
+                  <option value="all">All Languages</option>
+                  <option value="hindi">Hindi (हिन्दी)</option>
+                  <option value="sanskrit">Sanskrit (संस्कृतम्)</option>
+                  <option value="punjabi">Punjabi (ਪੰਜਾਬੀ)</option>
+                  <option value="urdu">Urdu (اردو)</option>
                 </select>
               </div>
 
@@ -1164,7 +1347,7 @@ export const QuestionBank: React.FC = () => {
               <select
                 value={difficultyFilter}
                 onChange={(e) => setDifficultyFilter(e.target.value)}
-                className="bg-slate-900 border border-slate-700/80 text-xs rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-indigo-500"
+                className="classic-input rounded-classic text-xs font-medium px-3 py-2"
               >
                 <option value="">All Difficulties</option>
                 <option value="EASY">Easy</option>
@@ -1175,42 +1358,74 @@ export const QuestionBank: React.FC = () => {
               {/* Complete Multi-Format Export Suite */}
               <button
                 type="button"
-                onClick={handleExportWord}
-                className="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 hover:text-white rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-colors shadow"
-                title="Export Questions and detailed Answer Key / Solutions to Microsoft Word (.doc)"
+                onClick={() => handleExportWord()}
+                disabled={exportingFormat !== null}
+                className="classic-button-secondary rounded-classic text-xs font-semibold px-3 py-2 flex items-center space-x-1.5 disabled:opacity-50"
+                title={`Export ${getExportScopeLabel()} to Microsoft Word (.doc)`}
               >
-                <FileText className="w-3.5 h-3.5 text-blue-400" />
+                {exportingFormat === 'word' ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-classic-text-secondary" />
+                ) : (
+                  <FileText className="w-3.5 h-3.5 text-classic-text-secondary" />
+                )}
                 <span>Word (.doc)</span>
+                {selectedBankQIds.size > 0 && (
+                  <span className="text-[10px] font-bold text-classic-navy">({selectedBankQIds.size})</span>
+                )}
               </button>
 
               <button
                 type="button"
-                onClick={handleExportPdf}
-                className="px-3 py-2 bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 hover:text-white rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-colors shadow"
-                title="Download high-definition A4 PDF of Question Bank with Answer Key appendix"
+                onClick={() => handleExportPdf()}
+                disabled={exportingFormat !== null}
+                className="classic-button-secondary rounded-classic text-xs font-semibold px-3 py-2 flex items-center space-x-1.5 text-rose-700 hover:bg-rose-50 border-rose-200 disabled:opacity-50"
+                title={`Download high-definition A4 PDF of ${getExportScopeLabel()} with Answer Key`}
               >
-                <Download className="w-3.5 h-3.5 text-rose-400" />
+                {exportingFormat === 'pdf' ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />
+                ) : (
+                  <Download className="w-3.5 h-3.5 text-rose-600" />
+                )}
                 <span>PDF (.pdf)</span>
+                {selectedBankQIds.size > 0 && (
+                  <span className="text-[10px] font-bold text-rose-800">({selectedBankQIds.size})</span>
+                )}
               </button>
 
               <button
                 type="button"
-                onClick={handleExportJson}
-                className="px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-indigo-300 hover:text-white rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-colors shadow"
-                title="Export Question Bank to standardized portable JSON (v2.0) for external apps, LMS & Moodle"
+                onClick={() => handleExportJson()}
+                disabled={exportingFormat !== null}
+                className="classic-button-secondary rounded-classic text-xs font-semibold px-3 py-2 flex items-center space-x-1.5 disabled:opacity-50"
+                title={`Export ${getExportScopeLabel()} to standardized portable JSON (v2.0)`}
               >
-                <FileJson className="w-3.5 h-3.5 text-indigo-400" />
+                {exportingFormat === 'json' ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-classic-text-secondary" />
+                ) : (
+                  <FileJson className="w-3.5 h-3.5 text-classic-text-secondary" />
+                )}
                 <span>JSON</span>
+                {selectedBankQIds.size > 0 && (
+                  <span className="text-[10px] font-bold text-classic-navy">({selectedBankQIds.size})</span>
+                )}
               </button>
 
               <button
                 type="button"
-                onClick={handleExportCsv}
-                className="px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 hover:text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-colors shadow"
-                title="Export Question Bank to Excel CSV with UTF-8 support for Hindi, Sanskrit, Punjabi, Urdu"
+                onClick={() => handleExportCsv()}
+                disabled={exportingFormat !== null}
+                className="classic-button-secondary rounded-classic text-xs font-semibold px-3 py-2 flex items-center space-x-1.5 text-emerald-700 hover:bg-emerald-50 border-emerald-200 disabled:opacity-50"
+                title={`Export ${getExportScopeLabel()} to Excel CSV with UTF-8 multi-language support`}
               >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+                {exportingFormat === 'csv' ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                ) : (
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                )}
                 <span>Excel CSV</span>
+                {selectedBankQIds.size > 0 && (
+                  <span className="text-[10px] font-bold text-emerald-800">({selectedBankQIds.size})</span>
+                )}
               </button>
 
               <button
@@ -1218,15 +1433,15 @@ export const QuestionBank: React.FC = () => {
                 onClick={async () => {
                   try {
                     const res = await api.post('/papers/sync-storage');
-                    showToast(`💾 Synced to Physical Storage: D:\\...\\data\\Bank (Questions & Papers)!`);
+                    showToast(`💾 Synced to Physical Storage: data/Bank (Questions & Papers)!`);
                   } catch (err: any) {
                     alert(`Sync failed: ${err.message}`);
                   }
                 }}
-                className="px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 hover:text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-colors shadow"
+                className="classic-button-secondary rounded-classic text-xs font-semibold px-3 py-2 flex items-center space-x-1.5"
                 title="Sync all questions to physical storage"
               >
-                <HardDrive className="w-3.5 h-3.5 text-indigo-400" />
+                <HardDrive className="w-3.5 h-3.5 text-classic-text-secondary" />
                 <span>Sync</span>
               </button>
             </div>
@@ -1234,16 +1449,16 @@ export const QuestionBank: React.FC = () => {
 
           {/* TOP DUPLICATE BANNER IN QUESTION BANK */}
           {duplicateSummary && duplicateSummary.total > 0 && (
-            <div className="p-3.5 bg-amber-500/15 border border-amber-500/50 rounded-2xl flex flex-wrap items-center justify-between gap-3 animate-fade-in text-xs shadow-lg shadow-amber-500/10">
-              <div className="flex items-center space-x-3 text-amber-300">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
-                  <AlertTriangle className="w-4 h-4" />
+            <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-classic flex flex-wrap items-center justify-between gap-3 text-xs shadow-classic">
+              <div className="flex items-center space-x-3 text-amber-950">
+                <div className="w-8 h-8 rounded-classic bg-amber-200 text-amber-900 flex items-center justify-center shrink-0 border border-amber-400 font-bold">
+                  <AlertTriangle className="w-4 h-4 text-amber-800" />
                 </div>
                 <div>
-                  <span className="font-bold text-amber-200 block text-xs">
+                  <span className="font-bold text-amber-950 block text-xs">
                     ⚠️ {duplicateSummary.total} Duplicate Question{duplicateSummary.total !== 1 ? 's' : ''} Detected in Question Bank
                   </span>
-                  <span className="text-slate-300 text-[11px] block">
+                  <span className="text-amber-900 font-medium text-xs block">
                     Identical questions with matching text, options, or diagram images found across folders.
                   </span>
                 </div>
@@ -1253,16 +1468,16 @@ export const QuestionBank: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleCleanAllDuplicates}
-                  className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold text-xs shadow-lg shadow-amber-600/25 flex items-center space-x-1.5 transition-all"
+                  className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-classic font-bold text-xs shadow-classic flex items-center space-x-1.5 transition-all"
                   title="Automatically remove all duplicate copies and keep canonical originals"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-3.5 h-3.5 text-white" />
                   <span>Remove All Duplicates</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowDuplicatesModal(true)}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-semibold text-xs border border-slate-700 transition-colors"
+                  className="classic-button-secondary rounded-classic px-3.5 py-1.5 text-xs font-bold"
                 >
                   Inspect Side-by-Side
                 </button>
@@ -1272,51 +1487,88 @@ export const QuestionBank: React.FC = () => {
 
           {/* Multi-Select Questions Action Bar */}
           {questions.length > 0 && (
-            <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-900/90 p-3 rounded-2xl border border-slate-800 text-xs shadow-md">
+            <div className="flex flex-wrap items-center justify-between gap-2 classic-card p-3 rounded-classic border border-classic-border text-xs shadow-classic">
               <label className="flex items-center space-x-2.5 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={selectedBankQIds.size > 0 && selectedBankQIds.size === questions.length}
                   onChange={handleToggleSelectAll}
-                  className="w-4 h-4 rounded text-indigo-600 bg-slate-950 border-slate-700 focus:ring-indigo-500 cursor-pointer"
+                  className="w-4 h-4 rounded text-classic-navy bg-white border-classic-border focus:ring-classic-navy cursor-pointer"
                 />
-                <span className="font-semibold text-slate-200">
+                <span className="font-bold text-classic-text-primary text-xs">
                   Select All ({questions.length} Questions)
                 </span>
                 {selectedBankQIds.size > 0 && (
-                  <span className="text-indigo-400 font-bold bg-indigo-950/80 border border-indigo-500/40 px-2 py-0.5 rounded-full">
+                  <span className="text-white font-bold bg-classic-navy px-2.5 py-0.5 rounded-full text-xs shadow-classic">
                     {selectedBankQIds.size} Selected
                   </span>
                 )}
               </label>
 
-              {selectedBankQIds.size > 0 && (
-                <div className="flex items-center space-x-2 animate-fade-in">
+              <div className="flex items-center space-x-2">
+                {selectedBankQIds.size > 0 && (
+                  <div className="flex items-center space-x-2 animate-fade-in">
+                    <button
+                      type="button"
+                      onClick={() => setIsBatchMoveModalOpen(true)}
+                      className="classic-button-secondary rounded-classic text-xs font-bold px-3 py-1.5 flex items-center space-x-1.5"
+                    >
+                      <Folder className="w-3.5 h-3.5 text-classic-text-secondary" />
+                      <span>Move ({selectedBankQIds.size})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleBatchDeleteQuestions}
+                      className="classic-button-danger rounded-classic text-xs font-bold px-3 py-1.5 flex items-center space-x-1.5"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-white" />
+                      <span>Delete ({selectedBankQIds.size})</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Global Toggle for Options Visibility */}
+                {questions.some((q) => {
+                  const opts = typeof q.optionsJson === 'string' ? JSON.parse(q.optionsJson) : q.options || [];
+                  return opts && opts.length > 0;
+                }) && (
                   <button
                     type="button"
-                    onClick={() => setIsBatchMoveModalOpen(true)}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs flex items-center space-x-1.5 transition-all shadow-md shadow-indigo-600/30"
+                    onClick={handleToggleAllOptions}
+                    className="classic-button-secondary rounded-classic text-xs font-semibold px-2.5 py-1.5 flex items-center space-x-1.5 transition-colors border border-classic-border hover:border-classic-navy"
+                    title={
+                      questions.filter((q) => {
+                        const opts = typeof q.optionsJson === 'string' ? JSON.parse(q.optionsJson) : q.options || [];
+                        return opts && opts.length > 0;
+                      }).every((q) => expandedQuestionOptionIds.has(q.id))
+                        ? "Hide options for all questions"
+                        : "Display options for all questions"
+                    }
                   >
-                    <Folder className="w-3.5 h-3.5" />
-                    <span>Move ({selectedBankQIds.size})</span>
+                    {questions.filter((q) => {
+                      const opts = typeof q.optionsJson === 'string' ? JSON.parse(q.optionsJson) : q.options || [];
+                      return opts && opts.length > 0;
+                    }).every((q) => expandedQuestionOptionIds.has(q.id)) ? (
+                      <>
+                        <ChevronUp className="w-3.5 h-3.5 text-classic-navy" />
+                        <span>Hide All Options</span>
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="w-3.5 h-3.5 text-classic-navy" />
+                        <span>View All Full Questions / Options</span>
+                      </>
+                    )}
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleBatchDeleteQuestions}
-                    className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold text-xs flex items-center space-x-1.5 transition-all shadow-md shadow-rose-600/30"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete ({selectedBankQIds.size})</span>
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
 
           {/* Questions Grid */}
           <div className="space-y-4 max-h-[650px] overflow-y-auto pr-1">
             {questions.length === 0 ? (
-              <div className="text-center py-20 text-slate-400 text-xs">
+              <div className="text-center py-20 text-classic-text-muted text-xs">
                 {loading ? 'Loading questions...' : 'No questions found in this folder.'}
               </div>
             ) : (
@@ -1334,12 +1586,12 @@ export const QuestionBank: React.FC = () => {
                 return (
                   <div
                     key={q.id}
-                    className={`p-5 rounded-2xl transition-all space-y-3 ${
+                    className={`p-5 rounded-classic transition-all space-y-3 ${
                       isSelected
-                        ? 'bg-indigo-950/40 border-2 border-indigo-500/90 ring-2 ring-indigo-500/30 shadow-lg shadow-indigo-950/40'
+                        ? 'bg-blue-50/60 border-2 border-classic-navy shadow-classic'
                         : isDuplicateCopy
-                        ? 'bg-amber-950/25 border-2 border-amber-500/80 ring-2 ring-amber-500/30 shadow-lg shadow-amber-500/10'
-                        : 'bg-slate-900/60 border border-slate-800 hover:border-slate-700'
+                        ? 'bg-amber-50/60 border-2 border-amber-500 shadow-classic'
+                        : 'classic-card border border-classic-border hover:border-classic-navy/40 shadow-classic'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -1348,27 +1600,27 @@ export const QuestionBank: React.FC = () => {
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => handleToggleSelectQuestion(q.id)}
-                          className="w-4 h-4 rounded text-indigo-600 bg-slate-950 border-slate-700 focus:ring-indigo-500 cursor-pointer"
+                          className="w-4 h-4 rounded text-classic-navy bg-white border-classic-border focus:ring-classic-navy cursor-pointer"
                         />
-                        <span className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center font-mono ${
+                        <span className={`w-7 h-7 rounded-classic text-xs font-bold flex items-center justify-center font-mono ${
                           isDuplicateCopy
-                            ? 'bg-amber-600/40 text-amber-300 border border-amber-500/60'
+                            ? 'bg-amber-600 text-white font-bold'
                             : isSelected
-                            ? 'bg-indigo-600 text-white font-black'
-                            : 'bg-indigo-600/30 border border-indigo-500/40 text-indigo-300'
+                            ? 'bg-classic-navy text-white font-bold'
+                            : 'bg-classic-surface-muted border border-classic-border text-classic-text-primary font-bold'
                         }`}>
                           Q{q.questionNumber}
                         </span>
                         {q.folder && (
-                          <span className="text-xs text-slate-400 font-medium">
+                          <span className="text-xs text-classic-text-primary font-bold">
                             {q.folder.name}
                           </span>
                         )}
-                        <span className="text-xs text-slate-400 font-medium">
+                        <span className="text-xs text-classic-text-secondary font-medium">
                           &bull; [{q.marks} Mark{q.marks > 1 ? 's' : ''}]
                         </span>
                         {q.isRestricted && (
-                          <span className="flex items-center space-x-1 text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md font-semibold">
+                          <span className="flex items-center space-x-1 text-xs text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-classic font-bold">
                             <Lock className="w-3 h-3" />
                             <span>Restricted</span>
                           </span>
@@ -1379,10 +1631,10 @@ export const QuestionBank: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setShowDuplicatesModal(true)}
-                            className="flex items-center space-x-1 text-[10px] text-amber-300 bg-amber-900/70 border border-amber-500/60 px-2.5 py-0.5 rounded-full font-bold hover:bg-amber-800 transition-colors animate-pulse"
+                            className="flex items-center space-x-1 text-xs text-white bg-amber-600 border border-amber-500 px-2.5 py-0.5 rounded-full font-bold hover:bg-amber-700 transition-colors shadow-classic"
                             title="Click to inspect duplicate conflict"
                           >
-                            <AlertTriangle className="w-3 h-3 text-amber-400" />
+                            <AlertTriangle className="w-3 h-3 text-white" />
                             <span>Duplicate Copy</span>
                           </button>
                         )}
@@ -1390,7 +1642,7 @@ export const QuestionBank: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setShowDuplicatesModal(true)}
-                            className="flex items-center space-x-1 text-[10px] text-indigo-300 bg-indigo-950/60 border border-indigo-500/40 px-2.5 py-0.5 rounded-full font-semibold hover:bg-indigo-900/60 transition-colors"
+                            className="flex items-center space-x-1 text-xs text-classic-navy bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full font-bold hover:bg-blue-100 transition-colors"
                             title="This is the original question (has duplicates)"
                           >
                             <span>Primary Original</span>
@@ -1403,28 +1655,45 @@ export const QuestionBank: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleDeleteDuplicate(q.id)}
-                            className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold shadow flex items-center space-x-1 transition-all"
+                            className="classic-button-danger rounded-classic px-2.5 py-1 text-xs font-bold flex items-center space-x-1"
                             title="Permanently delete this duplicate question"
                           >
-                            <Trash2 className="w-3 h-3" />
+                            <Trash2 className="w-3 h-3 text-white" />
                             <span>Delete Duplicate</span>
                           </button>
                         )}
-                        <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-semibold ${
+                        <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-bold ${
                           q.difficulty === 'EASY'
-                            ? 'bg-emerald-500/20 text-emerald-300'
+                            ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
                             : q.difficulty === 'HARD'
-                            ? 'bg-rose-500/20 text-rose-300'
-                            : 'bg-amber-500/20 text-amber-300'
+                            ? 'bg-rose-100 text-rose-900 border border-rose-300'
+                            : 'bg-amber-100 text-amber-900 border border-amber-300'
                         }`}>
                           {q.difficulty}
                         </span>
+
+                        {/* Quick View Options Toggle in Card Header */}
+                        {options.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleQuestionOptions(q.id)}
+                            className={`p-1.5 rounded-classic transition-all flex items-center space-x-1 text-xs font-semibold ${
+                              expandedQuestionOptionIds.has(q.id)
+                                ? 'bg-classic-navy text-white shadow-classic border border-classic-navy'
+                                : 'text-classic-navy bg-blue-50 hover:bg-blue-100 border border-blue-200'
+                            }`}
+                            title={expandedQuestionOptionIds.has(q.id) ? "Hide options for this question" : "View full question (display options)"}
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">{expandedQuestionOptionIds.has(q.id) ? 'Hide Options' : 'View Options'}</span>
+                          </button>
+                        )}
 
                         {/* Quick Attach Picture / Diagram Button in Card Header with Destination Choice */}
                         <button
                           type="button"
                           onClick={() => setAttachImageModal({ question: q, destination: 'BODY' })}
-                          className="p-1.5 text-slate-400 hover:text-indigo-300 hover:bg-slate-800 rounded-lg transition-colors flex items-center"
+                          className="p-1.5 text-classic-text-secondary hover:text-classic-navy hover:bg-classic-surface-muted rounded-classic transition-colors flex items-center"
                           title="Attach / Add picture or diagram (select Question Body or Option)"
                         >
                           <ImageIcon className="w-3.5 h-3.5" />
@@ -1435,47 +1704,82 @@ export const QuestionBank: React.FC = () => {
                             setEditingQuestion(q);
                             setIsEditorOpen(true);
                           }}
-                          className="p-1.5 text-slate-400 hover:text-indigo-300 hover:bg-slate-800 rounded-lg transition-colors"
+                          className="p-1.5 text-classic-text-secondary hover:text-classic-navy hover:bg-classic-surface-muted rounded-classic transition-colors"
                           title="Edit Question"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteQuestion(q.id)}
-                          className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
+                          className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-classic transition-colors"
                           title="Delete Question"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3.5 h-3.5 text-rose-700" />
                         </button>
                       </div>
                     </div>
 
                     {/* Question Content */}
-                    <div className="text-sm text-slate-100 font-sans leading-relaxed">
+                    <div className="text-sm text-classic-text-primary font-sans leading-relaxed font-normal">
                       <MathRenderer content={q.questionText} />
                     </div>
 
-                    {/* MCQ Options with Image and Formula Support */}
+                    {/* View Full Question / Toggle Options Button */}
                     {options.length > 0 && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-slate-800/80">
+                      <div className="pt-1.5 flex flex-wrap items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleQuestionOptions(q.id)}
+                          className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-classic text-xs font-semibold transition-all border shadow-xs ${
+                            expandedQuestionOptionIds.has(q.id)
+                              ? 'bg-slate-100 text-classic-navy border-classic-border hover:bg-slate-200'
+                              : 'bg-blue-50/90 text-classic-navy border-blue-200 hover:bg-blue-100 hover:border-blue-300'
+                          }`}
+                          title={expandedQuestionOptionIds.has(q.id) ? 'Hide options for this question' : 'View full question (display options)'}
+                        >
+                          {expandedQuestionOptionIds.has(q.id) ? (
+                            <>
+                              <ChevronUp className="w-3.5 h-3.5 text-classic-navy" />
+                              <span>Hide Options ({options.length})</span>
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="w-3.5 h-3.5 text-classic-navy" />
+                              <span>View Full Question &bull; Show Options ({options.length})</span>
+                              <ChevronDown className="w-3 h-3 text-classic-navy/70" />
+                            </>
+                          )}
+                        </button>
+
+                        {!expandedQuestionOptionIds.has(q.id) && q.correctAnswer && (
+                          <span className="text-xs text-classic-text-muted font-mono font-medium">
+                            Correct: <span className="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">Option ({q.correctAnswer})</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* MCQ Options with Image and Formula Support (Hidden by default, displayed on click) */}
+                    {options.length > 0 && expandedQuestionOptionIds.has(q.id) && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-classic-border-light animate-fade-in">
                         {options.map((opt: any, idx: number) => {
                           const isCorrect = q.correctAnswer === opt.key;
                           return (
                             <div
                               key={idx}
-                              className={`p-2.5 rounded-xl text-xs space-y-1.5 border transition-all ${
+                              className={`p-2.5 rounded-classic text-xs space-y-1.5 border transition-all ${
                                 isCorrect
-                                  ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
-                                  : 'bg-slate-950/70 border-slate-800 text-slate-300'
+                                  ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-medium'
+                                  : 'bg-classic-surface-muted/50 border-classic-border-light text-classic-text-primary font-normal hover:bg-classic-surface-muted'
                               }`}
                             >
                               <div className="flex items-start justify-between">
                                 <div className="flex items-start space-x-2 flex-1 min-w-0">
-                                  <span className={`font-mono font-bold shrink-0 ${isCorrect ? 'text-emerald-400' : 'text-indigo-400'}`}>
+                                  <span className={`font-mono font-bold shrink-0 ${isCorrect ? 'text-emerald-700' : 'text-classic-navy'}`}>
                                     ({opt.key})
                                   </span>
                                   {opt.text && (
-                                    <span className="flex-1 leading-relaxed">
+                                    <span className="flex-1 leading-relaxed text-classic-text-primary font-medium">
                                       <MathRenderer content={opt.text} />
                                     </span>
                                   )}
@@ -1483,7 +1787,7 @@ export const QuestionBank: React.FC = () => {
 
                                 {/* Attach / Replace Option Image Button */}
                                 <label
-                                  className="ml-1.5 p-1 text-slate-500 hover:text-indigo-300 hover:bg-slate-800/80 rounded transition-colors cursor-pointer shrink-0"
+                                  className="ml-1.5 p-1 text-classic-text-muted hover:text-classic-navy hover:bg-classic-surface-muted rounded-classic transition-colors cursor-pointer shrink-0"
                                   title={opt.imageUrl ? `Replace image for Option (${opt.key})` : `Attach picture/image to Option (${opt.key})`}
                                 >
                                   <ImageIcon className="w-3.5 h-3.5" />
@@ -1520,11 +1824,11 @@ export const QuestionBank: React.FC = () => {
 
                                   {/* Destination Switcher for Option Image */}
                                   <div className="flex items-center space-x-1">
-                                    <span className="text-[9px] text-slate-500 font-mono">Dest:</span>
+                                    <span className="text-xs text-classic-text-muted font-mono font-bold">Dest:</span>
                                     <select
                                       value={opt.key}
                                       onChange={(e) => handleMoveImage(q.id, opt.key, 0, e.target.value)}
-                                      className="bg-slate-900 border border-slate-700 text-slate-300 text-[10px] rounded px-1.5 py-0.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                                      className="bg-white border border-classic-border text-classic-text-primary font-medium text-xs rounded-classic px-1.5 py-0.5 focus:outline-none focus:border-classic-navy cursor-pointer"
                                       title="Move this image to Question Body or another Option"
                                     >
                                       <option value={opt.key}>Option ({opt.key})</option>
@@ -1540,10 +1844,10 @@ export const QuestionBank: React.FC = () => {
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveOptionImageFromQuestion(q.id, opt.key)}
-                                    className="px-1.5 py-0.5 bg-rose-950/70 hover:bg-rose-900 text-rose-300 text-[10px] font-semibold rounded border border-rose-500/40 flex items-center space-x-0.5 transition-colors"
+                                    className="px-1.5 py-0.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-classic border border-rose-200 flex items-center space-x-0.5 transition-colors"
                                     title={`Remove image from Option (${opt.key})`}
                                   >
-                                    <Trash2 className="w-2.5 h-2.5" />
+                                    <Trash2 className="w-2.5 h-2.5 text-rose-700" />
                                     <span>Remove</span>
                                   </button>
                                 </div>
@@ -1556,19 +1860,19 @@ export const QuestionBank: React.FC = () => {
 
                     {/* Attached Diagrams Section */}
                     {diagrams.length > 0 ? (
-                      <div className="pt-2.5 space-y-2 border-t border-slate-800/60">
-                        <div className="flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+                      <div className="pt-2.5 space-y-2 border-t border-classic-border-light">
+                        <div className="flex items-center justify-between text-xs text-classic-text-primary font-bold">
                           <span className="flex items-center space-x-1.5">
-                            <ImageIcon className="w-3.5 h-3.5 text-indigo-400" />
+                            <ImageIcon className="w-3.5 h-3.5 text-classic-navy" />
                             <span>Attached Pictures &amp; Diagrams ({diagrams.length}):</span>
                           </span>
                           <button
                             type="button"
                             onClick={() => setAttachImageModal({ question: q, destination: 'BODY' })}
-                            className="text-xs text-indigo-400 hover:text-indigo-300 cursor-pointer flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-indigo-950/40 hover:bg-indigo-900/50 border border-indigo-500/30 transition-colors"
+                            className="classic-button-primary rounded-classic text-xs font-semibold px-3 py-1 flex items-center space-x-1 shadow-classic"
                             title="Add / attach picture or diagram (select Question Body or Option)"
                           >
-                            <Plus className="w-3 h-3" />
+                            <Plus className="w-3 h-3 text-white" />
                             <span>Add Image / Diagram</span>
                           </button>
                         </div>
@@ -1577,7 +1881,7 @@ export const QuestionBank: React.FC = () => {
                           {diagrams.map((d: any, idx: number) => {
                             const diagUrl = typeof d === 'string' ? d : d.relative_url || d.url || '';
                             return (
-                              <div key={idx} className="p-2 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1.5 group/fig">
+                              <div key={idx} className="p-2 rounded-classic bg-white border border-classic-border shadow-classic space-y-1.5 group/fig">
                                 <ResizableImage
                                   src={diagUrl}
                                   alt={`Question Figure ${idx + 1}`}
@@ -1588,16 +1892,16 @@ export const QuestionBank: React.FC = () => {
                                   removable={true}
                                   onRemove={() => handleRemoveDiagramFromQuestion(q.id, idx)}
                                 />
-                                <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 border-t border-slate-800/80 text-[10px] text-slate-400 font-mono">
-                                  <span className="font-semibold text-slate-300">Figure {idx + 1}</span>
+                                <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 border-t border-classic-border-light text-xs text-classic-text-secondary font-mono">
+                                  <span className="font-bold text-classic-text-primary">Figure {idx + 1}</span>
 
                                   {/* Destination Selector: Move from Body to Option */}
                                   <div className="flex items-center space-x-1">
-                                    <span className="text-[9px] text-slate-500 font-mono">Dest:</span>
+                                    <span className="text-xs text-classic-text-muted font-mono font-bold">Dest:</span>
                                     <select
                                       value="BODY"
                                       onChange={(e) => handleMoveImage(q.id, 'BODY', idx, e.target.value)}
-                                      className="bg-slate-900 border border-slate-700 text-slate-300 text-[10px] rounded px-1.5 py-0.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                                      className="bg-white border border-classic-border text-classic-text-primary font-medium text-xs rounded-classic px-1.5 py-0.5 focus:outline-none focus:border-classic-navy cursor-pointer"
                                       title="Select destination for this diagram (move to Question Body or a specific Option)"
                                     >
                                       <option value="BODY">📌 Question Body</option>
@@ -1612,10 +1916,10 @@ export const QuestionBank: React.FC = () => {
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveDiagramFromQuestion(q.id, idx)}
-                                    className="px-2 py-0.5 text-rose-400 hover:text-rose-200 hover:bg-rose-950/80 rounded flex items-center space-x-1 transition-colors border border-rose-500/30 font-sans font-semibold"
+                                    className="px-2 py-0.5 text-rose-700 hover:text-white hover:bg-rose-600 rounded-classic flex items-center space-x-1 transition-colors border border-rose-300 font-sans font-bold text-xs"
                                     title={`Delete Figure ${idx + 1} from question`}
                                   >
-                                    <Trash2 className="w-3 h-3" />
+                                    <Trash2 className="w-3 h-3 text-rose-700 group-hover:text-white" />
                                     <span>Delete</span>
                                   </button>
                                 </div>
@@ -1627,11 +1931,11 @@ export const QuestionBank: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setAttachImageModal({ question: q, destination: 'BODY' })}
-                            className="border-2 border-dashed border-slate-700/80 hover:border-indigo-500 hover:bg-slate-900/50 rounded-xl px-4 py-6 flex flex-col items-center justify-center text-slate-400 hover:text-indigo-300 cursor-pointer transition-colors space-y-1 h-[120px]"
+                            className="border border-dashed border-classic-border hover:border-classic-navy bg-classic-surface-muted/50 hover:bg-blue-50/50 rounded-classic px-4 py-6 flex flex-col items-center justify-center text-classic-text-primary hover:text-classic-navy cursor-pointer transition-colors space-y-1 h-[120px]"
                             title="Add another diagram or picture to this question"
                           >
-                            <Plus className="w-5 h-5 text-indigo-400" />
-                            <span className="text-[11px] font-semibold">+ Add Figure</span>
+                            <Plus className="w-5 h-5 text-classic-navy" />
+                            <span className="text-xs font-bold">+ Add Figure</span>
                           </button>
                         </div>
                       </div>
@@ -1640,10 +1944,10 @@ export const QuestionBank: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setAttachImageModal({ question: q, destination: 'BODY' })}
-                          className="inline-flex items-center space-x-1.5 text-slate-400 hover:text-indigo-300 hover:bg-slate-900 px-2.5 py-1 rounded-lg border border-dashed border-slate-800 hover:border-indigo-500/50 text-xs cursor-pointer transition-colors"
+                          className="inline-flex items-center space-x-1.5 text-classic-text-secondary hover:text-classic-navy hover:bg-classic-surface-muted px-2.5 py-1 rounded-classic border border-dashed border-classic-border hover:border-classic-navy text-xs font-semibold cursor-pointer transition-colors"
                           title="Include picture or diagram in this question (choose body or options)"
                         >
-                          <ImageIcon className="w-3.5 h-3.5 text-indigo-400" />
+                          <ImageIcon className="w-3.5 h-3.5 text-classic-navy" />
                           <span>+ Add Picture / Diagram (Body or Options)</span>
                         </button>
                       </div>
@@ -1658,37 +1962,37 @@ export const QuestionBank: React.FC = () => {
 
       {/* Modal for Creating Folders */}
       {isFolderModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="glass-panel w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl border border-slate-700">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white w-full max-w-md rounded-classic p-6 space-y-4 shadow-classic-md border border-classic-border">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-white flex items-center space-x-2">
-                <FolderPlus className="w-5 h-5 text-indigo-400" />
+              <h2 className="text-base font-bold text-classic-text-primary flex items-center space-x-2">
+                <FolderPlus className="w-5 h-5 text-classic-navy" />
                 <span>Create New Folder</span>
               </h2>
-              <button onClick={() => setIsFolderModalOpen(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setIsFolderModalOpen(false)} className="text-classic-text-secondary hover:text-classic-text-primary">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleCreateFolder} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Folder Name</label>
+                <label className="block text-sm font-semibold text-classic-text-primary mb-1.5">Folder Name</label>
                 <input
                   type="text"
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
                   placeholder="e.g. Kinematics, Thermodynamics, Algebra"
                   required
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full classic-input rounded-classic px-3 py-2 text-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Folder Type / Level</label>
+                <label className="block text-sm font-semibold text-classic-text-primary mb-1.5">Folder Type / Level</label>
                 <select
                   value={newFolderType}
                   onChange={(e) => setNewFolderType(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200"
+                  className="w-full classic-input rounded-classic px-3 py-2 text-xs"
                 >
                   <option value="CLASS">Class (e.g. Class 11, Class 12, NEET)</option>
                   <option value="SUBJECT">Subject (e.g. Physics, Chemistry, Math)</option>
@@ -1698,11 +2002,11 @@ export const QuestionBank: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Parent Folder (Location)</label>
+                <label className="block text-sm font-semibold text-classic-text-primary mb-1.5">Parent Folder (Location)</label>
                 <select
                   value={newFolderParentId}
                   onChange={(e) => setNewFolderParentId(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200"
+                  className="w-full classic-input rounded-classic px-3 py-2 text-xs"
                 >
                   <option value="">None (Top-Level Root Class)</option>
                   {flatFolders.map((f) => (
@@ -1713,17 +2017,17 @@ export const QuestionBank: React.FC = () => {
                 </select>
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-2">
+              <div className="flex items-center justify-end space-x-2 pt-2 border-t border-classic-border-light">
                 <button
                   type="button"
                   onClick={() => setIsFolderModalOpen(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs"
+                  className="classic-button-secondary rounded-classic px-4 py-2 text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md"
+                  className="classic-button-primary rounded-classic px-4 py-2 text-xs font-semibold"
                 >
                   Create Folder
                 </button>
@@ -1735,29 +2039,29 @@ export const QuestionBank: React.FC = () => {
 
       {/* Modal for Moving Folder to New Parent */}
       {isMoveModalOpen && folderToMove && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="glass-panel w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl border border-slate-700">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white w-full max-w-md rounded-classic p-6 space-y-4 shadow-classic-md border border-classic-border">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-white flex items-center space-x-2">
-                <Move className="w-5 h-5 text-amber-400" />
+              <h2 className="text-base font-bold text-classic-text-primary flex items-center space-x-2">
+                <Move className="w-5 h-5 text-classic-navy" />
                 <span>Move Folder: "{folderToMove.name}"</span>
               </h2>
-              <button onClick={() => setIsMoveModalOpen(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setIsMoveModalOpen(false)} className="text-classic-text-secondary hover:text-classic-text-primary">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-classic-text-muted">
               Select the new parent folder or move this folder to the top-level root.
             </p>
 
             <form onSubmit={handleMoveFolder} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">New Parent Folder</label>
+                <label className="block text-sm font-semibold text-classic-text-primary mb-1.5">New Parent Folder</label>
                 <select
                   value={newParentFolderId}
                   onChange={(e) => setNewParentFolderId(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200"
+                  className="w-full classic-input rounded-classic px-3 py-2 text-xs"
                 >
                   <option value="">[ Move to Root / Top-Level ]</option>
                   {flatFolders
@@ -1770,17 +2074,17 @@ export const QuestionBank: React.FC = () => {
                 </select>
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-2">
+              <div className="flex items-center justify-end space-x-2 pt-2 border-t border-classic-border-light">
                 <button
                   type="button"
                   onClick={() => setIsMoveModalOpen(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs"
+                  className="classic-button-secondary rounded-classic px-4 py-2 text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-semibold shadow-md"
+                  className="classic-button-primary rounded-classic px-4 py-2 text-xs font-semibold"
                 >
                   Move Folder
                 </button>
@@ -1792,41 +2096,41 @@ export const QuestionBank: React.FC = () => {
 
       {/* Modal for Renaming / Editing Folder */}
       {isEditFolderModalOpen && folderToEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="glass-panel w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl border border-slate-700">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white w-full max-w-md rounded-classic p-6 space-y-4 shadow-classic-md border border-classic-border">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-white flex items-center space-x-2">
-                <Edit3 className="w-5 h-5 text-cyan-400" />
+              <h2 className="text-base font-bold text-classic-text-primary flex items-center space-x-2">
+                <Edit3 className="w-5 h-5 text-classic-navy" />
                 <span>Rename Folder</span>
               </h2>
-              <button onClick={() => setIsEditFolderModalOpen(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setIsEditFolderModalOpen(false)} className="text-classic-text-secondary hover:text-classic-text-primary">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleEditFolder} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Folder Name</label>
+                <label className="block text-sm font-semibold text-classic-text-primary mb-1.5">Folder Name</label>
                 <input
                   type="text"
                   value={editFolderName}
                   onChange={(e) => setEditFolderName(e.target.value)}
                   required
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full classic-input rounded-classic px-3 py-2 text-xs"
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-2">
+              <div className="flex items-center justify-end space-x-2 pt-2 border-t border-classic-border-light">
                 <button
                   type="button"
                   onClick={() => setIsEditFolderModalOpen(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs"
+                  className="classic-button-secondary rounded-classic px-4 py-2 text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-semibold shadow-md"
+                  className="classic-button-primary rounded-classic px-4 py-2 text-xs font-semibold"
                 >
                   Save Rename
                 </button>
@@ -1838,22 +2142,22 @@ export const QuestionBank: React.FC = () => {
 
       {/* Duplicate Questions Inspector Modal */}
       {showDuplicatesModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-fade-in">
-          <div className="glass-panel w-full max-w-4xl max-h-[85vh] flex flex-col rounded-2xl p-6 space-y-4 shadow-2xl border border-slate-700 bg-slate-900/95">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in">
+          <div className="bg-white w-full max-w-4xl max-h-[85vh] flex flex-col rounded-classic p-6 space-y-4 shadow-classic-md border border-classic-border text-classic-text-primary">
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-classic-border-light">
               <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+                <div className="w-9 h-9 rounded-classic bg-amber-100 text-amber-800 flex items-center justify-center border border-amber-300">
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-white flex items-center space-x-2">
+                  <h2 className="text-base font-bold text-classic-text-primary flex items-center space-x-2">
                     <span>Question Bank Duplicate Detector</span>
-                    <span className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded-full font-mono">
+                    <span className="text-xs px-2 py-0.5 bg-amber-50 text-amber-900 border border-amber-300 rounded-full font-mono font-bold">
                       {duplicateGroups.length} Conflict Group{duplicateGroups.length !== 1 ? 's' : ''}
                     </span>
                   </h2>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-classic-text-muted">
                     Scanned {duplicateSummary?.scanned || questions.length} questions across all taxonomy folders &bull; Identified {duplicateSummary?.total || 0} duplicate instances
                   </p>
                 </div>
@@ -1863,16 +2167,16 @@ export const QuestionBank: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleCleanAllDuplicates}
-                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold text-xs shadow flex items-center space-x-1.5 transition-all"
+                    className="classic-button-danger rounded-classic px-3 py-1.5 font-bold text-xs flex items-center space-x-1.5"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-3.5 h-3.5 text-white" />
                     <span>Auto-Clean All ({duplicateSummary?.total || 0})</span>
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={() => setShowDuplicatesModal(false)}
-                  className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                  className="text-classic-text-secondary hover:text-classic-text-primary p-1.5 rounded-classic hover:bg-classic-surface-muted transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1882,10 +2186,10 @@ export const QuestionBank: React.FC = () => {
             {/* Duplicate Clusters List */}
             <div className="flex-1 overflow-y-auto space-y-4 pr-1 max-h-[580px]">
               {duplicateGroups.length === 0 ? (
-                <div className="p-12 text-center space-y-3 border border-dashed border-slate-800 rounded-2xl bg-slate-950/40">
-                  <Check className="w-10 h-10 text-emerald-400 mx-auto" />
-                  <p className="text-sm font-bold text-white">No Duplicate Questions Found!</p>
-                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                <div className="p-12 text-center space-y-3 border border-dashed border-classic-border rounded-classic bg-classic-surface-muted/30">
+                  <Check className="w-10 h-10 text-emerald-600 mx-auto" />
+                  <p className="text-sm font-bold text-classic-text-primary">No Duplicate Questions Found!</p>
+                  <p className="text-xs text-classic-text-muted max-w-sm mx-auto">
                     All questions in the Question Bank are unique and deduplicated across all folders.
                   </p>
                 </div>
@@ -1895,37 +2199,37 @@ export const QuestionBank: React.FC = () => {
                   const canonicalDiags = typeof group.canonical.diagramsJson === 'string' ? JSON.parse(group.canonical.diagramsJson) : group.canonical.diagrams || [];
 
                   return (
-                    <div key={gIdx} className="p-4 bg-slate-950/90 rounded-2xl border border-slate-800 space-y-3 shadow-md">
+                    <div key={gIdx} className="p-4 bg-classic-surface-muted/40 rounded-classic border border-classic-border space-y-3 shadow-classic">
                       {/* Cluster Header */}
-                      <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-800">
-                        <span className="font-bold text-amber-300 flex items-center space-x-2">
-                          <AlertTriangle className="w-4 h-4 text-amber-400" />
+                      <div className="flex items-center justify-between text-xs pb-2 border-b border-classic-border-light">
+                        <span className="font-bold text-amber-900 flex items-center space-x-2">
+                          <AlertTriangle className="w-4 h-4 text-amber-600" />
                           <span>Duplicate Cluster #{gIdx + 1} ({group.duplicates.length + 1} Questions Total)</span>
                         </span>
-                        <span className="text-[11px] text-slate-400 font-mono">
+                        <span className="text-xs text-classic-text-muted font-mono">
                           {group.duplicates[0]?.reason || 'High Similarity Match'}
                         </span>
                       </div>
 
                       {/* Original / Canonical Question Card */}
-                      <div className="p-3.5 bg-slate-900/90 rounded-xl border border-slate-700/80 space-y-2">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="font-bold text-emerald-400 uppercase tracking-wide flex items-center space-x-1">
+                      <div className="p-3.5 bg-white rounded-classic border border-classic-border space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-emerald-700 uppercase tracking-wide flex items-center space-x-1">
                             <Check className="w-3.5 h-3.5" />
                             <span>Original / Primary Question</span>
                           </span>
                           <div className="flex items-center space-x-2">
-                            <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono text-[10px] font-semibold">
+                            <span className="px-2 py-0.5 rounded-classic bg-blue-50 text-classic-navy border border-blue-200 font-mono text-xs font-semibold">
                               Folder: {group.canonical.folder?.name || 'Unassigned'}
                             </span>
-                            <span className="text-slate-400 font-mono text-[10px]">
+                            <span className="text-classic-text-muted font-mono text-xs">
                               [{group.canonical.marks} Mark{group.canonical.marks > 1 ? 's' : ''}]
                             </span>
                           </div>
                         </div>
 
                         {group.canonical.questionText && (
-                          <div className="text-xs text-slate-200 leading-relaxed">
+                          <div className="text-xs text-classic-text-primary leading-relaxed">
                             <MathRenderer content={group.canonical.questionText} />
                           </div>
                         )}
@@ -1937,17 +2241,17 @@ export const QuestionBank: React.FC = () => {
                                 key={idx}
                                 src={d.relative_url}
                                 alt={d.label || `Figure ${idx + 1}`}
-                                className="max-h-24 rounded-lg border border-slate-700 bg-white object-contain"
+                                className="max-h-24 rounded-classic border border-classic-border bg-white object-contain"
                               />
                             ))}
                           </div>
                         )}
 
                         {canonicalOpts.length > 0 && (
-                          <div className="grid grid-cols-2 gap-1.5 pt-1 text-[11px] text-slate-300">
+                          <div className="grid grid-cols-2 gap-1.5 pt-1 text-xs text-classic-text-secondary">
                             {canonicalOpts.map((opt: any, optIdx: number) => (
-                              <div key={optIdx} className="bg-slate-950/60 rounded px-2 py-1 border border-slate-800 flex items-center space-x-1">
-                                <span className="font-mono text-indigo-400 font-bold">({opt.key || optIdx + 1})</span>
+                              <div key={optIdx} className="bg-classic-surface-muted rounded-classic px-2 py-1 border border-classic-border-light flex items-center space-x-1">
+                                <span className="font-mono text-classic-navy font-bold">({opt.key || optIdx + 1})</span>
                                 <span>{opt.text}</span>
                               </div>
                             ))}
@@ -1956,39 +2260,39 @@ export const QuestionBank: React.FC = () => {
                       </div>
 
                       {/* Duplicate Copies */}
-                      <div className="space-y-2 pl-3 border-l-2 border-amber-500/40">
+                      <div className="space-y-2 pl-3 border-l-2 border-amber-400">
                         {group.duplicates.map((dup: any, dIdx: number) => {
                           const dupOpts = typeof dup.question.optionsJson === 'string' ? JSON.parse(dup.question.optionsJson) : dup.question.options || [];
                           const dupDiags = typeof dup.question.diagramsJson === 'string' ? JSON.parse(dup.question.diagramsJson) : dup.question.diagrams || [];
 
                           return (
-                            <div key={dIdx} className="p-3.5 bg-amber-950/20 rounded-xl border border-amber-500/30 space-y-2">
-                              <div className="flex items-center justify-between text-[11px]">
-                                <span className="font-bold text-rose-300 flex items-center space-x-1.5">
-                                  <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                            <div key={dIdx} className="p-3.5 bg-amber-50/60 rounded-classic border border-amber-300 space-y-2">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-bold text-rose-800 flex items-center space-x-1.5">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
                                   <span>Duplicate Match ({dup.similarity}% Similarity)</span>
                                 </span>
                                 <div className="flex items-center space-x-2">
-                                  <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-200 font-mono text-[10px] font-semibold">
+                                  <span className="px-2 py-0.5 rounded-classic bg-amber-100 text-amber-900 border border-amber-300 font-mono text-xs font-semibold">
                                     Folder: {dup.question.folder?.name || 'Unassigned'}
                                   </span>
-                                  <span className="text-slate-400 font-mono text-[10px]">
+                                  <span className="text-classic-text-muted font-mono text-xs">
                                     [{dup.question.marks} Mark{dup.question.marks > 1 ? 's' : ''}]
                                   </span>
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteDuplicate(dup.question.id)}
-                                    className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold shadow flex items-center space-x-1 transition-colors"
+                                    className="classic-button-danger rounded-classic px-2.5 py-1 text-xs font-bold flex items-center space-x-1"
                                     title="Permanently delete this duplicate question"
                                   >
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <Trash2 className="w-3.5 h-3.5 text-white" />
                                     <span>Delete Duplicate</span>
                                   </button>
                                 </div>
                               </div>
 
                               {dup.question.questionText && (
-                                <div className="text-xs text-slate-200 leading-relaxed">
+                                <div className="text-xs text-classic-text-primary leading-relaxed">
                                   <MathRenderer content={dup.question.questionText} />
                                 </div>
                               )}
@@ -2000,17 +2304,17 @@ export const QuestionBank: React.FC = () => {
                                       key={idx}
                                       src={d.relative_url}
                                       alt={d.label || `Figure ${idx + 1}`}
-                                      className="max-h-24 rounded-lg border border-slate-700 bg-white object-contain"
+                                      className="max-h-24 rounded-classic border border-classic-border bg-white object-contain"
                                     />
                                   ))}
                                 </div>
                               )}
 
                               {dupOpts.length > 0 && (
-                                <div className="grid grid-cols-2 gap-1.5 pt-1 text-[11px] text-slate-300">
+                                <div className="grid grid-cols-2 gap-1.5 pt-1 text-xs text-classic-text-secondary">
                                   {dupOpts.map((opt: any, optIdx: number) => (
-                                    <div key={optIdx} className="bg-slate-950/60 rounded px-2 py-1 border border-slate-800 flex items-center space-x-1">
-                                      <span className="font-mono text-amber-400 font-bold">({opt.key || optIdx + 1})</span>
+                                    <div key={optIdx} className="bg-white rounded-classic px-2 py-1 border border-classic-border-light flex items-center space-x-1">
+                                      <span className="font-mono text-amber-800 font-bold">({opt.key || optIdx + 1})</span>
                                       <span>{opt.text}</span>
                                     </div>
                                   ))}
@@ -2027,8 +2331,8 @@ export const QuestionBank: React.FC = () => {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between pt-3 border-t border-slate-800 text-xs">
-              <span className="text-slate-400">
+            <div className="flex items-center justify-between pt-3 border-t border-classic-border-light text-xs">
+              <span className="text-classic-text-muted">
                 Tip: Auto-clean removes redundant duplicate copies while preserving the primary original in your Question Bank.
               </span>
               <div className="flex items-center space-x-2">
@@ -2036,16 +2340,16 @@ export const QuestionBank: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleCleanAllDuplicates}
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold shadow-md transition-all text-xs flex items-center space-x-1.5"
+                    className="classic-button-danger rounded-classic px-4 py-2 font-bold text-xs flex items-center space-x-1.5"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-3.5 h-3.5 text-white" />
                     <span>Auto-Clean All Duplicates</span>
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={() => setShowDuplicatesModal(false)}
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold shadow-md transition-all text-xs"
+                  className="classic-button-primary rounded-classic px-5 py-2 font-semibold text-xs"
                 >
                   Done
                 </button>
@@ -2057,31 +2361,31 @@ export const QuestionBank: React.FC = () => {
 
       {/* Batch Move Questions Modal */}
       {isBatchMoveModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fade-in">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-classic-border rounded-classic max-w-md w-full p-6 space-y-4 shadow-classic-md animate-fade-in">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-white flex items-center space-x-2">
-                <Folder className="w-5 h-5 text-indigo-400" />
+              <h3 className="text-base font-bold text-classic-text-primary flex items-center space-x-2">
+                <Folder className="w-5 h-5 text-classic-navy" />
                 <span>Move {selectedBankQIds.size} Questions</span>
               </h3>
               <button
                 onClick={() => setIsBatchMoveModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                className="p-1 rounded-classic text-classic-text-secondary hover:text-classic-text-primary hover:bg-classic-surface-muted"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-classic-text-muted">
               Select the destination taxonomy folder for the {selectedBankQIds.size} selected questions.
             </p>
 
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-slate-300">Destination Folder</label>
+              <label className="block text-xs font-semibold text-classic-text-primary">Destination Folder</label>
               <select
                 value={batchTargetFolderId}
                 onChange={(e) => setBatchTargetFolderId(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full classic-input rounded-classic px-3 py-2 text-xs"
               >
                 <option value="">-- Select Folder --</option>
                 {flatFolders.map((f) => (
@@ -2092,11 +2396,11 @@ export const QuestionBank: React.FC = () => {
               </select>
             </div>
 
-            <div className="flex justify-end space-x-2 pt-2 border-t border-slate-800">
+            <div className="flex justify-end space-x-2 pt-2 border-t border-classic-border-light">
               <button
                 type="button"
                 onClick={() => setIsBatchMoveModalOpen(false)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-xl font-semibold transition-colors"
+                className="classic-button-secondary rounded-classic px-4 py-2 text-xs font-semibold transition-colors"
               >
                 Cancel
               </button>
@@ -2104,7 +2408,7 @@ export const QuestionBank: React.FC = () => {
                 type="button"
                 disabled={!batchTargetFolderId}
                 onClick={handleBatchMoveQuestions}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs rounded-xl font-bold transition-colors shadow-lg shadow-indigo-600/30"
+                className="classic-button-primary rounded-classic px-4 py-2 text-xs font-bold disabled:opacity-40"
               >
                 Confirm Move
               </button>
@@ -2115,17 +2419,28 @@ export const QuestionBank: React.FC = () => {
 
       {/* Universal Import & Extract Questions Modal */}
       {isPasteModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-4xl w-full p-6 space-y-5 shadow-2xl animate-fade-in my-8">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-classic-border rounded-classic max-w-4xl w-full p-6 space-y-5 shadow-classic-md animate-fade-in my-8 text-classic-text-primary">
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-classic-border-light">
               <div className="space-y-1">
-                <h3 className="text-lg font-bold text-white flex items-center space-x-2">
-                  <Upload className="w-5 h-5 text-indigo-400" />
-                  <span>Universal Import &amp; Extract Questions</span>
+                <h3 className="text-lg font-bold text-classic-text-primary flex items-center space-x-2">
+                  {importExportModalMode === 'IMPORT' ? (
+                    <>
+                      <Upload className="w-5 h-5 text-emerald-700" />
+                      <span>Universal Import &amp; Extract Questions</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-5 h-5 text-indigo-700" />
+                      <span>Universal Question Bank Export Suite</span>
+                    </>
+                  )}
                 </h3>
-                <p className="text-xs text-slate-400">
-                  Import questions, options, answer keys, and solutions from Word (.docx), PDF (.pdf), JSON (.json), Image OCR, or raw text for complete cross-app interoperability.
+                <p className="text-xs text-classic-text-muted">
+                  {importExportModalMode === 'IMPORT'
+                    ? 'Import questions, options, answer keys, and solutions from Word (.docx), PDF (.pdf), JSON (.json), Image OCR, or raw text.'
+                    : 'Download questions, options, formulas, and verified solutions in multiple publication-grade formats with 1 click.'}
                 </p>
               </div>
               <button
@@ -2134,21 +2449,243 @@ export const QuestionBank: React.FC = () => {
                   setParsedFileQuestions([]);
                   setImportErrorMsg('');
                 }}
-                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-2 rounded-classic text-classic-text-secondary hover:text-classic-text-primary hover:bg-classic-surface-muted transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Target Folder Selector */}
+            {/* Mode Switcher Tabs */}
+            <div className="flex border-b border-classic-border">
+              <button
+                type="button"
+                onClick={() => setImportExportModalMode('IMPORT')}
+                className={`py-2 px-4 text-xs font-bold flex items-center space-x-2 border-b-2 transition-all ${
+                  importExportModalMode === 'IMPORT'
+                    ? 'border-emerald-700 text-emerald-800 bg-emerald-50/50'
+                    : 'border-transparent text-classic-text-secondary hover:text-classic-text-primary'
+                }`}
+              >
+                <Upload className="w-4 h-4 text-emerald-700" />
+                <span>Import &amp; Extract Questions</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setImportExportModalMode('EXPORT')}
+                className={`py-2 px-4 text-xs font-bold flex items-center space-x-2 border-b-2 transition-all ${
+                  importExportModalMode === 'EXPORT'
+                    ? 'border-indigo-600 text-indigo-900 bg-indigo-50/50'
+                    : 'border-transparent text-classic-text-secondary hover:text-classic-text-primary'
+                }`}
+              >
+                <Download className="w-4 h-4 text-indigo-700" />
+                <span>Export Question Bank</span>
+                {selectedBankQIds.size > 0 && (
+                  <span className="ml-1 px-1.5 py-0.2 bg-indigo-600 text-white text-[10px] rounded-full font-bold">
+                    {selectedBankQIds.size} Selected
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {importExportModalMode === 'EXPORT' ? (
+              <div className="space-y-4">
+                {/* Export Scope and Filter */}
+                <div className="p-3.5 bg-classic-surface-muted border border-classic-border rounded-classic flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="space-y-1">
+                    <span className="font-bold text-classic-text-primary">Current Export Scope:</span>{' '}
+                    <span className="text-indigo-900 font-bold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                      {getExportScopeLabel(pasteModalTargetFolder)}
+                    </span>
+                    <div className="text-[11px] text-classic-text-muted">
+                      {selectedBankQIds.size > 0
+                        ? `Export will contain only the ${selectedBankQIds.size} checked question(s).`
+                        : pasteModalTargetFolder
+                        ? 'Export will include all questions in this folder and its descendant chapters/topics.'
+                        : 'Export will include all questions in the entire Question Bank.'}
+                    </div>
+                  </div>
+
+                  <div className="w-64">
+                    <label className="block text-[11px] font-semibold text-classic-text-muted mb-1">
+                      Filter by Taxonomy Folder
+                    </label>
+                    <select
+                      value={pasteModalTargetFolder}
+                      onChange={(e) => setPasteModalTargetFolder(e.target.value)}
+                      className="w-full classic-input rounded-classic px-2.5 py-1.5 text-xs"
+                    >
+                      <option value="">-- All Folders (Entire Bank) --</option>
+                      {flatFolders.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name} ({f.type})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* 4 Multi-Format Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                  {/* Word */}
+                  <div className="p-4 border border-blue-200 bg-blue-50/20 rounded-classic space-y-3 flex flex-col justify-between hover:border-blue-400 transition-all shadow-classic-sm">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <FileText className="w-5 h-5 text-blue-700" />
+                          <h4 className="font-bold text-sm text-classic-text-primary">Microsoft Word (.doc)</h4>
+                        </div>
+                        <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-[10px] rounded font-bold">Solutions &amp; Images</span>
+                      </div>
+                      <p className="text-xs text-classic-text-muted leading-relaxed">
+                        Produces an editable Microsoft Word document with formatted questions, option keys, embedded diagrams, and comprehensive Answer Key solutions.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleExportWord(pasteModalTargetFolder)}
+                      disabled={exportingFormat !== null}
+                      className="classic-button-primary rounded-classic py-2.5 px-4 text-xs font-bold flex items-center justify-center space-x-2 w-full disabled:opacity-50"
+                    >
+                      {exportingFormat === 'word' ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Generating Word Document...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          <span>Download Word (.doc)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* PDF */}
+                  <div className="p-4 border border-rose-200 bg-rose-50/20 rounded-classic space-y-3 flex flex-col justify-between hover:border-rose-400 transition-all shadow-classic-sm">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Download className="w-5 h-5 text-rose-600" />
+                          <h4 className="font-bold text-sm text-rose-950">Publication PDF (.pdf)</h4>
+                        </div>
+                        <span className="px-2 py-0.5 bg-rose-100 text-rose-800 text-[10px] rounded font-bold">A4 Print Ready</span>
+                      </div>
+                      <p className="text-xs text-classic-text-muted leading-relaxed">
+                        Generates a crisp, publication-grade A4 PDF exam paper with questions, option layout, and complete Answer Key appendix rendered via offline PyMuPDF AI engine.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleExportPdf(pasteModalTargetFolder)}
+                      disabled={exportingFormat !== null}
+                      className="bg-rose-700 hover:bg-rose-800 text-white rounded-classic py-2.5 px-4 text-xs font-bold flex items-center justify-center space-x-2 w-full transition-all disabled:opacity-50"
+                    >
+                      {exportingFormat === 'pdf' ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Rendering PDF...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          <span>Download PDF (.pdf)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* JSON */}
+                  <div className="p-4 border border-amber-200 bg-amber-50/20 rounded-classic space-y-3 flex flex-col justify-between hover:border-amber-400 transition-all shadow-classic-sm">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <FileJson className="w-5 h-5 text-amber-700" />
+                          <h4 className="font-bold text-sm text-classic-text-primary">Universal JSON (.json)</h4>
+                        </div>
+                        <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] rounded font-bold">Schema v2.0</span>
+                      </div>
+                      <p className="text-xs text-classic-text-muted leading-relaxed">
+                        Exports standardized portable JSON format for cross-app interoperability, external LMS (Moodle, Canvas), automated grading, and cold archive backups.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleExportJson(pasteModalTargetFolder)}
+                      disabled={exportingFormat !== null}
+                      className="classic-button-secondary rounded-classic py-2.5 px-4 text-xs font-bold flex items-center justify-center space-x-2 w-full border-amber-300 hover:bg-amber-100 disabled:opacity-50"
+                    >
+                      {exportingFormat === 'json' ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin text-amber-700" />
+                          <span>Packaging JSON...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4 text-amber-700" />
+                          <span>Download JSON (.json)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Excel CSV */}
+                  <div className="p-4 border border-emerald-200 bg-emerald-50/20 rounded-classic space-y-3 flex flex-col justify-between hover:border-emerald-400 transition-all shadow-classic-sm">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <FileSpreadsheet className="w-5 h-5 text-emerald-700" />
+                          <h4 className="font-bold text-sm text-emerald-950">Excel Spreadsheet (.csv)</h4>
+                        </div>
+                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] rounded font-bold">UTF-8 Multi-Lang</span>
+                      </div>
+                      <p className="text-xs text-classic-text-muted leading-relaxed">
+                        Tabular export with explicit UTF-8 BOM encoding so Microsoft Excel properly displays Hindi, Sanskrit, Punjabi, Urdu, and all mathematical formulas.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleExportCsv(pasteModalTargetFolder)}
+                      disabled={exportingFormat !== null}
+                      className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-classic py-2.5 px-4 text-xs font-bold flex items-center justify-center space-x-2 w-full transition-all disabled:opacity-50"
+                    >
+                      {exportingFormat === 'csv' ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Exporting Spreadsheet...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          <span>Download Excel (.csv)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end pt-3 border-t border-classic-border-light">
+                  <button
+                    type="button"
+                    onClick={() => setIsPasteModalOpen(false)}
+                    className="classic-button-secondary rounded-classic px-5 py-2 text-xs font-semibold"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Target Folder Selector */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-300">
+              <label className="block text-xs font-semibold text-classic-text-primary">
                 Target Taxonomy Folder
               </label>
               <select
                 value={pasteModalTargetFolder}
                 onChange={(e) => setPasteModalTargetFolder(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                className="w-full classic-input rounded-classic px-3 py-2 text-xs"
               >
                 <option value="">-- Root / Unassigned --</option>
                 {flatFolders.map((f) => (
@@ -2160,17 +2697,17 @@ export const QuestionBank: React.FC = () => {
             </div>
 
             {/* Mode Switcher Tabs */}
-            <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-950/80 border border-slate-800 rounded-2xl">
+            <div className="flex flex-wrap items-center gap-1.5 p-1 bg-classic-surface-muted border border-classic-border rounded-classic">
               <button
                 type="button"
                 onClick={() => {
                   setImportModalTab('JSON');
                   setImportErrorMsg('');
                 }}
-                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all ${
+                className={`flex-1 py-2 px-3 rounded-classic text-xs font-bold flex items-center justify-center space-x-1.5 transition-all ${
                   importModalTab === 'JSON'
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                    ? 'bg-classic-navy text-white shadow-classic border border-classic-navy'
+                    : 'text-classic-text-secondary hover:text-classic-text-primary hover:bg-white border border-transparent'
                 }`}
               >
                 <FileJson className="w-3.5 h-3.5" />
@@ -2183,10 +2720,10 @@ export const QuestionBank: React.FC = () => {
                   setImportModalTab('WORD');
                   setImportErrorMsg('');
                 }}
-                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all ${
+                className={`flex-1 py-2 px-3 rounded-classic text-xs font-bold flex items-center justify-center space-x-1.5 transition-all ${
                   importModalTab === 'WORD'
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                    ? 'bg-classic-navy text-white shadow-classic border border-classic-navy'
+                    : 'text-classic-text-secondary hover:text-classic-text-primary hover:bg-white border border-transparent'
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" />
@@ -2199,10 +2736,10 @@ export const QuestionBank: React.FC = () => {
                   setImportModalTab('PDF');
                   setImportErrorMsg('');
                 }}
-                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all ${
+                className={`flex-1 py-2 px-3 rounded-classic text-xs font-bold flex items-center justify-center space-x-1.5 transition-all ${
                   importModalTab === 'PDF'
-                    ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                    ? 'bg-classic-navy text-white shadow-classic border border-classic-navy'
+                    : 'text-classic-text-secondary hover:text-classic-text-primary hover:bg-white border border-transparent'
                 }`}
               >
                 <FileIcon className="w-3.5 h-3.5" />
@@ -2215,10 +2752,10 @@ export const QuestionBank: React.FC = () => {
                   setImportModalTab('IMAGE');
                   setImportErrorMsg('');
                 }}
-                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all ${
+                className={`flex-1 py-2 px-3 rounded-classic text-xs font-bold flex items-center justify-center space-x-1.5 transition-all ${
                   importModalTab === 'IMAGE'
-                    ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                    ? 'bg-classic-navy text-white shadow-classic border border-classic-navy'
+                    : 'text-classic-text-secondary hover:text-classic-text-primary hover:bg-white border border-transparent'
                 }`}
               >
                 <ImageIcon className="w-3.5 h-3.5" />
@@ -2231,10 +2768,10 @@ export const QuestionBank: React.FC = () => {
                   setImportModalTab('TEXT');
                   setImportErrorMsg('');
                 }}
-                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all ${
+                className={`flex-1 py-2 px-3 rounded-classic text-xs font-bold flex items-center justify-center space-x-1.5 transition-all ${
                   importModalTab === 'TEXT'
-                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                    ? 'bg-classic-navy text-white shadow-classic border border-classic-navy'
+                    : 'text-classic-text-secondary hover:text-classic-text-primary hover:bg-white border border-transparent'
                 }`}
               >
                 <Clipboard className="w-3.5 h-3.5" />
@@ -2244,8 +2781,8 @@ export const QuestionBank: React.FC = () => {
 
             {/* Error Message if any */}
             {importErrorMsg && (
-              <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center space-x-2 text-rose-300 text-xs animate-fade-in">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+              <div className="p-3 bg-rose-50 border border-rose-300 rounded-classic flex items-center space-x-2 text-rose-800 text-xs animate-fade-in">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
                 <span>{importErrorMsg}</span>
               </div>
             )}
@@ -2266,19 +2803,19 @@ export const QuestionBank: React.FC = () => {
 
                 <div
                   onClick={() => jsonFileInputRef.current?.click()}
-                  className="border-2 border-dashed border-indigo-500/40 hover:border-indigo-400/80 bg-indigo-950/20 hover:bg-indigo-950/30 rounded-2xl p-6 text-center cursor-pointer transition-all space-y-2 group"
+                  className="border-2 border-dashed border-classic-border hover:border-classic-navy bg-classic-surface-muted/30 hover:bg-classic-surface-muted/60 rounded-classic p-6 text-center cursor-pointer transition-all space-y-2 group"
                 >
-                  <FileJson className="w-8 h-8 text-indigo-400 mx-auto group-hover:scale-110 transition-transform" />
-                  <p className="text-xs text-slate-200 font-bold">
+                  <FileJson className="w-8 h-8 text-classic-navy mx-auto group-hover:scale-105 transition-transform" />
+                  <p className="text-xs text-classic-text-primary font-bold">
                     Click to browse or drop a JSON file from another application or LMS
                   </p>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-xs text-classic-text-muted">
                     Accepts standard Question schemas, Moodle exports, or arrays of questions with options and answer keys.
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-[11px] font-semibold text-slate-400">
+                  <label className="block text-xs font-semibold text-classic-text-secondary">
                     Or paste raw JSON payload here:
                   </label>
                   <textarea
@@ -2296,7 +2833,7 @@ export const QuestionBank: React.FC = () => {
                       }
                     }}
                     placeholder='[ { "questionText": "What is 2+2?", "options": [{"key":"A","text":"4"}], "correctAnswer":"A", "marks":1 } ]'
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full classic-input rounded-classic p-3 text-xs placeholder-slate-400 font-mono"
                   />
                 </div>
               </div>
@@ -2318,17 +2855,17 @@ export const QuestionBank: React.FC = () => {
 
                 <div
                   onClick={() => docFileInputRef.current?.click()}
-                  className="border-2 border-dashed border-blue-500/40 hover:border-blue-400/80 bg-blue-950/20 hover:bg-blue-950/30 rounded-2xl p-6 text-center cursor-pointer transition-all space-y-2 group"
+                  className="border-2 border-dashed border-classic-border hover:border-classic-navy bg-classic-surface-muted/30 hover:bg-classic-surface-muted/60 rounded-classic p-6 text-center cursor-pointer transition-all space-y-2 group"
                 >
                   {isParsingDoc ? (
-                    <Loader2 className="w-8 h-8 text-blue-400 animate-spin mx-auto" />
+                    <Loader2 className="w-8 h-8 text-classic-navy animate-spin mx-auto" />
                   ) : (
-                    <FileText className="w-8 h-8 text-blue-400 mx-auto group-hover:scale-110 transition-transform" />
+                    <FileText className="w-8 h-8 text-classic-navy mx-auto group-hover:scale-105 transition-transform" />
                   )}
-                  <p className="text-xs text-slate-200 font-bold">
+                  <p className="text-xs text-classic-text-primary font-bold">
                     {isParsingDoc ? 'Extracting Questions & Answers from Word Document...' : 'Click to choose or drop a Microsoft Word (.docx) Exam Document'}
                   </p>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-xs text-classic-text-muted">
                     Automatically extracts question stems, MCQ options (A)-(D), correct answers (Ans: A), explanations, and marks.
                   </p>
                 </div>
@@ -2351,17 +2888,17 @@ export const QuestionBank: React.FC = () => {
 
                 <div
                   onClick={() => pdfFileInputRef.current?.click()}
-                  className="border-2 border-dashed border-rose-500/40 hover:border-rose-400/80 bg-rose-950/20 hover:bg-rose-950/30 rounded-2xl p-6 text-center cursor-pointer transition-all space-y-2 group"
+                  className="border-2 border-dashed border-classic-border hover:border-classic-navy bg-classic-surface-muted/30 hover:bg-classic-surface-muted/60 rounded-classic p-6 text-center cursor-pointer transition-all space-y-2 group"
                 >
                   {isParsingDoc ? (
-                    <Loader2 className="w-8 h-8 text-rose-400 animate-spin mx-auto" />
+                    <Loader2 className="w-8 h-8 text-classic-navy animate-spin mx-auto" />
                   ) : (
-                    <FileIcon className="w-8 h-8 text-rose-400 mx-auto group-hover:scale-110 transition-transform" />
+                    <FileIcon className="w-8 h-8 text-classic-navy mx-auto group-hover:scale-105 transition-transform" />
                   )}
-                  <p className="text-xs text-slate-200 font-bold">
+                  <p className="text-xs text-classic-text-primary font-bold">
                     {isParsingDoc ? 'Extracting Questions & Answers from PDF...' : 'Click to choose or drop an Exam Question Paper PDF (.pdf)'}
                   </p>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-xs text-classic-text-muted">
                     High-speed PyMuPDF extractor recognizes multi-page question papers, options, and answer keys.
                   </p>
                 </div>
@@ -2387,17 +2924,17 @@ export const QuestionBank: React.FC = () => {
                     type="button"
                     disabled={isExtractingImage}
                     onClick={() => imageInputRef.current?.click()}
-                    className="p-5 border-2 border-dashed border-amber-500/40 hover:border-amber-400/80 bg-amber-950/20 hover:bg-amber-950/30 rounded-2xl text-center flex flex-col items-center justify-center space-y-2 transition-all group"
+                    className="p-5 border-2 border-dashed border-classic-border hover:border-classic-navy bg-classic-surface-muted/30 hover:bg-classic-surface-muted/60 rounded-classic text-center flex flex-col items-center justify-center space-y-2 transition-all group"
                   >
                     {isExtractingImage ? (
-                      <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
+                      <Loader2 className="w-6 h-6 text-classic-navy animate-spin" />
                     ) : (
-                      <ImageIcon className="w-6 h-6 text-amber-400 group-hover:scale-110 transition-transform" />
+                      <ImageIcon className="w-6 h-6 text-classic-navy group-hover:scale-105 transition-transform" />
                     )}
-                    <span className="text-xs font-bold text-slate-200">
+                    <span className="text-xs font-bold text-classic-text-primary">
                       {isExtractingImage ? 'Extracting Image...' : 'Upload Exam Image (PNG / JPG)'}
                     </span>
-                    <span className="text-[10px] text-slate-400">RapidOCR ONNX in same language</span>
+                    <span className="text-xs text-classic-text-muted">RapidOCR ONNX in same language</span>
                   </button>
 
                   <button
@@ -2423,23 +2960,23 @@ export const QuestionBank: React.FC = () => {
                         alert('Could not access clipboard image directly.');
                       }
                     }}
-                    className="p-5 border-2 border-dashed border-emerald-500/40 hover:border-emerald-400/80 bg-emerald-950/20 hover:bg-emerald-950/30 rounded-2xl text-center flex flex-col items-center justify-center space-y-2 transition-all group"
+                    className="p-5 border-2 border-dashed border-classic-border hover:border-classic-navy bg-classic-surface-muted/30 hover:bg-classic-surface-muted/60 rounded-classic text-center flex flex-col items-center justify-center space-y-2 transition-all group"
                   >
-                    <Clipboard className="w-6 h-6 text-emerald-400 group-hover:scale-110 transition-transform" />
-                    <span className="text-xs font-bold text-slate-200">Paste Image from Clipboard</span>
-                    <span className="text-[10px] text-slate-400">Works with screenshot snips</span>
+                    <Clipboard className="w-6 h-6 text-classic-navy group-hover:scale-105 transition-transform" />
+                    <span className="text-xs font-bold text-classic-text-primary">Paste Image from Clipboard</span>
+                    <span className="text-xs text-classic-text-muted">Works with screenshot snips</span>
                   </button>
                 </div>
 
                 {imageOcrMeta && (
-                  <div className="p-3 bg-amber-950/40 border border-amber-500/40 rounded-2xl flex items-center justify-between text-xs text-amber-200 animate-fade-in shadow-inner">
+                  <div className="p-3 bg-amber-50 border border-amber-300 rounded-classic flex items-center justify-between text-xs text-amber-950 animate-fade-in shadow-classic">
                     <div className="flex items-center space-x-2">
-                      <ImageIcon className="w-4 h-4 text-amber-400 shrink-0" />
+                      <ImageIcon className="w-4 h-4 text-amber-700 shrink-0" />
                       <span>
                         Extracted into <strong>Digital Text ({imageOcrMeta.langName})</strong> &bull; {imageOcrMeta.linesCount} lines recognized
                       </span>
                     </div>
-                    <span className="text-[10px] font-mono bg-amber-900/80 px-2 py-0.5 rounded text-amber-300 border border-amber-500/40">
+                    <span className="text-xs font-mono bg-amber-100 px-2 py-0.5 rounded-classic text-amber-900 border border-amber-300 font-bold">
                       {imageOcrMeta.confidence}% Confidence
                     </span>
                   </div>
@@ -2460,7 +2997,7 @@ export const QuestionBank: React.FC = () => {
                   value={pasteModalText}
                   onChange={(e) => setPasteModalText(e.target.value)}
                   placeholder={`Paste questions from an exam, Word document, web page, or notes here...\n\nExample format:\n1. Find the roots of ax^2 + bx + c = 0.\n   (A) x = (-b +- sqrt(D))/(2a)\n   (B) x = (-b +- D)/(2a)\n   Ans: A [3 Marks]\n\n2. Define Newton's second law F = ma.\n   Ans: Force equals mass times acceleration. [2 Marks]`}
-                  className="w-full bg-slate-950 border border-slate-700/80 rounded-2xl p-4 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-emerald-500 leading-relaxed shadow-inner"
+                  className="w-full classic-input rounded-classic p-4 text-xs font-mono leading-relaxed"
                 />
               </div>
             )}
@@ -2468,30 +3005,30 @@ export const QuestionBank: React.FC = () => {
             {/* Live Detected Questions Preview */}
             {parsedFileQuestions.length > 0 && (
               <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                <div className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center justify-between">
+                <div className="text-xs font-bold uppercase tracking-wider text-classic-text-secondary flex items-center justify-between">
                   <span>Detected Questions from File ({parsedFileQuestions.length}):</span>
-                  <span className="text-emerald-400 text-[11px] font-mono">Ready to import</span>
+                  <span className="text-emerald-700 text-xs font-mono font-bold">Ready to import</span>
                 </div>
                 <div className="space-y-2">
                   {parsedFileQuestions.map((pq: any, pIdx: number) => (
                     <div
                       key={pIdx}
-                      className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl space-y-1.5 text-xs"
+                      className="p-3 bg-classic-surface-muted/40 border border-classic-border rounded-classic space-y-1.5 text-xs"
                     >
-                      <div className="flex items-center justify-between text-slate-300">
-                        <span className="font-bold text-indigo-300">Q{pq.questionNumber || pIdx + 1}</span>
-                        <div className="flex items-center space-x-2 text-[11px]">
-                          <span className="bg-slate-800 px-2 py-0.5 rounded text-slate-300">
+                      <div className="flex items-center justify-between text-classic-text-primary">
+                        <span className="font-bold text-classic-navy">Q{pq.questionNumber || pIdx + 1}</span>
+                        <div className="flex items-center space-x-2 text-xs">
+                          <span className="bg-white border border-classic-border px-2 py-0.5 rounded-classic text-classic-text-primary font-medium">
                             {pq.marks || 1} Mark{(pq.marks || 1) > 1 ? 's' : ''}
                           </span>
                           {pq.correctAnswer && (
-                            <span className="bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded border border-emerald-500/30">
+                            <span className="bg-emerald-50 text-emerald-800 font-bold px-2 py-0.5 rounded-classic border border-emerald-300">
                               Ans: {pq.correctAnswer}
                             </span>
                           )}
                         </div>
                       </div>
-                      <div className="text-slate-200 font-mono text-[11px] whitespace-pre-wrap">
+                      <div className="text-classic-text-primary font-mono text-xs whitespace-pre-wrap">
                         <MathRenderer content={pq.questionText || pq.question || ''} />
                       </div>
                       {pq.options && Array.isArray(pq.options) && pq.options.length > 0 && (
@@ -2499,20 +3036,20 @@ export const QuestionBank: React.FC = () => {
                           {pq.options.map((o: any, oIdx: number) => (
                             <div
                               key={oIdx}
-                              className={`px-2 py-1 rounded text-[11px] font-mono flex items-center space-x-1.5 ${
+                              className={`px-2 py-1 rounded-classic text-xs font-mono flex items-center space-x-1.5 ${
                                 pq.correctAnswer === (o.key || ['A', 'B', 'C', 'D'][oIdx])
-                                  ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-200'
-                                  : 'bg-slate-900 text-slate-300'
+                                  ? 'bg-emerald-50 border border-emerald-300 text-emerald-900 font-bold'
+                                  : 'bg-white border border-classic-border-light text-classic-text-primary'
                               }`}
                             >
-                              <span className="font-bold text-indigo-400">({o.key || ['A', 'B', 'C', 'D'][oIdx]})</span>
+                              <span className="font-bold text-classic-navy">({o.key || ['A', 'B', 'C', 'D'][oIdx]})</span>
                               <span className="truncate"><MathRenderer content={o.text || (typeof o === 'string' ? o : '')} /></span>
                             </div>
                           ))}
                         </div>
                       )}
                       {pq.explanation && (
-                        <div className="text-[11px] text-emerald-300/80 bg-emerald-950/20 p-2 rounded-lg border border-emerald-500/20">
+                        <div className="text-xs text-emerald-900 bg-emerald-50 p-2 rounded-classic border border-emerald-200">
                           <strong>Solution:</strong> <MathRenderer content={pq.explanation} />
                         </div>
                       )}
@@ -2525,29 +3062,29 @@ export const QuestionBank: React.FC = () => {
             {/* Live Detected Questions Preview for Text Mode */}
             {parsedFileQuestions.length === 0 && pasteModalText.trim() && (
               <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                <div className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                <div className="text-xs font-bold uppercase tracking-wider text-classic-text-secondary">
                   Live Detected Questions Preview ({parsePastedQuestionsText(pasteModalText).length}):
                 </div>
                 <div className="space-y-2">
                   {parsePastedQuestionsText(pasteModalText).map((pq, pIdx) => (
                     <div
                       key={pIdx}
-                      className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl space-y-1.5 text-xs"
+                      className="p-3 bg-classic-surface-muted/40 border border-classic-border rounded-classic space-y-1.5 text-xs"
                     >
-                      <div className="flex items-center justify-between text-slate-300">
-                        <span className="font-bold text-indigo-300">Q{pq.questionNumber}</span>
-                        <div className="flex items-center space-x-2 text-[11px]">
-                          <span className="bg-slate-800 px-2 py-0.5 rounded text-slate-300">
+                      <div className="flex items-center justify-between text-classic-text-primary">
+                        <span className="font-bold text-classic-navy">Q{pq.questionNumber}</span>
+                        <div className="flex items-center space-x-2 text-xs">
+                          <span className="bg-white border border-classic-border px-2 py-0.5 rounded-classic text-classic-text-primary font-medium">
                             {pq.marks} Mark{pq.marks > 1 ? 's' : ''}
                           </span>
                           {pq.correctAnswer && (
-                            <span className="bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded border border-emerald-500/30">
+                            <span className="bg-emerald-50 text-emerald-800 font-bold px-2 py-0.5 rounded-classic border border-emerald-300">
                               Ans: {pq.correctAnswer}
                             </span>
                           )}
                         </div>
                       </div>
-                      <div className="text-slate-200 font-mono text-[11px] whitespace-pre-wrap">
+                      <div className="text-classic-text-primary font-mono text-xs whitespace-pre-wrap">
                         <MathRenderer content={pq.questionText} />
                       </div>
                       {pq.options.some((o) => o.text) && (
@@ -2557,13 +3094,13 @@ export const QuestionBank: React.FC = () => {
                             .map((o) => (
                               <div
                                 key={o.key}
-                                className={`px-2 py-1 rounded text-[11px] font-mono flex items-center space-x-1.5 ${
+                                className={`px-2 py-1 rounded-classic text-xs font-mono flex items-center space-x-1.5 ${
                                   pq.correctAnswer === o.key
-                                    ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-200'
-                                    : 'bg-slate-900 text-slate-300'
+                                    ? 'bg-emerald-50 border border-emerald-300 text-emerald-900 font-bold'
+                                    : 'bg-white border border-classic-border-light text-classic-text-primary'
                                 }`}
                               >
-                                <span className="font-bold text-indigo-400">({o.key})</span>
+                                <span className="font-bold text-classic-navy">({o.key})</span>
                                 <span className="truncate"><MathRenderer content={o.text} /></span>
                               </div>
                             ))}
@@ -2576,8 +3113,8 @@ export const QuestionBank: React.FC = () => {
             )}
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-between pt-3 border-t border-slate-800">
-              <span className="text-xs text-slate-400">
+            <div className="flex items-center justify-between pt-3 border-t border-classic-border-light">
+              <span className="text-xs text-classic-text-muted">
                 {parsedFileQuestions.length > 0
                   ? `Ready to import ${parsedFileQuestions.length} questions from ${importModalTab}`
                   : parsePastedQuestionsText(pasteModalText).length > 0
@@ -2595,7 +3132,7 @@ export const QuestionBank: React.FC = () => {
                     setJsonRawInput('');
                     setImageOcrMeta(null);
                   }}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-colors"
+                  className="classic-button-secondary rounded-classic px-4 py-2 text-xs font-semibold"
                 >
                   Cancel
                 </button>
@@ -2605,7 +3142,7 @@ export const QuestionBank: React.FC = () => {
                     type="button"
                     disabled={isImportingPasted}
                     onClick={() => handleCommitBatchImport(parsedFileQuestions)}
-                    className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/25 flex items-center space-x-2 transition-all"
+                    className="classic-button-primary rounded-classic px-6 py-2 text-xs font-bold disabled:opacity-40 flex items-center space-x-2"
                   >
                     <Upload className="w-3.5 h-3.5" />
                     <span>
@@ -2619,7 +3156,7 @@ export const QuestionBank: React.FC = () => {
                     type="button"
                     disabled={isImportingPasted || parsePastedQuestionsText(pasteModalText).length === 0}
                     onClick={handleImportPastedQuestions}
-                    className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-600/25 flex items-center space-x-2 transition-all"
+                    className="classic-button-primary rounded-classic px-6 py-2 text-xs font-bold disabled:opacity-40 flex items-center space-x-2"
                   >
                     <Clipboard className="w-3.5 h-3.5" />
                     <span>
@@ -2631,7 +3168,9 @@ export const QuestionBank: React.FC = () => {
                 )}
               </div>
             </div>
-          </div>
+          </>
+        )}
+      </div>
         </div>
       )}
 
@@ -2647,18 +3186,18 @@ export const QuestionBank: React.FC = () => {
 
       {/* Modal for Selecting Image Destination (Question Body vs Option A, B, C, D) */}
       {attachImageModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-          <div className="glass-panel w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl border border-slate-700 bg-slate-900">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in">
+          <div className="bg-white w-full max-w-md rounded-classic p-6 space-y-4 shadow-classic-md border border-classic-border text-classic-text-primary">
+            <div className="flex items-center justify-between pb-3 border-b border-classic-border-light">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-classic bg-classic-surface-muted text-classic-navy flex items-center justify-center">
                   <ImageIcon className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white">
+                  <h3 className="text-sm font-bold text-classic-text-primary">
                     Attach Image / Diagram
                   </h3>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-xs text-classic-text-muted">
                     Question Q{attachImageModal.question.questionNumber || '1'} &bull; Choose where to place image
                   </p>
                 </div>
@@ -2669,7 +3208,7 @@ export const QuestionBank: React.FC = () => {
                   setAttachImageModal(null);
                   setModalUploadFile(null);
                 }}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+                className="text-classic-text-secondary hover:text-classic-text-primary p-1 rounded-classic hover:bg-classic-surface-muted"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2677,17 +3216,17 @@ export const QuestionBank: React.FC = () => {
 
             {/* Destination Selection */}
             <div className="space-y-2.5">
-              <label className="block text-xs font-semibold text-slate-300">
+              <label className="block text-xs font-semibold text-classic-text-primary">
                 1. Select Destination:
               </label>
 
               {/* Option: Question Body */}
               <label
                 onClick={() => setAttachImageModal({ ...attachImageModal, destination: 'BODY' })}
-                className={`flex items-center space-x-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                className={`flex items-center space-x-3 p-2.5 rounded-classic border cursor-pointer transition-all ${
                   attachImageModal.destination === 'BODY'
-                    ? 'bg-indigo-950/60 border-indigo-500 text-white ring-1 ring-indigo-500'
-                    : 'bg-slate-950/70 border-slate-800 text-slate-300 hover:bg-slate-800/60'
+                    ? 'bg-blue-50/70 border-classic-navy text-classic-text-primary ring-1 ring-classic-navy'
+                    : 'bg-white border-classic-border text-classic-text-secondary hover:bg-classic-surface-muted'
                 }`}
               >
                 <input
@@ -2695,14 +3234,14 @@ export const QuestionBank: React.FC = () => {
                   name="modalDestination"
                   checked={attachImageModal.destination === 'BODY'}
                   onChange={() => setAttachImageModal({ ...attachImageModal, destination: 'BODY' })}
-                  className="text-indigo-600 focus:ring-indigo-500"
+                  className="text-classic-navy focus:ring-classic-navy"
                 />
                 <div className="flex-1">
                   <div className="text-xs font-bold flex items-center space-x-1.5">
-                    <span>📌 Question Body</span>
-                    <span className="text-[10px] px-1.5 py-0.2 bg-indigo-500/20 text-indigo-300 rounded font-mono font-normal">Main Figure</span>
+                    <span className="text-classic-text-primary">📌 Question Body</span>
+                    <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-classic-navy rounded-classic font-mono font-medium">Main Figure</span>
                   </div>
-                  <p className="text-[11px] text-slate-400">Shown with question stem text</p>
+                  <p className="text-xs text-classic-text-muted">Shown with question stem text</p>
                 </div>
               </label>
 
@@ -2715,10 +3254,10 @@ export const QuestionBank: React.FC = () => {
                   <label
                     key={opt.key}
                     onClick={() => setAttachImageModal({ ...attachImageModal, destination: opt.key })}
-                    className={`flex items-center space-x-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                    className={`flex items-center space-x-3 p-2.5 rounded-classic border cursor-pointer transition-all ${
                       attachImageModal.destination === opt.key
-                        ? 'bg-emerald-950/60 border-emerald-500 text-white ring-1 ring-emerald-500'
-                        : 'bg-slate-950/70 border-slate-800 text-slate-300 hover:bg-slate-800/60'
+                        ? 'bg-emerald-50 border-emerald-600 text-classic-text-primary ring-1 ring-emerald-600'
+                        : 'bg-white border-classic-border text-classic-text-secondary hover:bg-classic-surface-muted'
                     }`}
                   >
                     <input
@@ -2729,14 +3268,14 @@ export const QuestionBank: React.FC = () => {
                       className="text-emerald-600 focus:ring-emerald-500"
                     />
                     <div className="flex-1 flex items-center justify-between min-w-0">
-                      <span className="text-xs font-bold text-emerald-400 shrink-0 mr-2">
+                      <span className="text-xs font-bold text-emerald-700 shrink-0 mr-2">
                         Option ({opt.key})
                       </span>
-                      <span className="text-xs text-slate-300 truncate flex-1">
-                        {opt.text || <span className="italic text-slate-500">[Empty text]</span>}
+                      <span className="text-xs text-classic-text-primary truncate flex-1">
+                        {opt.text || <span className="italic text-classic-text-muted">[Empty text]</span>}
                       </span>
                       {opt.imageUrl && (
-                        <span className="ml-2 text-[10px] text-amber-300 bg-amber-500/20 px-1.5 py-0.2 rounded font-mono shrink-0">
+                        <span className="ml-2 text-xs text-amber-900 bg-amber-100 px-1.5 py-0.5 rounded-classic font-mono shrink-0 font-medium">
                           Has Image
                         </span>
                       )}
@@ -2748,7 +3287,7 @@ export const QuestionBank: React.FC = () => {
 
             {/* File Chooser */}
             <div className="space-y-1.5 pt-1">
-              <label className="block text-xs font-semibold text-slate-300">
+              <label className="block text-xs font-semibold text-classic-text-primary">
                 2. Choose Picture / Diagram File:
               </label>
               <input
@@ -2759,24 +3298,24 @@ export const QuestionBank: React.FC = () => {
                     setModalUploadFile(e.target.files[0]);
                   }
                 }}
-                className="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer bg-slate-950 border border-slate-700 rounded-xl p-1"
+                className="w-full text-xs text-classic-text-primary file:mr-3 file:py-1.5 file:px-3 file:rounded-classic file:border-0 file:text-xs file:font-semibold file:bg-classic-navy file:text-white hover:file:bg-classic-navy-hover cursor-pointer bg-white border border-classic-border rounded-classic p-1"
               />
               {modalUploadFile && (
-                <p className="text-[11px] text-emerald-400 font-mono">
+                <p className="text-xs text-emerald-700 font-mono font-medium">
                   ✓ Selected: {modalUploadFile.name} ({(modalUploadFile.size / 1024).toFixed(1)} KB)
                 </p>
               )}
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-800">
+            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-classic-border-light">
               <button
                 type="button"
                 onClick={() => {
                   setAttachImageModal(null);
                   setModalUploadFile(null);
                 }}
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-colors"
+                className="classic-button-secondary rounded-classic px-3 py-1.5 text-xs font-semibold"
               >
                 Cancel
               </button>
@@ -2798,7 +3337,7 @@ export const QuestionBank: React.FC = () => {
                     setIsSubmittingImageModal(false);
                   }
                 }}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/30 flex items-center space-x-1.5"
+                className="classic-button-primary rounded-classic px-4 py-1.5 text-xs font-bold disabled:opacity-40 flex items-center space-x-1.5"
               >
                 <Upload className="w-3.5 h-3.5" />
                 <span>{isSubmittingImageModal ? 'Uploading...' : `Attach to ${attachImageModal.destination === 'BODY' ? 'Question Body' : `Option (${attachImageModal.destination})`}`}</span>

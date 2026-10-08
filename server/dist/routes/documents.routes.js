@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.resolveDocPath = resolveDocPath;
 const express_1 = require("express");
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
@@ -14,6 +15,25 @@ const config_1 = require("../config");
 const auth_1 = require("../middleware/auth");
 const audit_1 = require("../middleware/audit");
 const router = (0, express_1.Router)();
+function resolveDocPath(filePath) {
+    if (!filePath)
+        return "";
+    if (fs_1.default.existsSync(filePath))
+        return filePath;
+    const basename = path_1.default.basename(filePath);
+    const candidates = [
+        path_1.default.resolve(config_1.config.DATA_DIR, "uploads", basename),
+        path_1.default.resolve(config_1.config.DATA_DIR, "documents", basename),
+        path_1.default.resolve(config_1.config.DATA_DIR, basename),
+        path_1.default.resolve(process.cwd(), "data", "uploads", basename),
+        path_1.default.resolve(process.cwd(), "..", "data", "uploads", basename),
+    ];
+    for (const c of candidates) {
+        if (fs_1.default.existsSync(c))
+            return c;
+    }
+    return path_1.default.resolve(config_1.config.DATA_DIR, "uploads", basename);
+}
 const storage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
         const dest = path_1.default.resolve(config_1.config.DATA_DIR, "uploads");
@@ -75,16 +95,28 @@ router.post("/upload", upload.single("file"), async (req, res) => {
         catch (e) {
             console.warn("AI validation service warning:", e.message);
         }
+        const relFilePath = path_1.default.join("uploads", path_1.default.basename(finalFilePath)).replace(/\\/g, "/");
+        const userDisplayName = req.user?.fullName
+            ? `${req.user.fullName} (${req.user.role})`
+            : (req.user?.email || "Admin");
         const doc = await prisma_1.prisma.document.create({
             data: {
                 filename: req.file.originalname,
-                filepath: finalFilePath,
+                filepath: relFilePath,
                 sha256,
                 fileSizeBytes: req.file.size,
                 pageCount,
                 isDigital,
                 status: "UPLOADED",
                 profile: req.body.profile || "BALANCED",
+                sourceType: req.body.sourceType || "FILE",
+                userId: req.user?.id || null,
+                uploadedBy: userDisplayName,
+            },
+            include: {
+                user: {
+                    select: { id: true, fullName: true, email: true, role: true },
+                },
             },
         });
         await (0, audit_1.logAuditAction)(req.user.id, "UPLOAD_DOCUMENT", "DOCUMENT", doc.id, {
@@ -186,6 +218,9 @@ router.post("/paste-text", async (req, res) => {
             });
             return;
         }
+        const userDisplayName = req.user?.fullName
+            ? `${req.user.fullName} (${req.user.role})`
+            : (req.user?.email || "Admin");
         const doc = await prisma_1.prisma.document.create({
             data: {
                 filename: genData.filename,
@@ -196,6 +231,14 @@ router.post("/paste-text", async (req, res) => {
                 isDigital: true,
                 status: "UPLOADED",
                 profile: chosenProfile,
+                sourceType: req.body.sourceType || "PASTE",
+                userId: req.user?.id || null,
+                uploadedBy: userDisplayName,
+            },
+            include: {
+                user: {
+                    select: { id: true, fullName: true, email: true, role: true },
+                },
             },
         });
         await (0, audit_1.logAuditAction)(req.user.id, "INGEST_PASTED_TEXT", "DOCUMENT", doc.id, {
@@ -211,18 +254,30 @@ router.post("/paste-text", async (req, res) => {
         res.status(500).json({ error: err.response?.data?.detail || err.message });
     }
 });
-// List documents
+// List documents with RBAC (Admin has full access to all users' files; non-admins see their own)
 router.get("/", async (req, res) => {
     try {
+        const isAdmin = req.user?.role === "SUPER_ADMIN" || req.user?.role === "ADMIN";
+        const whereClause = {};
+        if (!isAdmin && req.user?.id) {
+            whereClause.OR = [
+                { userId: req.user.id },
+                { userId: null }, // Legacy documents without owner
+            ];
+        }
         const docs = await prisma_1.prisma.document.findMany({
+            where: whereClause,
             include: {
+                user: {
+                    select: { id: true, fullName: true, email: true, role: true },
+                },
                 pages: {
                     select: { id: true, pageNumber: true, imageUrl: true, confidence: true, needsReview: true, status: true },
                 },
             },
             orderBy: { createdAt: "desc" },
         });
-        res.json({ documents: docs });
+        res.json({ documents: docs, isAdmin });
     }
     catch (err) {
         res.status(500).json({ error: err.message });
@@ -260,12 +315,18 @@ router.post("/:id/process-page/:pageNum", async (req, res) => {
             res.status(404).json({ error: "Document not found" });
             return;
         }
-        // Call AI Service sequentially
-        const aiRes = await axios_1.default.post(`${config_1.config.AI_SERVICE_URL}/api/documents/process-page`, {
-            doc_path: doc.filepath,
+        // Call AI Service sequentially with dynamic path resolution (Supports V1 and V2)
+        const actualDocPath = resolveDocPath(doc.filepath);
+        const useV2 = req.query.version === "v2" || req.body?.version === "v2" || req.body?.profile === "HIGH_FIDELITY";
+        const endpoint = useV2
+            ? `${config_1.config.AI_SERVICE_URL}/api/v2/documents/process-page`
+            : `${config_1.config.AI_SERVICE_URL}/api/documents/process-page`;
+        const aiRes = await axios_1.default.post(endpoint, {
+            doc_path: actualDocPath,
             doc_id: doc.id,
             page_number: pageNumber,
             profile: doc.profile || "BALANCED",
+            watermark_action: req.body?.watermark_action || "KEEP_ORIGINAL",
         });
         const pageData = aiRes.data;
         // Persist DocumentPage in DB
@@ -319,7 +380,125 @@ router.post("/:id/process-page/:pageNum", async (req, res) => {
         res.status(500).json({ error: err.response?.data?.detail || err.message });
     }
 });
-// Delete document and associated pages/regions
+// Reprocess entire document safely without deleting source (Requirement 127)
+router.post("/:id/reprocess", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const doc = await prisma_1.prisma.document.findUnique({ where: { id } });
+        if (!doc) {
+            res.status(404).json({ error: "Document not found" });
+            return;
+        }
+        await prisma_1.prisma.document.update({
+            where: { id },
+            data: { status: "PROCESSING" },
+        });
+        res.json({
+            status: "SUCCESS",
+            message: "Document queued for high-fidelity V2 reprocessing.",
+            documentId: id,
+            pageCount: doc.pageCount,
+        });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// Export High-Fidelity PDF in Mode A (Structured Reconstruction) or Mode B (Source Fidelity) (Requirement 97-106)
+router.post("/:id/export-high-fidelity", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { mode, quality, watermark_action } = req.body;
+        const doc = await prisma_1.prisma.document.findUnique({
+            where: { id },
+            include: {
+                pages: {
+                    include: { regions: true },
+                    orderBy: { pageNumber: "asc" },
+                },
+            },
+        });
+        if (!doc) {
+            res.status(404).json({ error: "Document not found" });
+            return;
+        }
+        const pagesData = doc.pages.map((p) => ({
+            page_number: p.pageNumber,
+            width: p.width,
+            height: p.height,
+            page_image: p.imageUrl,
+            regions: p.regions.map((r) => ({
+                id: r.id,
+                type: r.regionType,
+                text: r.processedText,
+                bbox: JSON.parse(r.bboxJson || "[0,0,50,20]"),
+            })),
+            diagrams: [],
+        }));
+        const aiRes = await axios_1.default.post(`${config_1.config.AI_SERVICE_URL}/api/export/high-fidelity-pdf`, {
+            pages_data: pagesData,
+            mode: mode || "STRUCTURED_RECONSTRUCTION",
+            quality: quality || "HIGH_QUALITY",
+            watermark_action: watermark_action || "KEEP_ORIGINAL",
+            output_filename: `${path_1.default.basename(doc.filename, path_1.default.extname(doc.filename))}_high_fidelity_${mode || "A"}.pdf`,
+        });
+        res.json(aiRes.data);
+    }
+    catch (err) {
+        res.status(500).json({ error: err.response?.data?.detail || err.message });
+    }
+});
+// Rename document (RBAC aware - only Admin has full access, non-admins only their own files)
+router.patch("/:id/rename", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { newFilename } = req.body;
+        if (!newFilename || !newFilename.trim()) {
+            res.status(400).json({ error: "Filename cannot be empty" });
+            return;
+        }
+        const doc = await prisma_1.prisma.document.findUnique({
+            where: { id },
+            include: {
+                user: { select: { id: true, fullName: true, email: true, role: true } },
+            },
+        });
+        if (!doc) {
+            res.status(404).json({ error: "Document not found" });
+            return;
+        }
+        const isAdmin = req.user?.role === "SUPER_ADMIN" || req.user?.role === "ADMIN";
+        if (!isAdmin && doc.userId && doc.userId !== req.user?.id) {
+            res.status(403).json({
+                error: "Forbidden: Only administrators or the file owner can rename this document",
+            });
+            return;
+        }
+        const cleanFilename = newFilename.trim();
+        const oldFilename = doc.filename;
+        const updatedDoc = await prisma_1.prisma.document.update({
+            where: { id },
+            data: { filename: cleanFilename },
+            include: {
+                user: { select: { id: true, fullName: true, email: true, role: true } },
+                pages: { select: { id: true, pageNumber: true, imageUrl: true } },
+            },
+        });
+        await (0, audit_1.logAuditAction)(req.user.id, "RENAME_DOCUMENT", "DOCUMENT", doc.id, {
+            oldFilename,
+            newFilename: cleanFilename,
+        });
+        res.json({
+            success: true,
+            message: `Document renamed to "${cleanFilename}"`,
+            document: updatedDoc,
+        });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// Delete document and associated pages/regions (RBAC aware - Admin has full access, non-admins can only delete own files)
 router.delete("/:id", async (req, res) => {
     try {
         const doc = await prisma_1.prisma.document.findUnique({ where: { id: req.params.id } });
@@ -327,10 +506,18 @@ router.delete("/:id", async (req, res) => {
             res.status(404).json({ error: "Document not found" });
             return;
         }
+        const isAdmin = req.user?.role === "SUPER_ADMIN" || req.user?.role === "ADMIN";
+        if (!isAdmin && doc.userId && doc.userId !== req.user?.id) {
+            res.status(403).json({
+                error: "Forbidden: Insufficient privileges. Only administrators or the file owner can delete this document",
+            });
+            return;
+        }
         // Attempt to delete physical uploaded file from disk if present
-        if (doc.filepath && fs_1.default.existsSync(doc.filepath)) {
+        const actualDocPath = resolveDocPath(doc.filepath);
+        if (actualDocPath && fs_1.default.existsSync(actualDocPath)) {
             try {
-                fs_1.default.unlinkSync(doc.filepath);
+                fs_1.default.unlinkSync(actualDocPath);
             }
             catch (e) {
                 console.warn("Could not remove physical uploaded file:", e.message);

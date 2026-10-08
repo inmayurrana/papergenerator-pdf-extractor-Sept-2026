@@ -57,8 +57,16 @@ class ResourceManager:
             "gpu": gpu_info,
             "active_heavy_jobs": self.active_jobs_count,
             "max_heavy_jobs": config.MAX_HEAVY_JOBS,
-            "loaded_models": list(self.loaded_models.keys()),
+            "loaded_models": list(set(list(self.loaded_models.keys()) + self._get_model_manager_loaded())),
         }
+
+    def _get_model_manager_loaded(self) -> List[str]:
+        try:
+            from .model_manager import model_manager
+            return model_manager.status().get("loaded", [])
+        except Exception:
+            return []
+
 
     def _get_gpu_metrics(self) -> Dict[str, Any]:
         """Inspects GPU/VRAM via nvidia-smi if available, else returns standard stats."""
@@ -115,6 +123,11 @@ class ResourceManager:
     def unload_all_models(self):
         for name in list(self.loaded_models.keys()):
             self.unload_model(name)
+        try:
+            from .model_manager import model_manager
+            model_manager.unload_all()
+        except Exception:
+            pass
         gc.collect()
 
     async def auto_unload_check(self):

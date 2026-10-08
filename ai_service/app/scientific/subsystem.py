@@ -22,6 +22,8 @@ from .visual_validator import visual_validator
 from .formula_cache import formula_cache
 from ..core.config import config
 from ..engines.specialized_math import specialized_math
+from ..engines.visual_math_router import visual_math_router
+from ..engines.spatial_ast_engine import spatial_math_engine
 
 
 class ScientificRecognitionSubsystem:
@@ -88,6 +90,18 @@ class ScientificRecognitionSubsystem:
         domain_info["validation"] = validation_rep.to_dict()
         if validation_rep.ast_root:
             ast_node = validation_rep.ast_root
+
+        # Visual-first math recognition when crop image is available
+        if crop_image is not None and crop_image.size > 0:
+            if not formula_part or effective_mode in ("MATH", "PHYSICS", "AUTO"):
+                try:
+                    visual_res = visual_math_router.recognize(crop_image, hint=effective_mode)
+                    if visual_res and visual_res.latex and visual_res.confidence >= 0.70:
+                        formula_part = visual_res.latex
+                        domain_conf = max(domain_conf, visual_res.confidence)
+                        domain_info["visual_engine"] = visual_res.engine
+                except Exception:
+                    pass
 
         if effective_mode == "BIOLOGY":
             bio_res = biology_engine.analyze_biology_region(normalized_text)
@@ -159,6 +173,11 @@ class ScientificRecognitionSubsystem:
             if enhanced_eval["overall_confidence"] > val_eval["overall_confidence"]:
                 val_eval = enhanced_eval
 
+        # 6. Spatial 2D AST enrichment
+        spatial_parsed = spatial_math_engine.parse(latex_str.replace("$", "").strip())
+        if not mathml_str:
+            mathml_str = spatial_parsed["mathml"]
+
         result = {
             "mode": effective_mode,
             "raw_text": raw_text,
@@ -167,16 +186,26 @@ class ScientificRecognitionSubsystem:
             "latex": display_latex,
             "raw_latex": latex_str.replace("$", "").strip(),
             "mathml": mathml_str,
-            "structured_ast": ast_node.to_dict() if ast_node else None,
+            "structured_ast": ast_node.to_dict() if ast_node else spatial_parsed.get("ast"),
+            "spatial_meta": {
+                "has_subscript": spatial_parsed.get("has_subscript", False),
+                "has_superscript": spatial_parsed.get("has_superscript", False),
+                "has_fraction": spatial_parsed.get("has_fraction", False),
+                "has_integral": spatial_parsed.get("has_integral", False),
+                "has_matrix": spatial_parsed.get("has_matrix", False),
+                "has_vector": spatial_parsed.get("has_vector", False),
+                "has_root": spatial_parsed.get("has_root", False),
+            },
             "confidence": val_eval,
             "domain_info": domain_info,
         }
 
-        # 6. Cache high-confidence result
+        # 7. Cache high-confidence result
         if not val_eval["needs_review"]:
             formula_cache.set(cache_key, result)
 
         return result
+
 
 
 scientific_subsystem = ScientificRecognitionSubsystem()

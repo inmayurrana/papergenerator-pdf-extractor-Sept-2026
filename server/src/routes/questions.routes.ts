@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import axios from "axios";
 import { prisma } from "../prisma";
-import { authenticateJwt, AuthRequest } from "../middleware/auth";
+import { authenticateJwt, AuthRequest, checkFolderAccess } from "../middleware/auth";
 import { logAuditAction } from "../middleware/audit";
 
 import multer from "multer";
@@ -70,14 +70,6 @@ function resolveImageToBase64(imgUrl?: string | null): string | null {
       path.resolve(process.cwd(), "..", "data", "diagrams", path.basename(cleanPath)),
       path.resolve(process.cwd(), "..", "data", "snips", path.basename(cleanPath)),
       path.resolve(process.cwd(), "..", "data", "uploads", path.basename(cleanPath)),
-      path.resolve("D:/Recovered_school_app/PAPERGENERATOR/data", cleanPath),
-      path.resolve("D:/Recovered_school_app/PAPERGENERATOR/data/diagrams", path.basename(cleanPath)),
-      path.resolve("D:/Recovered_school_app/PAPERGENERATOR/data/snips", path.basename(cleanPath)),
-      path.resolve("D:/Recovered_school_app/PAPERGENERATOR/data/uploads", path.basename(cleanPath)),
-      path.resolve("D:/Recovered_school_app/PAPERGENERATOR/server/data", cleanPath),
-      path.resolve("D:/Recovered_school_app/PAPERGENERATOR/server/data/diagrams", path.basename(cleanPath)),
-      path.resolve("D:/Recovered_school_app/PAPERGENERATOR/server/data/snips", path.basename(cleanPath)),
-      path.resolve("D:/Recovered_school_app/PAPERGENERATOR/server/data/uploads", path.basename(cleanPath)),
     ];
 
     for (const cand of candidates) {
@@ -92,6 +84,74 @@ function resolveImageToBase64(imgUrl?: string | null): string | null {
     // Ignore resolution errors
   }
   return imgUrl;
+}
+
+// Recursively find all child and descendant folder IDs for a given folder
+async function getAllFolderAndDescendantIds(folderId: string): Promise<string[]> {
+  const ids: string[] = [folderId];
+  let currentParents = [folderId];
+  while (currentParents.length > 0) {
+    const children = await prisma.folder.findMany({
+      where: { parentId: { in: currentParents } },
+      select: { id: true },
+    });
+    if (children.length === 0) break;
+    const childIds = children.map((c) => c.id);
+    ids.push(...childIds);
+    currentParents = childIds;
+  }
+  return ids;
+}
+
+// Build standardized query filter for questions export
+async function buildQuestionsExportQuery(req: AuthRequest): Promise<{ where: any; folder: any }> {
+  const folderId = (req.query.folderId || (req.body && req.body.folderId)) as string | undefined;
+  const questionIds = (req.query.questionIds || (req.body && req.body.questionIds)) as string | string[] | undefined;
+  const difficulty = (req.query.difficulty || (req.body && req.body.difficulty)) as string | undefined;
+  const search = (req.query.search || (req.body && req.body.search)) as string | undefined;
+
+  const where: any = {};
+  let folder: any = null;
+
+  if (folderId) {
+    const hasAccess = await checkFolderAccess(req.user!.id, req.user!.role, folderId);
+    if (!hasAccess) {
+      throw new Error("FORBIDDEN_FOLDER");
+    }
+    const allFolderIds = await getAllFolderAndDescendantIds(folderId);
+    where.folderId = { in: allFolderIds };
+    folder = await prisma.folder.findUnique({ where: { id: folderId } });
+  }
+
+  if (questionIds) {
+    const ids = Array.isArray(questionIds)
+      ? questionIds
+      : String(questionIds)
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+    if (ids.length > 0) {
+      where.id = { in: ids };
+    }
+  }
+
+  if (difficulty) {
+    where.difficulty = difficulty;
+  }
+
+  if (search) {
+    where.questionText = { contains: search };
+  }
+
+  // Non-admins can view and export non-restricted questions or their own created questions
+  if (req.user!.role !== "SUPER_ADMIN" && req.user!.role !== "ADMIN") {
+    where.OR = [
+      { isRestricted: false },
+      { creatorId: req.user!.id },
+    ];
+  }
+
+  return { where, folder };
 }
 
 router.use(authenticateJwt);
@@ -418,7 +478,10 @@ router.get("/questions", async (req: AuthRequest, res: Response) => {
     const user = req.user!;
 
     const whereClause: any = {};
-    if (folderId) whereClause.folderId = folderId as string;
+    if (folderId) {
+      const allFolderIds = await getAllFolderAndDescendantIds(folderId as string);
+      whereClause.folderId = { in: allFolderIds };
+    }
     if (difficulty) whereClause.difficulty = difficulty as string;
     if (search) {
       whereClause.questionText = { contains: search as string };
@@ -602,13 +665,27 @@ router.put("/questions/:id", async (req: AuthRequest, res: Response) => {
     if (body.formulas !== undefined) data.formulasJson = JSON.stringify(body.formulas || []);
     if (body.diagrams !== undefined) data.diagramsJson = JSON.stringify(body.diagrams || []);
 
+    const existing = await prisma.question.findUnique({ where: { id } });
+
     const q = await prisma.question.update({
       where: { id },
       data,
     });
 
+    const changes: Record<string, { from: any; to: any }> = {};
+    for (const key of Object.keys(data)) {
+      const oldVal = (existing as any)?.[key];
+      const newVal = data[key];
+      if (oldVal !== newVal) {
+        changes[key] = { from: oldVal, to: newVal };
+      }
+    }
+
     await logAuditAction(req.user!.id, "UPDATE_QUESTION", "QUESTION", id, {
       questionNumber: q.questionNumber,
+      marks: q.marks,
+      changes,
+      updatedFields: Object.keys(changes),
     });
 
     res.json({ question: q });
@@ -621,8 +698,13 @@ router.put("/questions/:id", async (req: AuthRequest, res: Response) => {
 // Delete question
 router.delete("/questions/:id", async (req: AuthRequest, res: Response) => {
   try {
+    const q = await prisma.question.findUnique({ where: { id: req.params.id } });
     await prisma.question.delete({ where: { id: req.params.id } });
-    await logAuditAction(req.user!.id, "DELETE_QUESTION", "QUESTION", req.params.id);
+    await logAuditAction(req.user!.id, "DELETE_QUESTION", "QUESTION", req.params.id, {
+      questionNumber: q?.questionNumber,
+      marks: q?.marks,
+      questionSnippet: q?.questionText ? q.questionText.slice(0, 100) : undefined,
+    });
     res.json({ message: "Question deleted successfully" });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -690,20 +772,27 @@ router.post("/questions/check-duplicate", async (req: AuthRequest, res: Response
 });
 
 // Export Questions to JSON (Standard Universal Format v2.0 for Cross-App Interoperability)
-router.get("/questions/export/json", async (req: AuthRequest, res: Response) => {
+router.all("/questions/export/json", async (req: AuthRequest, res: Response) => {
   try {
-    const { folderId } = req.query;
-    const where: any = {};
-    if (folderId) where.folderId = folderId as string;
+    let where: any;
+    let folder: any;
+    try {
+      const q = await buildQuestionsExportQuery(req);
+      where = q.where;
+      folder = q.folder;
+    } catch (err: any) {
+      if (err.message === "FORBIDDEN_FOLDER") {
+        res.status(403).json({ error: "Forbidden: You do not have permission to download or export questions from this folder unless assigned." });
+        return;
+      }
+      throw err;
+    }
 
-    const [questions, folder] = await Promise.all([
-      prisma.question.findMany({
-        where,
-        include: { folder: true },
-        orderBy: { createdAt: "asc" },
-      }),
-      folderId ? prisma.folder.findUnique({ where: { id: folderId as string } }) : null,
-    ]);
+    const questions = await prisma.question.findMany({
+      where,
+      include: { folder: true },
+      orderBy: { createdAt: "asc" },
+    });
 
     const exportData = {
       schemaVersion: "2.0",
@@ -738,20 +827,27 @@ router.get("/questions/export/json", async (req: AuthRequest, res: Response) => 
 });
 
 // Export Questions & Answers to Microsoft Word (.doc) with complete Solutions & Option diagrams
-router.get("/questions/export/word", async (req: AuthRequest, res: Response) => {
+router.all("/questions/export/word", async (req: AuthRequest, res: Response) => {
   try {
-    const { folderId } = req.query;
-    const where: any = {};
-    if (folderId) where.folderId = folderId as string;
+    let where: any;
+    let folder: any;
+    try {
+      const q = await buildQuestionsExportQuery(req);
+      where = q.where;
+      folder = q.folder;
+    } catch (err: any) {
+      if (err.message === "FORBIDDEN_FOLDER") {
+        res.status(403).json({ error: "Forbidden: You do not have permission to download or export questions from this folder unless assigned." });
+        return;
+      }
+      throw err;
+    }
 
-    const [questions, folder] = await Promise.all([
-      prisma.question.findMany({
-        where,
-        include: { folder: true },
-        orderBy: { createdAt: "asc" },
-      }),
-      folderId ? prisma.folder.findUnique({ where: { id: folderId as string } }) : null,
-    ]);
+    const questions = await prisma.question.findMany({
+      where,
+      include: { folder: true },
+      orderBy: { createdAt: "asc" },
+    });
 
     const folderTitle = folder ? `${folder.name} (${folder.type})` : "Universal Question Bank";
 
@@ -863,20 +959,28 @@ router.get("/questions/export/word", async (req: AuthRequest, res: Response) => 
 });
 
 // Export Questions & Answers to PDF (via PyMuPDF AI Engine)
-router.get("/questions/export/pdf", async (req: AuthRequest, res: Response) => {
+router.all("/questions/export/pdf", async (req: AuthRequest, res: Response) => {
   try {
-    const { folderId, includeAnswers } = req.query;
-    const where: any = {};
-    if (folderId) where.folderId = folderId as string;
+    const includeAnswers = req.query.includeAnswers ?? (req.body && req.body.includeAnswers);
+    let where: any;
+    let folder: any;
+    try {
+      const q = await buildQuestionsExportQuery(req);
+      where = q.where;
+      folder = q.folder;
+    } catch (err: any) {
+      if (err.message === "FORBIDDEN_FOLDER") {
+        res.status(403).json({ error: "Forbidden: You do not have permission to download or export questions from this folder unless assigned." });
+        return;
+      }
+      throw err;
+    }
 
-    const [questions, folder] = await Promise.all([
-      prisma.question.findMany({
-        where,
-        include: { folder: true },
-        orderBy: { createdAt: "asc" },
-      }),
-      folderId ? prisma.folder.findUnique({ where: { id: folderId as string } }) : null,
-    ]);
+    const questions = await prisma.question.findMany({
+      where,
+      include: { folder: true },
+      orderBy: { createdAt: "asc" },
+    });
 
     const formatted = questions.map((q) => ({
       questionNumber: q.questionNumber,
@@ -1058,11 +1162,21 @@ router.post("/questions/import/file", uploadDoc.single("file"), async (req: Auth
 });
 
 // Export Questions to CSV with UTF-8 BOM for full Multi-Language (Hindi, Sanskrit, Punjabi, Urdu, etc.) support in Excel
-router.get("/questions/export/csv", async (req: AuthRequest, res: Response) => {
+router.all("/questions/export/csv", async (req: AuthRequest, res: Response) => {
   try {
-    const { folderId } = req.query;
-    const where: any = {};
-    if (folderId) where.folderId = folderId as string;
+    let where: any;
+    let folder: any;
+    try {
+      const q = await buildQuestionsExportQuery(req);
+      where = q.where;
+      folder = q.folder;
+    } catch (err: any) {
+      if (err.message === "FORBIDDEN_FOLDER") {
+        res.status(403).json({ error: "Forbidden: You do not have permission to download or export questions from this folder unless assigned." });
+        return;
+      }
+      throw err;
+    }
 
     const questions = await prisma.question.findMany({
       where,

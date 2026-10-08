@@ -39,7 +39,6 @@ class DiagramExtractor:
             "diagram_id": diag_id,
             "filename": filename,
             "relative_url": f"/data/diagrams/{filename}",
-            "absolute_path": str(target_path),
             "bbox": [x0, y0, x1 - x0, y1 - y0],
             "width": x1 - x0,
             "height": y1 - y0,

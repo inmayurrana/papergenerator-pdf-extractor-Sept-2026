@@ -17,6 +17,19 @@ export interface ThemeOption {
 
 export const AVAILABLE_THEMES: ThemeOption[] = [
   {
+    id: 'navy-academic',
+    name: 'Classic Professional Theme (Standard)',
+    category: 'light',
+    description: 'Enterprise standard: Off-white canvas, navy navigation, clear borders, solid buttons, high readability',
+    previewColors: {
+      bg: '#F5F7FA',
+      surface: '#FFFFFF',
+      accent: '#0B1F3A',
+      secondary: '#16365F',
+      text: '#111827',
+    },
+  },
+  {
     id: 'midnight',
     name: 'Midnight Cyber',
     category: 'dark',
@@ -27,6 +40,19 @@ export const AVAILABLE_THEMES: ThemeOption[] = [
       accent: '#6366f1',
       secondary: '#8b5cf6',
       text: '#f8fafc',
+    },
+  },
+  {
+    id: 'light-paper',
+    name: 'Solarized Clean Paper',
+    category: 'light',
+    description: 'Warm academic light mode with crisp ink typography and royal blue',
+    previewColors: {
+      bg: '#f8fafc',
+      surface: '#ffffff',
+      accent: '#2563eb',
+      secondary: '#4f46e5',
+      text: '#0f172a',
     },
   },
   {
@@ -120,19 +146,6 @@ export const AVAILABLE_THEMES: ThemeOption[] = [
       text: '#fcfcfa',
     },
   },
-  {
-    id: 'light-paper',
-    name: 'Solarized Clean Paper',
-    category: 'light',
-    description: 'Warm academic light mode with crisp ink typography and royal blue',
-    previewColors: {
-      bg: '#f8fafc',
-      surface: '#ffffff',
-      accent: '#2563eb',
-      secondary: '#4f46e5',
-      text: '#0f172a',
-    },
-  },
 ];
 
 interface ThemeState {
@@ -146,15 +159,28 @@ interface ThemeState {
 
 const SAVED_THEME_KEY = 'papergen_theme_preference';
 
-const getInitialTheme = (): string => {
+export const getInitialTheme = (): string => {
   try {
     const saved = localStorage.getItem(SAVED_THEME_KEY);
-    if (saved && AVAILABLE_THEMES.some((t) => t.id === saved)) {
+    // If user has a legacy dark theme stored, migrate them immediately to Classic Professional
+    if (saved && (saved === 'navy-academic' || saved === 'light-paper')) {
       return saved;
     }
   } catch {}
-  return 'midnight';
+  return 'navy-academic';
 };
+
+// Immediately apply Classic Professional theme to DOM at script evaluation time
+if (typeof document !== 'undefined') {
+  const initTheme = getInitialTheme();
+  try {
+    localStorage.setItem(SAVED_THEME_KEY, initTheme);
+  } catch {}
+  document.documentElement.setAttribute('data-theme', initTheme);
+  if (document.body) {
+    document.body.setAttribute('data-theme', initTheme);
+  }
+}
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
   currentTheme: getInitialTheme(),
@@ -162,7 +188,12 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   setTheme: (themeId: string) => {
     try {
       localStorage.setItem(SAVED_THEME_KEY, themeId);
-      document.documentElement.setAttribute('data-theme', themeId);
+      if (typeof document !== 'undefined') {
+        document.documentElement.setAttribute('data-theme', themeId);
+        if (document.body) {
+          document.body.setAttribute('data-theme', themeId);
+        }
+      }
     } catch {}
     set({ currentTheme: themeId });
   },

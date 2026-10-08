@@ -27,8 +27,8 @@
     "difficulty": "MEDIUM",
     "diagrams": [],
     "tags": [],
-    "createdAt": "2026-09-18T11:24:32.095Z",
-    "updatedAt": "2026-09-18T11:24:32.095Z"
+    "createdAt": {},
+    "updatedAt": {}
   },
   {
     "id": "1244e205-e2ca-4f32-acef-ad2d9c25c8e4",
@@ -58,8 +58,8 @@
     "difficulty": "MEDIUM",
     "diagrams": [],
     "tags": [],
-    "createdAt": "2026-09-18T11:24:32.141Z",
-    "updatedAt": "2026-09-18T11:24:32.141Z"
+    "createdAt": {},
+    "updatedAt": {}
   },
   {
     "id": "ec0941f2-02c7-4cf8-a8c8-fb5aed9158b3",
@@ -89,8 +89,8 @@
     "difficulty": "MEDIUM",
     "diagrams": [],
     "tags": [],
-    "createdAt": "2026-09-18T11:24:32.193Z",
-    "updatedAt": "2026-09-18T11:24:32.193Z"
+    "createdAt": {},
+    "updatedAt": {}
   },
   {
     "id": "f6d56b0d-b465-490a-a4e0-eb01076b8d44",
@@ -120,8 +120,8 @@
     "difficulty": "MEDIUM",
     "diagrams": [],
     "tags": [],
-    "createdAt": "2026-09-18T11:24:32.247Z",
-    "updatedAt": "2026-09-18T11:24:32.247Z"
+    "createdAt": {},
+    "updatedAt": {}
   },
   {
     "id": "090f2004-daf6-4dc9-85a9-99ab95ac453d",
@@ -151,8 +151,8 @@
     "difficulty": "MEDIUM",
     "diagrams": [],
     "tags": [],
-    "createdAt": "2026-09-18T11:24:32.294Z",
-    "updatedAt": "2026-09-18T11:24:32.294Z"
+    "createdAt": {},
+    "updatedAt": {}
   },
   {
     "id": "a9d15756-a31c-40da-8a4d-c2a442360cb4",
@@ -182,8 +182,8 @@
     "difficulty": "MEDIUM",
     "diagrams": [],
     "tags": [],
-    "createdAt": "2026-09-18T11:24:32.340Z",
-    "updatedAt": "2026-09-18T11:24:32.340Z"
+    "createdAt": {},
+    "updatedAt": {}
   },
   {
     "id": "514c6b33-6d86-457d-a9f2-ce51c2862703",
@@ -213,8 +213,8 @@
     "difficulty": "MEDIUM",
     "diagrams": [],
     "tags": [],
-    "createdAt": "2026-09-18T11:24:32.397Z",
-    "updatedAt": "2026-09-18T11:24:32.397Z"
+    "createdAt": {},
+    "updatedAt": {}
   },
   {
     "id": "035ab9ee-821b-433e-9c1b-cc2d0d9c66c5",
@@ -244,8 +244,8 @@
     "difficulty": "MEDIUM",
     "diagrams": [],
     "tags": [],
-    "createdAt": "2026-09-18T11:24:32.439Z",
-    "updatedAt": "2026-09-18T11:24:32.439Z"
+    "createdAt": {},
+    "updatedAt": {}
   },
   {
     "id": "0221157e-fa3e-404e-86c5-ab6b0db6933a",
@@ -275,8 +275,8 @@
     "difficulty": "MEDIUM",
     "diagrams": [],
     "tags": [],
-    "createdAt": "2026-09-18T11:24:32.482Z",
-    "updatedAt": "2026-09-18T11:24:32.482Z"
+    "createdAt": {},
+    "updatedAt": {}
   },
   {
     "id": "81f934e7-5494-48b2-ba0d-d2273f1ea7bc",
@@ -306,7 +306,7 @@
     "difficulty": "MEDIUM",
     "diagrams": [],
     "tags": [],
-    "createdAt": "2026-09-18T11:24:32.538Z",
-    "updatedAt": "2026-09-18T11:24:32.538Z"
+    "createdAt": {},
+    "updatedAt": {}
   }
 ]

@@ -42,4 +42,49 @@ router.post("/models/unload", requireRole(["SUPER_ADMIN", "ADMIN"]), async (req:
   }
 });
 
+// Toggle an individual engine adapter enabled/disabled
+router.post("/models/:engineName/toggle", async (req: AuthRequest, res: Response) => {
+  try {
+    const { engineName } = req.params;
+    const aiRes = await axios.post(
+      `${config.AI_SERVICE_URL}/api/models/${encodeURIComponent(engineName)}/toggle`,
+      req.body
+    );
+    await logAuditAction(req.user!.id, "TOGGLE_ENGINE", "SYSTEM", null, {
+      engine: engineName,
+      is_enabled: aiRes.data.is_enabled,
+    });
+    res.json(aiRes.data);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Restart an individual engine adapter
+router.post("/models/:engineName/restart", async (req: AuthRequest, res: Response) => {
+  try {
+    const { engineName } = req.params;
+    const aiRes = await axios.post(
+      `${config.AI_SERVICE_URL}/api/models/${encodeURIComponent(engineName)}/restart`
+    );
+    await logAuditAction(req.user!.id, "RESTART_ENGINE", "SYSTEM", null, {
+      engine: engineName,
+    });
+    res.json(aiRes.data);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Restart all engine adapters
+router.post("/models/restart-all", async (req: AuthRequest, res: Response) => {
+  try {
+    const aiRes = await axios.post(`${config.AI_SERVICE_URL}/api/models/restart-all`);
+    await logAuditAction(req.user!.id, "RESTART_ALL_ENGINES", "SYSTEM", null, {});
+    res.json(aiRes.data);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

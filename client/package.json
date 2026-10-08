@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:ui": "node tests/automated_ui_verification.js"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.66.9",

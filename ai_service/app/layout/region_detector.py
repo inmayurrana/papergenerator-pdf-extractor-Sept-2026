@@ -8,13 +8,14 @@ class RegionDetector:
     # Optional prefix: exercise-code marker like NL0117, NL0118 that some PDFs print before the Q number
     QUESTION_PATTERN = re.compile(
         r"^\s*(?:[A-Z]{1,3}\d{2,6}[A-Z0-9_\-]*\s*\n\s*)?(?:"
-        r"Q(?:uestion)?\s*[.\-]?\s*(\d{1,3})\s*[.)\]:\-]?"   # Q1, Q.1, Q1., Q.1), Q.1:, Question 1
-        r"|(\d{1,3})\s*[.)\]]"                                  # 1. 1) 1]
-        r")\s*",
+        r"Q(?:uestion)?\s*[.\-]?\s*([1-9]\d{0,2})\s*[.)\]:\-]?"   # Q1, Q.1, Q1., Q.1), Q.1:, Question 1
+        r"|([1-9]\d{0,2})\s*(?:\.(?!\d)|[)\]])"                 # 1. 1) 1] (prevents decimal like 0.25)
+        r")\s+",
         re.IGNORECASE
     )
     SUBQUESTION_PATTERN = re.compile(r"^\(([a-zA-Z]|\d+|[ivxIVX]+)\)\s*")
-    OPTION_PATTERN = re.compile(r"^(?:\(([A-Da-d1-4])\)|([A-Da-d1-4])[\.\)])\s*")
+    NOUN_EXCLUSIONS = r"(?<!\bblock\s)(?<!\bbody\s)(?<!\bparticle\s)(?<!\bmass\s)(?<!\bwire\s)(?<!\bpulley\s)(?<!\bsphere\s)(?<!\bcylinder\s)(?<!\brod\s)(?<!\bcar\s)(?<!\btrain\s)(?<!\bdisc\s)(?<!\bplate\s)(?<!\bobject\s)(?<!\bbetween\s)(?<!\band\s)(?<!\bfor\s)(?<!\bwith\s)(?<!\bto\s)"
+    OPTION_PATTERN = re.compile(rf"^(?:{NOUN_EXCLUSIONS}\(([A-Da-d1-4])\)|([A-Da-d1-4])[\.\)])\s*", re.IGNORECASE)
     MARKS_PATTERN = re.compile(r"\[?\b(\d+)\s*(?:marks?|mark|m|pts?)\b\]?|\((\d+)\s*(?:marks?|mark|m)\)", re.IGNORECASE)
     MATH_SYMBOLS_PATTERN = re.compile(
         r"[=+*^√∛∜∫∬∭∮∑∏±∓≤≥≠≈≡∞αβγδεϵζηθϑικλμνξπϖρϱστυφϕχψωΓΔΘΛΞΠΣΥΦΨΩ∂∇∈∉∋⊂⊃⊆⊇∪∩∀∃∄⊥∥∠°∝∴∵×÷·•½⅓⅔¼¾]|(?:(?<=\s)|(?<=\d)|(?<=\)))-(?=\s|\d|[a-zA-Z])|−|\b(?:sin|cos|tan|cot|sec|csc|log|ln|lim|sqrt|frac|pi|theta|alpha|beta)\b|\\(?:frac|sqrt|int|sum|prod|alpha|beta|gamma|delta|theta|lambda|mu|pi|sigma|omega|Delta|Omega|pm|times|div|le|ge|neq|approx|infty|matrix)",
@@ -68,29 +69,43 @@ class RegionDetector:
         clean_text = text.strip()
         y = bbox[1]
 
-        # Check Section Titles & Banners
-        if re.search(r"^(?:DPP\b|DAILY\s*PRACTICE|EVERYDAY\s*MATHEMATICS|ACHIEVERS\s*SECTION|SECTION\s*[-–:]|PART\s*[-–:]|MATHEMATICS|PHYSICS|CHEMISTRY|BIOLOGY|LOGICAL\s*REASONING|SCIENCE|GRADE\s*\d+|CLASS\s*\d+|MOCK\s*TEST|SAMPLE\s*PAPER|QUESTION\s*PAPER|EXAMINATION\b|CHAPTER\b|UNIT\b|ASSIGNMENT\b)", clean_text, re.IGNORECASE):
-            return {"type": "HEADER", "confidence": 0.95}
-
-        # Check Header / Footer by vertical position
-        if y < 80 and len(clean_text) < 150:
-            return {"type": "HEADER", "confidence": 0.95}
-        if y > (page_height - 90) and len(clean_text) < 100:
-            return {"type": "FOOTER", "confidence": 0.95}
-
-        # Check Question
+        # 1. Question pattern evaluated FIRST so questions near page top are never misclassified as headers
         q_match = RegionDetector.QUESTION_PATTERN.match(clean_text)
         if q_match:
             q_num = q_match.group(1) or q_match.group(2)
             return {"type": "QUESTION", "question_number": q_num, "confidence": 0.96}
 
-        # Check Option
-        opt_match = RegionDetector.OPTION_PATTERN.match(clean_text)
-        if opt_match:
-            opt_label = opt_match.group(1) or opt_match.group(2)
-            return {"type": "OPTION", "option_label": opt_label.upper(), "confidence": 0.95}
+        # 2. Check Section Titles & Banners
+        if re.search(r"^(?:DPP\b|DAILY\s*PRACTICE|EVERYDAY\s*MATHEMATICS|ACHIEVERS\s*SECTION|SECTION\s*[-–:]|PART\s*[-–:]|MATHEMATICS|PHYSICS|CHEMISTRY|BIOLOGY|LOGICAL\s*REASONING|SCIENCE|GRADE\s*\d+|CLASS\s*\d+|MOCK\s*TEST|SAMPLE\s*PAPER|QUESTION\s*PAPER|EXAMINATION\b|CHAPTER\b|UNIT\b|ASSIGNMENT\b)", clean_text, re.IGNORECASE):
+            return {"type": "HEADER", "confidence": 0.95}
 
-        # Check Subquestion
+        # 3. Check Header / Footer by vertical position (scale-adaptive)
+        header_limit = max(80, int(page_height * 0.055))
+        if y < header_limit and len(clean_text) < 150:
+            return {"type": "HEADER", "confidence": 0.95}
+        if y > (page_height - 90) and len(clean_text) < 100:
+            return {"type": "FOOTER", "confidence": 0.95}
+
+        # 4. Check Option (excluding sentence endings like '(B) is :-')
+        # First: check for MULTI-OPTION inline block (2-column MCQ style: "(1) x (2) y" or "(A) x (B) y")
+        multi_opt_pattern = re.compile(
+            r"(?:^|\s)\(([A-Da-d1-4])\)\s*.+?\s+\(([A-Da-d1-4])\)\s*",
+            re.IGNORECASE
+        )
+        multi_match = multi_opt_pattern.search(clean_text)
+        if multi_match and not re.search(r"\b(?:is|are|will\s*be|was|were)\s*[:=\-]", clean_text, re.IGNORECASE):
+            first_lbl = multi_match.group(1)
+            mapping = {"1": "A", "2": "B", "3": "C", "4": "D"}
+            return {"type": "OPTION", "option_label": mapping.get(first_lbl, first_lbl.upper()), "confidence": 0.95}
+
+        # Second: single option at start of block
+        opt_match = RegionDetector.OPTION_PATTERN.match(clean_text)
+        if opt_match and not re.search(r"\b(?:is|are|will\s*be|was|were)\s*[:=\-]", clean_text, re.IGNORECASE):
+            opt_label = opt_match.group(1) or opt_match.group(2)
+            mapping = {"1": "A", "2": "B", "3": "C", "4": "D"}
+            return {"type": "OPTION", "option_label": mapping.get(opt_label, opt_label.upper()), "confidence": 0.95}
+
+        # 5. Check Subquestion
         sub_match = RegionDetector.SUBQUESTION_PATTERN.match(clean_text)
         if sub_match:
             sub_label = sub_match.group(1)

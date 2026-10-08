@@ -8,7 +8,15 @@ class QuestionParser:
         re.IGNORECASE
     )
     ANSWER_REGEX = re.compile(r"\b(?:Ans(?:wer)?|Sol(?:ution)?|Correct Option)\s*[:=\-]\s*([A-Da-d1-4]|\w+)", re.IGNORECASE)
-    OPTION_SPLIT_REGEX = re.compile(r"(?:\(([a-dA-D1-4])\)|(?:(?<=^)|(?<=\s))([a-dA-D1-4])\.(?!\d)|(?:(?<=^)|(?<=\s))([a-dA-D1-4])\))\s*")
+    NOUN_EXCLUSIONS = r"(?<!\bblock\s)(?<!\bbody\s)(?<!\bparticle\s)(?<!\bmass\s)(?<!\bwire\s)(?<!\bpulley\s)(?<!\bsphere\s)(?<!\bcylinder\s)(?<!\brod\s)(?<!\bcar\s)(?<!\btrain\s)(?<!\bdisc\s)(?<!\bplate\s)(?<!\bobject\s)(?<!\bbetween\s)(?<!\band\s)(?<!\bfor\s)(?<!\bwith\s)(?<!\bto\s)"
+
+    # Unified option-label detector with a single named capture group 'lbl'
+    # Matches: (A)  (1)  A)  A.  — at start of text or after whitespace
+    # Named group 'lbl' always holds the raw label character regardless of style.
+    OPTION_SPLIT_REGEX = re.compile(
+        rf"(?:{NOUN_EXCLUSIONS}\((?P<lbl>[a-dA-D1-4])\)|(?:(?<=^)|(?<=\s))(?P<lbl2>[a-dA-D1-4])\.(?!\d)|(?:(?<=^)|(?<=\s))(?P<lbl3>[a-dA-D1-4])\))\s*",
+        re.IGNORECASE
+    )
 
     @staticmethod
     def extract_marks(text: str) -> Optional[int]:
@@ -29,31 +37,77 @@ class QuestionParser:
         return None
 
     @staticmethod
+    def _extract_label_from_match(om: re.Match) -> str:
+        """Safely extracts the option label from a regex match, handling all group variants."""
+        mapping = {"1": "A", "2": "B", "3": "C", "4": "D"}
+        # Try named groups first, then fall back to numbered groups
+        raw = (
+            om.group("lbl")
+            or om.group("lbl2")
+            or om.group("lbl3")
+            or None
+        )
+        if raw is None:
+            # Fallback: scan all groups for first non-None value
+            for g in om.groups():
+                if g is not None:
+                    raw = g
+                    break
+        if raw is None:
+            return "A"
+        return mapping.get(raw.upper(), raw.upper())
+
+    @staticmethod
     def parse_options_from_text(text: str) -> List[Dict[str, str]]:
-        """Parses inline or multiline MCQ options (A, B, C, D) across lines."""
+        """Parses inline or multiline MCQ options (A, B, C, D or 1, 2, 3, 4) across lines."""
         if not text or not text.strip():
             return []
+
+        # Reject sentence-continuation patterns like "(B) is :-"
+        if re.search(r"\b(?:is|are|will\s*be|was|were)\s*[:=\-]", text, re.IGNORECASE):
+            if re.match(r"^\s*(?:\([A-Za-z0-9]+\)|[A-Za-z0-9]+[.)])\s*(?:is|are|will\s*be)\s*[:=\-]", text, re.IGNORECASE):
+                return []
 
         matches = list(QuestionParser.OPTION_SPLIT_REGEX.finditer(text))
         if not matches:
             return []
 
-        options = []
+        raw_options = []
         for i, om in enumerate(matches):
-            label = (om.group(1) or om.group(2) or om.group(3)).upper()
-            mapping = {"1": "A", "2": "B", "3": "C", "4": "D"}
-            label = mapping.get(label, label)
+            label = QuestionParser._extract_label_from_match(om)
             start = om.end()
             end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
             val = text[start:end].strip()
             # Clean internal newlines/excess whitespace
             val = re.sub(r"\s+", " ", val)
-            options.append({
+            raw_options.append({
                 "key": label,
                 "text": specialized_math.convert_embedded_math(val)
             })
 
-        return options
+        # Single option in standalone region (e.g. "(2) 1-1/n^2")
+        if len(raw_options) == 1:
+            return raw_options
+
+        # Multiple inline options: validate sequential progression (A→B→C→D or partial)
+        expected = ["A", "B", "C", "D"]
+        keys = [o["key"] for o in raw_options]
+        if keys[0] in expected:
+            start_idx = expected.index(keys[0])
+            valid = []
+            for idx, opt in enumerate(raw_options):
+                exp_idx = start_idx + idx
+                if exp_idx < len(expected) and opt["key"] == expected[exp_idx]:
+                    valid.append(opt)
+                else:
+                    break
+            if len(valid) >= 2:
+                return valid
+            # Allow single valid option from partial block (e.g. "(3) formula (4) formula")
+            if len(valid) == 1:
+                return valid
+
+        return []
 
     @staticmethod
     def is_diagram_annotation(text: str) -> bool:
@@ -73,7 +127,10 @@ class QuestionParser:
         ):
             return True
         words = unmath.split()
-        token_pat = re.compile(r"^(?:[A-Za-z](?:_?\d+)?|\d+(?:\.\d+)?(?:kg|g|N|m|cm|mm|V|A|J|s|ms|°)?|[A-Za-z]=\d+.*|Smooth|Rough|Wall|Hinge|Spring|Fixed|Pulley|Block|Fig(?:\.\s*\(\d+\))?)$", re.IGNORECASE)
+        token_pat = re.compile(
+            r"^(?:[=+\-*/]|[A-Za-z](?:_?\{?\d+\}?)?(?:\^?\{?\d+\}?)?|\d+(?:\.\d+)?(?:kg|g|N|m|cm|mm|V|A|J|s|ms|°|deg|\^circ)?(?:\^?\{?\d+\}?)?|[A-Za-z]\s*=\s*\d+.*|kg|g|N|m|cm|mm|theta|thita|alpha|beta|phi|omega|Smooth|Rough|Wall|Hinge|Spring|Fixed|Pulley|Block|Fig(?:\.\s*\(\d+\))?)$",
+            re.IGNORECASE
+        )
         if len(words) >= 1 and all(token_pat.match(w) for w in words):
             return True
         if len(words) <= 4 and not any(p in unmath for p in [".", "?", ":", ";"]):
@@ -122,13 +179,13 @@ class QuestionParser:
 
                 # Check if inline options are embedded inside the question text
                 # e.g. "If V = 4/3 \pi r^3 ... ?(a) \pi (b) 4\pi (c) 40\pi (d) 4\pi/3"
-                opt_matches = list(QuestionParser.OPTION_SPLIT_REGEX.finditer(clean_body))
+                test_inline = QuestionParser.parse_options_from_text(clean_body)
                 inline_options = []
-                if len(opt_matches) >= 2:
-                    first_opt_idx = opt_matches[0].start()
-                    opts_text = clean_body[first_opt_idx:]
-                    clean_body = clean_body[:first_opt_idx].strip()
-                    inline_options = QuestionParser.parse_options_from_text(opts_text)
+                if len(test_inline) >= 2:
+                    first_m = QuestionParser.OPTION_SPLIT_REGEX.search(clean_body)
+                    if first_m:
+                        inline_options = test_inline
+                        clean_body = clean_body[:first_m.start()].strip()
 
                 # Normalize math in question stem
                 normalized_stem = specialized_math.convert_embedded_math(clean_body if clean_body else text)
@@ -160,19 +217,49 @@ class QuestionParser:
 
             elif rtype == "OPTION" and current_q:
                 parsed_opts = QuestionParser.parse_options_from_text(text)
+                opt_spec = r.get("specialized_data", {})
                 if parsed_opts:
+                    existing_keys = {o["key"] for o in current_q["options"]}
                     for po in parsed_opts:
+                        if po["key"] in existing_keys:
+                            continue  # Skip duplicate keys
+                        po["bbox"] = r.get("bbox", [])
+                        po["crop_url"] = r.get("crop_url", "")
+                        po["confidence"] = r.get("confidence", 0.95)
+                        po["validation_status"] = r.get("validation_status", "VALIDATED")
+                        po["needs_review"] = r.get("needs_review", False)
+                        po["ast"] = opt_spec.get("spatial_ast")
+                        po["mathml"] = opt_spec.get("mathml")
                         if r.get("formula_objects"):
                             po["formula_objects"] = r["formula_objects"]
-                    current_q["options"].extend(parsed_opts)
+                        current_q["options"].append(po)
+                        existing_keys.add(po["key"])
                 else:
-                    opt_lbl = r.get("option_label", "A")
+                    # Fallback: infer next sequential key rather than always defaulting to 'A'
+                    opt_lbl = r.get("option_label")
+                    mapping = {"1": "A", "2": "B", "3": "C", "4": "D"}
+                    if opt_lbl:
+                        opt_lbl = mapping.get(opt_lbl, opt_lbl.upper())
+                    else:
+                        # Infer key as next in sequence after existing options
+                        seq = ["A", "B", "C", "D"]
+                        used = {o["key"] for o in current_q["options"]}
+                        opt_lbl = next((k for k in seq if k not in used), "A")
+                    # Strip leading option label from text body
                     opt_body = re.sub(r"^(?:\([A-Da-d1-4]\)|[A-Da-d1-4][\.\)])\s*", "", text).strip()
-                    current_q["options"].append({
-                        "key": opt_lbl,
-                        "text": specialized_math.convert_embedded_math(opt_body),
-                        "formula_objects": r.get("formula_objects", [])
-                    })
+                    if opt_lbl not in {o["key"] for o in current_q["options"]}:
+                        current_q["options"].append({
+                            "key": opt_lbl,
+                            "text": specialized_math.convert_embedded_math(opt_body) if opt_body else specialized_math.convert_embedded_math(text),
+                            "bbox": r.get("bbox", []),
+                            "crop_url": r.get("crop_url", ""),
+                            "confidence": r.get("confidence", 0.95),
+                            "validation_status": r.get("validation_status", "VALIDATED"),
+                            "needs_review": r.get("needs_review", False),
+                            "ast": opt_spec.get("spatial_ast"),
+                            "mathml": opt_spec.get("mathml"),
+                            "formula_objects": r.get("formula_objects", []),
+                        })
                 current_q["raw_regions"].append(r)
 
             elif rtype == "SUBQUESTION" and current_q:
@@ -185,16 +272,27 @@ class QuestionParser:
                 current_q["raw_regions"].append(r)
 
             elif rtype in ["MATH", "MATHEMATICS", "CHEM", "CHEMISTRY", "PHYSICS", "BIOLOGY", "MIXED", "TABLE", "PARAGRAPH"] and current_q:
-                # Always attempt inline option detection on any paragraph/math block
+                # Detect inline options on paragraph/math blocks across rows (e.g. row 1 A-B, row 2 C-D)
                 parsed_opts = QuestionParser.parse_options_from_text(text)
-                if parsed_opts:
-                    # Merge: extend options (de-duplicate by key)
+                if parsed_opts and len(parsed_opts) >= 1:
                     existing_keys = {o["key"] for o in current_q["options"]}
+                    added = False
                     for opt in parsed_opts:
                         if opt["key"] not in existing_keys:
+                            # Attach metadata from the source region
+                            opt.setdefault("bbox", r.get("bbox", []))
+                            opt.setdefault("crop_url", r.get("crop_url", ""))
+                            opt.setdefault("confidence", r.get("confidence", 0.95))
+                            opt.setdefault("validation_status", r.get("validation_status", "VALIDATED"))
+                            opt.setdefault("needs_review", r.get("needs_review", False))
+                            opt.setdefault("formula_objects", r.get("formula_objects", []))
                             current_q["options"].append(opt)
                             existing_keys.add(opt["key"])
-                    current_q["raw_regions"].append(r)
+                            added = True
+                    if added:
+                        current_q["raw_regions"].append(r)
+                        # Skip further processing — this block was option content
+
                 elif re.match(r"^[A-Z]{1,4}\d{2,6}[A-Z0-9_\-]*$", text.strip()):
                     # Coaching book / exercise question code (e.g. NL0084, NL0085)
                     code = text.strip()
@@ -295,6 +393,19 @@ class QuestionParser:
         if not q["options"]:
             q["options"] = QuestionParser.parse_options_from_text(q["question_text"])
 
+        # Deduplicate and sort options by canonical key (A, B, C, D)
+        if q["options"]:
+            key_order = {"A": 0, "B": 1, "C": 2, "D": 3, "1": 0, "2": 1, "3": 2, "4": 3}
+            seen_keys = set()
+            dedup_opts = []
+            for opt in q["options"]:
+                k = opt.get("key", "").upper()
+                if k not in seen_keys:
+                    seen_keys.add(k)
+                    dedup_opts.append(opt)
+            dedup_opts.sort(key=lambda o: key_order.get(o.get("key", "").upper(), 99))
+            q["options"] = dedup_opts
+
         # Extract answer if found in text
         ans = QuestionParser.extract_answer(q["question_text"])
         if ans:
@@ -319,8 +430,10 @@ class QuestionParser:
         from ..scientific.spatial_math_engine import spatial_math_engine
         q_bbox = tuple(q.get("bbox", [0, 0, 0, 0]))
 
-        # Collect formula objects from raw regions
+        # Collect formula objects from raw regions (excluding diagram annotations)
         for r in q.get("raw_regions", []):
+            if QuestionParser.is_diagram_annotation(r.get("text", "")):
+                continue
             for fo in r.get("formula_objects", []):
                 if fo and fo not in q["formula_objects"]:
                     q["formula_objects"].append(fo)
@@ -346,6 +459,10 @@ class QuestionParser:
                     break
             if existing_fo:
                 opt["formula_object"] = existing_fo
+                if opt.get("crop_url") and not existing_fo.get("originalCrop"):
+                    existing_fo["originalCrop"] = opt.get("crop_url")
+                if opt.get("validation_status") == "NEEDS_REVIEW":
+                    existing_fo["validationStatus"] = "NEEDS_REVIEW"
                 if existing_fo["latex"] not in seen_latex:
                     q["formula_objects"].append(existing_fo)
                     seen_latex.add(existing_fo["latex"])
@@ -355,24 +472,45 @@ class QuestionParser:
                 )
                 if opt_formulas:
                     opt["formula_object"] = opt_formulas[0]
+                    if opt.get("crop_url"):
+                        opt["formula_object"]["originalCrop"] = opt.get("crop_url")
+                    if opt.get("validation_status") == "NEEDS_REVIEW":
+                        opt["formula_object"]["validationStatus"] = "NEEDS_REVIEW"
                     for fo in opt_formulas:
                         if fo["latex"] not in seen_latex:
                             q["formula_objects"].append(fo)
                             seen_latex.add(fo["latex"])
+                elif opt.get("crop_url"):
+                    custom_fo = {
+                        "id": f"opt-{opt.get('key', 'A')}",
+                        "latex": opt_text,
+                        "mathml": opt.get("mathml", ""),
+                        "plainText": opt_text,
+                        "structuredExpression": opt.get("ast", {}),
+                        "confidence": opt.get("confidence", 0.95),
+                        "validationStatus": "NEEDS_REVIEW" if opt.get("validation_status") == "NEEDS_REVIEW" else "VERIFIED",
+                        "originalCrop": opt.get("crop_url"),
+                        "domain": "MATH",
+                        "bbox": list(q_bbox),
+                    }
+                    opt["formula_object"] = custom_fo
+                    if custom_fo["latex"] not in seen_latex:
+                        q["formula_objects"].append(custom_fo)
+                        seen_latex.add(custom_fo["latex"])
 
         # Populate structured formulas list
         q["formulas"] = [
             {
-                "id": fo["id"],
+                "id": fo.get("id", f"fo-{i}"),
                 "type": fo.get("domain", "MATH"),
-                "latex": fo["latex"],
-                "mathml": fo["mathml"],
-                "plain_text": fo["plainText"],
-                "structured": fo["structuredExpression"],
-                "confidence": fo["confidence"],
-                "validation_status": fo["validationStatus"],
+                "latex": fo.get("latex", ""),
+                "mathml": fo.get("mathml", ""),
+                "plain_text": fo.get("plainText", fo.get("latex", "")),
+                "structured": fo.get("structuredExpression", {}),
+                "confidence": fo.get("confidence", 0.95),
+                "validation_status": fo.get("validationStatus", "VERIFIED"),
             }
-            for fo in q["formula_objects"]
+            for i, fo in enumerate(q["formula_objects"])
         ]
 
         # Attach structured scientific labels to associated diagrams

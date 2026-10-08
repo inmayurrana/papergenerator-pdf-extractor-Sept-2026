@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import path from "path";
 import fs from "fs";
+import { v4 as uuidv4 } from "uuid";
 import { config } from "./config";
 import authRoutes from "./routes/auth.routes";
 import usersRoutes from "./routes/users.routes";
@@ -14,25 +15,112 @@ import systemRoutes from "./routes/system.routes";
 import auditRoutes from "./routes/audit.routes";
 import learningRoutes from "./routes/learning.routes";
 import scientificRoutes from "./routes/scientific.routes";
+import securityRoutes from "./routes/security.routes";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 import { StorageSyncService } from "./services/storageSync.service";
+import { SecuritySettingsService } from "./services/securitySettings.service";
+import { RbacService } from "./services/rbac.service";
 
 const app = express();
 
-app.use(cors({ origin: "*", credentials: true }));
+// 1. Request Correlation & Tracing Middleware (Section 28)
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const requestId = (req.headers["x-request-id"] as string) || uuidv4();
+  const correlationId = (req.headers["x-correlation-id"] as string) || requestId;
+
+  (req as any).requestId = requestId;
+  (req as any).correlationId = correlationId;
+
+  res.setHeader("X-Request-Id", requestId);
+  res.setHeader("X-Correlation-Id", correlationId);
+  next();
+});
+
+// 2. Modern Cyber Threat Security Headers (Section 29)
+app.use((req: Request, res: Response, next: NextFunction) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: http: https:;"
+  );
+  next();
+});
+
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// Static data serving (diagrams, snips, omr images, documents)
+// 3. Layered Progressive Rate Limiter (Section 8)
+const authAttempts = new Map<string, { count: number; resetAt: number }>();
+const layeredRateLimiter = (maxReqs = 30, windowMs = 5 * 60 * 1000) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const clientIp =
+      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+      req.socket.remoteAddress ||
+      req.ip ||
+      "unknown";
+    const key = `${clientIp}:${req.path}`;
+    const now = Date.now();
+
+    const entry = authAttempts.get(key);
+    if (!entry || now > entry.resetAt) {
+      authAttempts.set(key, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+
+    if (entry.count >= maxReqs) {
+      const waitSec = Math.ceil((entry.resetAt - now) / 1000);
+      res.status(429).json({
+        error: `Too many requests from this network. Please wait ${Math.ceil(waitSec / 60)} minute(s) before trying again.`,
+        remainingSeconds: waitSec,
+      });
+      return;
+    }
+
+    entry.count++;
+    next();
+  };
+};
+
+app.use("/api/auth/login", layeredRateLimiter(25, 5 * 60 * 1000));
+app.use("/api/auth/refresh", layeredRateLimiter(60, 5 * 60 * 1000));
+app.use("/api/auth/google/callback", layeredRateLimiter(30, 5 * 60 * 1000));
+app.use("/api/auth/captcha/challenge", layeredRateLimiter(45, 5 * 60 * 1000));
+
+// 4. Static data serving (diagrams, snips, omr images, documents, uploads, Bank)
 const dataDir = path.resolve(config.DATA_DIR);
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
+const storageSubdirs = [
+  "uploads",
+  "documents",
+  "diagrams",
+  "snips",
+  "omr",
+  "exports",
+  "formulas",
+  "Bank",
+  "Bank/QuestionsBank",
+  "Bank/Qpapers",
+];
+for (const sub of storageSubdirs) {
+  const subPath = path.join(dataDir, sub);
+  if (!fs.existsSync(subPath)) {
+    fs.mkdirSync(subPath, { recursive: true });
+  }
+}
 app.use("/data", express.static(dataDir));
+app.use("/storage", express.static(dataDir));
 
-// Register API routes
+// 5. Register API routes
 app.use("/api/auth", authRoutes);
+app.use("/api/security", securityRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/documents", documentsRoutes);
 app.use("/api", questionsRoutes);
@@ -53,17 +141,24 @@ app.get("/health", (req: Request, res: Response) => {
   });
 });
 
-// Global Error Handler
+// 6. Global Error Handler (Section 33: Safe errors without leaking internal secrets/stack traces)
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error("Unhandled Server Error:", err);
+  const safeMessage = process.env.NODE_ENV === "production"
+    ? "An unexpected system error occurred. Please try again."
+    : err.message || "Internal Server Error";
   res.status(err.status || 500).json({
-    error: err.message || "Internal Server Error",
+    error: safeMessage,
   });
 });
 
-// Auto-seed admin on first start if needed
+// Auto-seed admin and default RBAC matrix on first start if needed
 const initDatabase = async () => {
   try {
+    // 0. Initialize default security settings & RBAC defaults
+    await SecuritySettingsService.initDefaults();
+    await RbacService.initRoleDefaults();
+
     const userCount = await prisma.user.count();
     if (userCount === 0) {
       console.log("No users found. Seeding default administrator account...");
@@ -96,10 +191,10 @@ const initDatabase = async () => {
       console.log(`Default administrator created: ${admin.email} (Password: Admin@12345)`);
     }
 
-    // Auto-restore any existing papers from physical storage (D:\Recovered_school_app\PAPERGENERATOR\data\Bank\Qpapers) if database is empty
+    // Auto-restore any existing papers from physical storage (data/Bank/Qpapers) if database is empty
     await StorageSyncService.restorePapersFromDiskIfEmpty();
 
-    // Synchronize Questions & Question Papers to physical disk storage (D:\Recovered_school_app\PAPERGENERATOR\data\Bank)
+    // Synchronize Questions & Question Papers to physical disk storage (data/Bank)
     StorageSyncService.syncAllToDisk().then((res) => {
       console.log(`[Storage Sync] Synced ${res.questionsSummary.syncedQuestions} questions and ${res.papersSummary.syncedPapers} papers to ${res.bankPath}`);
     }).catch((err) => {

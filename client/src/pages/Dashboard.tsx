@@ -5,24 +5,29 @@ import {
   FileText,
   HelpCircle,
   QrCode,
-  CheckCircle,
-  ArrowUpRight,
-  SplitSquareVertical,
-  Scissors,
   FileSpreadsheet,
-  Cpu,
-  Clock,
-  ChevronRight,
-  ShieldCheck,
   Trash2,
   AlertTriangle,
+  SplitSquareVertical,
+  Scissors,
+  ArrowRight,
+  Plus,
+  Search,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuthStore } from '../lib/authStore';
+import { StatusBadge } from '../components/ui/Badge';
+import { Dialog } from '../components/ui/Dialog';
+import { Button } from '../components/ui/Button';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+
   const [stats, setStats] = useState({
     documentsCount: 0,
     questionsCount: 0,
@@ -31,6 +36,12 @@ export const Dashboard: React.FC = () => {
   });
   const [recentDocs, setRecentDocs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [filterQuery, setFilterQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'ALL' | 'DIGITAL' | 'SCANNED'>('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 8;
+
   const [deleteConfirmDoc, setDeleteConfirmDoc] = useState<{ id: string; filename: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -50,12 +61,18 @@ export const Dashboard: React.FC = () => {
         omrCount: omrRes.data?.evaluations?.length || 0,
       });
 
-      setRecentDocs((docsRes.data?.documents || []).slice(0, 8));
+      setRecentDocs(docsRes.data?.documents || []);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchDashboardData();
   };
 
   const handleConfirmDelete = async () => {
@@ -64,7 +81,10 @@ export const Dashboard: React.FC = () => {
       setDeleting(true);
       await api.delete(`/documents/${deleteConfirmDoc.id}`);
       setRecentDocs((prev) => prev.filter((d) => d.id !== deleteConfirmDoc.id));
-      setStats((prev) => ({ ...prev, documentsCount: Math.max(0, prev.documentsCount - 1) }));
+      setStats((prev) => ({
+        ...prev,
+        documentsCount: Math.max(0, prev.documentsCount - 1),
+      }));
       setDeleteConfirmDoc(null);
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to delete document');
@@ -77,247 +97,449 @@ export const Dashboard: React.FC = () => {
     fetchDashboardData();
   }, []);
 
+  // Reset to first page when search query or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterQuery, typeFilter]);
+
   const statCards = [
     {
       title: 'Ingested Documents',
       value: stats.documentsCount,
       icon: FileText,
-      color: 'from-blue-600 to-indigo-600',
+      description: 'PDFs, Word docs, & scanned textbooks',
       link: '/ingest',
     },
     {
-      title: 'Question Bank',
+      title: 'Extracted Questions',
       value: stats.questionsCount,
       icon: HelpCircle,
-      color: 'from-indigo-600 to-violet-600',
+      description: 'Scientific questions with verified formulas',
       link: '/bank',
     },
     {
       title: 'Question Papers',
       value: stats.papersCount,
       icon: FileSpreadsheet,
-      color: 'from-violet-600 to-purple-600',
+      description: 'Assembled papers and examination sheets',
       link: '/designer',
     },
     {
       title: 'OMR Evaluated',
       value: stats.omrCount,
       icon: QrCode,
-      color: 'from-emerald-600 to-teal-600',
+      description: 'Processed bubble answer sheets',
       link: '/omr-eval',
     },
   ];
 
+  const filteredDocs = recentDocs.filter((doc) => {
+    const matchesSearch = (doc.filename || '').toLowerCase().includes(filterQuery.toLowerCase());
+    if (!matchesSearch) return false;
+    if (typeFilter === 'DIGITAL') return doc.isDigital === true;
+    if (typeFilter === 'SCANNED') return doc.isDigital === false;
+    return true;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredDocs.length / pageSize));
+  const paginatedDocs = filteredDocs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
   return (
-    <div className="space-y-8">
-      {/* Header Banner */}
-      <div className="glass-panel p-8 rounded-3xl relative overflow-hidden bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-indigo-950/40 border border-slate-800">
-        <div className="relative z-10 max-w-4xl space-y-3">
-          <h1 className="text-3xl font-extrabold text-white tracking-tight font-display">
-            Dashboard, Welcome {user?.fullName || 'User'}
-          </h1>
-          <p className="text-sm text-slate-300 leading-relaxed">
-            Extract mathematics, physics formulas, chemistry structures, diagrams, and questions from multi-format PDFs with confidence escalation. Design interactive papers and evaluate OMR sheets with OpenCV precision.
-          </p>
-          <div className="pt-2 flex items-center space-x-4">
-            <button
+    <div className="space-y-6 w-full text-left">
+      {/* Page Header with Breadcrumbs (Requirement 10) */}
+      <div className="bg-white border border-classic-border rounded-card p-6 shadow-classic">
+        {/* Breadcrumb Navigation */}
+        <div className="flex items-center space-x-2 text-xs font-semibold text-classic-text-muted mb-2.5">
+          <Link to="/" className="hover:text-classic-navy transition-colors">
+            Home
+          </Link>
+          <span className="text-slate-300">/</span>
+          <span className="text-classic-navy font-bold">Workspace Dashboard</span>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-1.5 max-w-3xl">
+            <h1 className="text-2xl sm:text-[26px] font-bold text-classic-text-primary tracking-tight leading-snug">
+              Document Workspace
+            </h1>
+            <p className="text-sm text-classic-text-secondary leading-relaxed">
+              Extract mathematical formulas, physics equations, chemistry structures, and diagrams from multi-format PDFs with confidence escalation. Design interactive papers and evaluate OMR answer sheets.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Button
+              variant="secondary"
+              size="md"
+              loading={isRefreshing}
+              onClick={handleRefresh}
+              icon={RefreshCw}
+              title="Refresh workspace statistics and pipeline"
+            >
+              Refresh
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
               onClick={() => navigate('/ingest')}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 flex items-center space-x-2 transition-all"
+              icon={UploadCloud}
             >
-              <UploadCloud className="w-4 h-4" />
-              <span>Ingest New Document</span>
-            </button>
-            <button
+              Ingest Document
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
               onClick={() => navigate('/designer')}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium px-5 py-2.5 rounded-xl border border-slate-700 transition-all flex items-center space-x-2"
+              icon={FileSpreadsheet}
             >
-              <FileSpreadsheet className="w-4 h-4" />
-              <span>Paper Designer Canvas</span>
-            </button>
+              Paper Designer
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((card, idx) => {
-          const Icon = card.icon;
-          return (
-            <Link
-              key={idx}
-              to={card.link}
-              className="glass-panel glass-panel-hover p-6 rounded-2xl flex items-center justify-between group"
+      {/* Metrics Row (Section 7) with Skeleton State (Requirement 31) */}
+      {loading ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="bg-white border border-classic-border rounded-card p-5 shadow-classic animate-pulse"
             >
-              <div className="space-y-1">
-                <div className="text-xs text-slate-400 font-medium uppercase tracking-wider">{card.title}</div>
-                <div className="text-3xl font-extrabold text-white font-mono">{card.value}</div>
+              <div className="flex items-center justify-between">
+                <div className="h-4 w-28 bg-slate-200 rounded" />
+                <div className="w-10 h-10 rounded-classic bg-slate-100" />
               </div>
-              <div className={`w-12 h-12 rounded-xl bg-gradient-to-tr ${card.color} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform`}>
-                <Icon className="w-6 h-6" />
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* Quick Launchers Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div
-          onClick={() => navigate('/review')}
-          className="glass-panel glass-panel-hover p-6 rounded-2xl cursor-pointer space-y-3 border border-indigo-500/20"
-        >
-          <div className="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
-            <SplitSquareVertical className="w-5 h-5" />
-          </div>
-          <h3 className="font-bold text-base text-white">Three-Panel Review</h3>
-          <p className="text-xs text-slate-400">
-            Compare original page images side-by-side with extracted LaTeX formulas, options, and confidence metrics.
-          </p>
+              <div className="mt-3 h-8 w-16 bg-slate-200 rounded" />
+              <div className="mt-2 h-3 w-40 bg-slate-100 rounded" />
+            </div>
+          ))}
         </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {statCards.map((card, idx) => {
+            const Icon = card.icon;
+            return (
+              <Link
+                key={idx}
+                to={card.link}
+                className="bg-white border border-classic-border hover:border-classic-border-dark rounded-card p-5 shadow-classic transition-all hover:shadow-md block group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-classic-text-secondary group-hover:text-classic-navy transition-colors">
+                    {card.title}
+                  </span>
+                  <div className="w-10 h-10 rounded-classic bg-slate-100 border border-classic-border-light flex items-center justify-center text-classic-navy group-hover:bg-blue-50 transition-colors">
+                    <Icon className="w-5 h-5 text-classic-navy" />
+                  </div>
+                </div>
 
-        <div
-          onClick={() => navigate('/snip')}
-          className="glass-panel glass-panel-hover p-6 rounded-2xl cursor-pointer space-y-3 border border-violet-500/20"
-        >
-          <div className="w-10 h-10 rounded-xl bg-violet-600/20 text-violet-400 flex items-center justify-center">
-            <Scissors className="w-5 h-5" />
-          </div>
-          <h3 className="font-bold text-base text-white">Visual Snipping Workspace</h3>
-          <p className="text-xs text-slate-400">
-            Draw crops over diagrams or formulas, run localized recognition without reprocessing the entire file.
-          </p>
-        </div>
+                <div className="mt-3 text-3xl font-extrabold text-classic-text-primary font-mono tracking-tight">
+                  {card.value}
+                </div>
 
-        <div
-          onClick={() => navigate('/omr-eval')}
-          className="glass-panel glass-panel-hover p-6 rounded-2xl cursor-pointer space-y-3 border border-emerald-500/20"
-        >
-          <div className="w-10 h-10 rounded-xl bg-emerald-600/20 text-emerald-400 flex items-center justify-center">
-            <CheckCircle className="w-5 h-5" />
-          </div>
-          <h3 className="font-bold text-base text-white">High-Precision OMR Scoring</h3>
-          <p className="text-xs text-slate-400">
-            Perspective warp, bubble darkness analysis, automatic scoring, and manual teacher review override.
-          </p>
+                <p className="mt-1 text-xs text-classic-text-muted leading-tight">
+                  {card.description}
+                </p>
+              </Link>
+            );
+          })}
         </div>
-      </div>
+      )}
 
       {/* Recent Ingested Documents Pipeline */}
-      <div className="glass-panel rounded-2xl p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h2 className="font-bold text-lg text-white">Recent Document Pipeline</h2>
-            <p className="text-xs text-slate-400">Sequential page processing status and extraction confidence</p>
+      <div className="bg-white border border-classic-border rounded-card shadow-classic overflow-hidden">
+        {/* Table Top Bar */}
+        <div className="p-5 border-b border-classic-border flex flex-wrap items-center justify-between gap-3 bg-white">
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-classic-text-primary">
+              Recent Document Pipeline
+            </h2>
+            <p className="text-xs text-classic-text-muted mt-0.5">
+              Sequential page processing status and extraction confidence
+            </p>
           </div>
-          <Link
-            to="/ingest"
-            className="text-xs text-indigo-400 hover:text-indigo-300 font-medium flex items-center space-x-1"
-          >
-            <span>View All Documents</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Filter Pills */}
+            <div className="flex items-center bg-slate-100 p-1 rounded-classic border border-classic-border text-xs font-semibold">
+              <button
+                onClick={() => setTypeFilter('ALL')}
+                className={`px-2.5 py-1 rounded transition-colors ${
+                  typeFilter === 'ALL'
+                    ? 'bg-white text-classic-navy font-bold shadow-xs'
+                    : 'text-classic-text-muted hover:text-classic-text-primary'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setTypeFilter('DIGITAL')}
+                className={`px-2.5 py-1 rounded transition-colors ${
+                  typeFilter === 'DIGITAL'
+                    ? 'bg-white text-classic-navy font-bold shadow-xs'
+                    : 'text-classic-text-muted hover:text-classic-text-primary'
+                }`}
+              >
+                Digital PDFs
+              </button>
+              <button
+                onClick={() => setTypeFilter('SCANNED')}
+                className={`px-2.5 py-1 rounded transition-colors ${
+                  typeFilter === 'SCANNED'
+                    ? 'bg-white text-classic-navy font-bold shadow-xs'
+                    : 'text-classic-text-muted hover:text-classic-text-primary'
+                }`}
+              >
+                Scanned
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative flex items-center">
+              <Search className="w-4 h-4 text-classic-text-muted absolute left-3 pointer-events-none" />
+              <input
+                type="text"
+                value={filterQuery}
+                onChange={(e) => setFilterQuery(e.target.value)}
+                placeholder="Filter documents..."
+                className="h-9 pl-9 pr-3 text-xs bg-slate-50 border border-classic-border rounded-classic focus:outline-none focus:ring-2 focus:ring-blue-700 w-44 sm:w-56 text-classic-text-primary"
+              />
+            </div>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => navigate('/ingest')}
+              icon={Plus}
+            >
+              Upload
+            </Button>
+          </div>
         </div>
 
-        {recentDocs.length === 0 ? (
-          <div className="text-center py-10 text-slate-400 text-sm">
-            No documents ingested yet. Upload your first PDF to begin.
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-800">
-            {recentDocs.map((doc) => (
-              <div key={doc.id} className="py-4 flex items-center justify-between hover:bg-slate-900/40 px-2 rounded-xl transition-colors">
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-slate-300">
-                    <FileText className="w-5 h-5 text-indigo-400" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-sm text-slate-200">{doc.filename}</div>
-                    <div className="text-xs text-slate-400 flex items-center space-x-3 mt-0.5">
-                      <span>{doc.pageCount} Pages</span>
-                      <span>&bull;</span>
-                      <span className="font-mono">{doc.isDigital ? 'Digital PDF' : 'Scanned Document'}</span>
-                      <span>&bull;</span>
-                      <span className="font-mono text-[11px] text-slate-400">{doc.sha256.substring(0, 10)}...</span>
+        {/* Data Table with Skeleton Loader */}
+        <div className="overflow-x-auto">
+          {loading ? (
+            <div className="p-6 space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between py-2 border-b border-slate-100 animate-pulse"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-9 h-9 rounded-classic bg-slate-200" />
+                    <div className="space-y-1.5">
+                      <div className="h-4 w-48 sm:w-64 bg-slate-200 rounded" />
+                      <div className="h-3 w-28 bg-slate-100 rounded" />
                     </div>
                   </div>
+                  <div className="h-4 w-16 bg-slate-200 rounded hidden sm:block" />
+                  <div className="h-4 w-20 bg-slate-200 rounded hidden md:block" />
+                  <div className="h-6 w-20 bg-slate-200 rounded" />
+                  <div className="h-8 w-24 bg-slate-200 rounded" />
+                </div>
+              ))}
+            </div>
+          ) : filteredDocs.length === 0 ? (
+            <div className="p-12 text-center space-y-3">
+              <FileText className="w-10 h-10 text-slate-400 mx-auto" />
+              <p className="text-sm font-semibold text-classic-text-secondary">
+                {recentDocs.length === 0
+                  ? 'No documents ingested yet. Upload your first PDF to begin.'
+                  : 'No documents match your filter criteria.'}
+              </p>
+              {recentDocs.length === 0 && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => navigate('/ingest')}
+                  icon={UploadCloud}
+                >
+                  Upload Document
+                </Button>
+              )}
+            </div>
+          ) : (
+            <>
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[#F3F4F6] border-b-2 border-classic-border-dark text-xs font-bold uppercase tracking-wider text-classic-text-primary">
+                    <th className="px-5 py-3.5">Document Name</th>
+                    <th className="px-5 py-3.5">Pages</th>
+                    <th className="px-5 py-3.5">Type</th>
+                    <th className="px-5 py-3.5">Status</th>
+                    <th className="px-5 py-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-classic-border-light bg-white text-sm">
+                  {paginatedDocs.map((doc) => (
+                    <tr
+                      key={doc.id}
+                      className="hover:bg-classic-surface-hover transition-colors"
+                    >
+                      <td className="px-5 py-3.5 font-semibold text-classic-text-primary">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-9 h-9 rounded-classic bg-slate-100 border border-classic-border-light flex items-center justify-center text-classic-navy shrink-0">
+                            <FileText className="w-4 h-4 text-classic-navy" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-bold text-classic-text-primary truncate max-w-xs sm:max-w-md">
+                              {doc.filename}
+                            </div>
+                            <div className="text-xs text-classic-text-muted font-mono mt-0.5">
+                              SHA: {doc.sha256 ? doc.sha256.substring(0, 12) : '--'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-5 py-3.5 font-mono text-classic-text-secondary">
+                        {doc.pageCount || 1} pages
+                      </td>
+
+                      <td className="px-5 py-3.5 text-xs font-medium text-classic-text-secondary">
+                        {doc.isDigital ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                            Digital PDF
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">
+                            Scanned / OCR
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="px-5 py-3.5">
+                        <StatusBadge status={doc.status || 'COMPLETED'} size="sm" />
+                      </td>
+
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end space-x-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => navigate(`/review?docId=${doc.id}`)}
+                            icon={SplitSquareVertical}
+                          >
+                            Review
+                          </Button>
+
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => navigate(`/snip?docId=${doc.id}&pageNum=1`)}
+                            icon={Scissors}
+                          >
+                            Snip
+                          </Button>
+
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() =>
+                              setDeleteConfirmDoc({ id: doc.id, filename: doc.filename })
+                            }
+                            icon={Trash2}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Pagination Controls (Requirement 28) */}
+              <div className="px-5 py-3.5 border-t border-classic-border flex flex-wrap items-center justify-between gap-3 bg-[#F9FAFB]">
+                <div className="text-xs font-medium text-classic-text-secondary">
+                  Showing{' '}
+                  <span className="font-bold text-classic-text-primary">
+                    {filteredDocs.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}
+                  </span>{' '}
+                  to{' '}
+                  <span className="font-bold text-classic-text-primary">
+                    {Math.min(currentPage * pageSize, filteredDocs.length)}
+                  </span>{' '}
+                  of{' '}
+                  <span className="font-bold text-classic-text-primary">
+                    {filteredDocs.length}
+                  </span>{' '}
+                  documents
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                    doc.status === 'COMPLETED'
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      : doc.status === 'PROCESSING'
-                      ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                      : 'bg-slate-800 text-slate-400'
-                  }`}>
-                    {doc.status}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    icon={ChevronLeft}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-xs font-semibold text-classic-text-primary px-2">
+                    Page {currentPage} of {totalPages}
                   </span>
-
-                  <button
-                    onClick={() => navigate(`/review?docId=${doc.id}`)}
-                    className="p-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 hover:text-indigo-300 rounded-lg border border-indigo-500/20 text-xs font-medium flex items-center space-x-1 transition-colors"
-                    title="Review document in 3-Panel Review"
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    icon={ChevronRight}
                   >
-                    <span>Review</span>
-                    <ArrowUpRight className="w-3.5 h-3.5" />
-                  </button>
-
-                  <button
-                    onClick={() => setDeleteConfirmDoc({ id: doc.id, filename: doc.filename })}
-                    className="p-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded-lg border border-rose-500/20 text-xs font-medium flex items-center space-x-1 transition-colors"
-                    title="Delete document"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete</span>
-                  </button>
+                    Next
+                  </Button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Delete Document Confirmation Modal */}
-      {deleteConfirmDoc && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4">
-            <div className="flex items-center space-x-3 text-rose-400 pb-2 border-b border-slate-800">
-              <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-rose-400" />
-              </div>
-              <div>
-                <h3 className="font-bold text-white text-base">Delete Document?</h3>
-                <p className="text-xs text-slate-400">This action cannot be undone</p>
-              </div>
-            </div>
-
-            <p className="text-xs text-slate-300">
-              Are you sure you want to permanently delete <strong className="text-white">"{deleteConfirmDoc.filename}"</strong>?
-              All extracted pages and bounding regions will be removed.
-            </p>
-
-            <div className="flex items-center justify-end space-x-3 pt-3">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmDoc(null)}
-                disabled={deleting}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                disabled={deleting}
-                className="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-rose-600/30 flex items-center space-x-1.5 transition-all disabled:opacity-50"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>{deleting ? 'Deleting...' : 'Confirm Delete'}</span>
-              </button>
-            </div>
-          </div>
+      {/* Delete Confirmation Modal (Requirement 16) */}
+      <Dialog
+        isOpen={Boolean(deleteConfirmDoc)}
+        onClose={() => setDeleteConfirmDoc(null)}
+        title="Delete Document"
+        subtitle="This action cannot be undone"
+        maxWidth="md"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={deleting}
+              onClick={() => setDeleteConfirmDoc(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              loading={deleting}
+              onClick={handleConfirmDelete}
+              icon={Trash2}
+            >
+              Confirm Delete
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-classic-text-primary leading-relaxed">
+            Are you sure you want to permanently delete{' '}
+            <strong className="text-classic-navy">
+              "{deleteConfirmDoc?.filename}"
+            </strong>
+            ?
+          </p>
+          <p className="text-xs text-classic-text-muted">
+            All extracted pages, formulas, bounding boxes, and recognition metadata associated with this document will be permanently removed.
+          </p>
         </div>
-      )}
+      </Dialog>
     </div>
   );
 };

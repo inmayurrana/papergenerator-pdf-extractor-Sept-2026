@@ -2,6 +2,8 @@ import asyncio
 import gc
 import logging
 import re
+import cv2  # type: ignore
+import numpy as np  # type: ignore
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Response, Query  # type: ignore
@@ -28,6 +30,72 @@ from ..document.export_engine import ExportEngine
 
 logger = logging.getLogger("api_routes")
 router = APIRouter(prefix="/api")
+
+def resolve_file_path(input_path: Optional[str], default_subfolder: Optional[Path] = None) -> Path:
+    """
+    Robustly resolves a file path across different machines, operating systems, and installations.
+    Handles:
+    - Current machine absolute paths
+    - Stale absolute paths from a previous machine (e.g. D:\\Recovered_school_app\\...)
+    - URL paths (e.g. /data/uploads/foo.pdf, /data/documents/foo/bar.png)
+    - Relative paths (e.g. uploads/foo.pdf)
+    - Bare filenames
+    """
+    if not input_path:
+        raise HTTPException(status_code=400, detail="File path is empty or not provided")
+
+    p = Path(input_path)
+    if p.exists():
+        return p
+
+    clean = str(input_path).replace("\\", "/").lstrip("/")
+    if clean.startswith("data/"):
+        clean = clean[5:]
+    elif clean.startswith("api/"):
+        clean = clean[4:]
+
+    # 1. Try DATA_DIR / clean
+    data_cand = config.DATA_DIR / clean
+    if data_cand.exists():
+        return data_cand
+
+    # 2. Try BASE_DIR / clean
+    base_cand = config.BASE_DIR / clean
+    if base_cand.exists():
+        return base_cand
+
+    # 3. Try filename inside common subdirectories
+    fname = p.name
+    candidates = [
+        config.STORAGE_UPLOADS / fname,
+        config.STORAGE_DOCUMENTS / fname,
+        config.STORAGE_DIAGRAMS / fname,
+        config.STORAGE_SNIPS / fname,
+        config.STORAGE_OMR / fname,
+        config.STORAGE_EXPORTS / fname,
+        config.STORAGE_FORMULAS / fname,
+        config.DATA_DIR / fname,
+    ]
+    if default_subfolder:
+        candidates.insert(0, default_subfolder / fname)
+
+    for c in candidates:
+        if c.exists():
+            return c
+
+    # 4. Check nested document renders like /data/documents/<doc_stem>/<page>.png
+    parts = clean.split("/")
+    if len(parts) >= 2:
+        nested_cand = config.DATA_DIR / "/".join(parts)
+        if nested_cand.exists():
+            return nested_cand
+        nested_doc_cand = config.STORAGE_DOCUMENTS / "/".join(parts[-2:])
+        if nested_doc_cand.exists():
+            return nested_doc_cand
+
+    if default_subfolder:
+        return default_subfolder / fname
+    return data_cand
 
 # Models for request schemas
 class ProcessPageRequest(BaseModel):
@@ -101,12 +169,46 @@ async def unload_all_models():
     resource_manager.unload_all_models()
     return {"status": "SUCCESS", "message": "All loaded model memory released."}
 
+class ModelToggleRequest(BaseModel):
+    enabled: Optional[bool] = None
+
+@router.post("/models/{engine_name}/toggle")
+async def toggle_model_engine(engine_name: str, payload: Optional[ModelToggleRequest] = None):
+    """Toggles or sets the enabled state for a specific OCR/AI engine."""
+    enabled_val = payload.enabled if payload else None
+    new_state = ocr_router.toggle_engine(engine_name, enabled_val)
+    return {
+        "status": "SUCCESS",
+        "engine": engine_name,
+        "is_enabled": new_state,
+        "message": f"Engine '{engine_name}' is now {'ENABLED' if new_state else 'DISABLED'}."
+    }
+
+@router.post("/models/{engine_name}/restart")
+async def restart_model_engine(engine_name: str):
+    """Restarts a specific engine and reclaims cached allocations."""
+    res = ocr_router.restart_engine(engine_name)
+    return {
+        "status": "SUCCESS",
+        "engine": engine_name,
+        "data": res,
+        "message": f"Engine '{engine_name}' has been successfully restarted."
+    }
+
+@router.post("/models/restart-all")
+async def restart_all_model_engines():
+    """Restarts all pluggable engine adapters and flushes model caches."""
+    res = ocr_router.restart_all_engines()
+    return {
+        "status": "SUCCESS",
+        "data": res,
+        "message": "All pluggable engines have been restarted."
+    }
+
 @router.post("/documents/validate")
 async def validate_document(doc_path: str = Form(...)):
     """Validates file format, computes SHA-256 hash, and detects digital text."""
-    p = Path(doc_path)
-    if not p.is_absolute():
-        p = config.STORAGE_UPLOADS / p.name
+    p = resolve_file_path(doc_path, config.STORAGE_UPLOADS)
     try:
         res = document_validator.validate_file(p)
         return {"status": "SUCCESS", "data": res}
@@ -139,9 +241,7 @@ async def extract_text_from_image_document(
             temp_file.close()
             target_path = Path(temp_file.name)
         elif image_path:
-            target_path = Path(image_path)
-            if not target_path.is_absolute():
-                target_path = config.STORAGE_UPLOADS / target_path.name
+            target_path = resolve_file_path(image_path, config.STORAGE_UPLOADS)
         else:
             raise HTTPException(status_code=400, detail="No image file or image_path provided")
 
@@ -294,12 +394,10 @@ async def process_page_sequentially(req: ProcessPageRequest):
     async with resource_manager.heavy_job_semaphore:
         resource_manager.active_jobs_count += 1
         try:
-            doc_p = Path(req.doc_path)
-            if not doc_p.is_absolute():
-                doc_p = config.STORAGE_UPLOADS / doc_p.name
+            doc_p = resolve_file_path(req.doc_path, config.STORAGE_UPLOADS)
 
             if not doc_p.exists():
-                raise HTTPException(status_code=404, detail=f"Document file not found: {doc_p}")
+                raise HTTPException(status_code=404, detail=f"Document file not found: {doc_p.name}")
 
             # 1. Render single page
             render_res = page_renderer.render_page(doc_p, req.page_number)
@@ -352,16 +450,52 @@ async def process_page_sequentially(req: ProcessPageRequest):
                 # High-Accuracy Offline OCR directly on page image
                 spans = ocr_extractor.extract_page_text_spans(page_img_path, img_w, img_h)
 
+            page_bgr = cv2.imread(str(page_img_path))
+            from ..engines.geometric_math_detector import geometric_math_detector
+
             for s in spans:
                 classification = region_detector.classify_text_region(s["text"], s["bbox"], img_h)
-                routed = ocr_router.route_and_process_region(s["text"], classification["type"], req.profile)
+                rtype = classification["type"]
+
+                # Extract original high-resolution pixels for any formula, option, or math-heavy region
+                crop_img = None
+                crop_url = ""
+                try:
+                    if page_bgr is not None and (rtype in ["MATH", "MATHEMATICS", "OPTION", "MIXED"] or any(c in s["text"] for c in "πθαβγδεθ√∫∑∏±×÷≠≤≥∞^/")):
+                        crop_info = geometric_math_detector.crop_formula_pixels(
+                            page_bgr, s["bbox"], pad_x=12, pad_y=12, save_to_disk=True, filename_prefix=f"doc_{req.doc_id}_p{req.page_number}"
+                        )
+                        crop_img = crop_info["crop"]
+                        crop_url = crop_info["crop_url"]
+                except Exception as crop_err:
+                    logger.warning("Formula pixel crop failed, falling back to text: %s", crop_err)
+                    crop_img = None
+                    crop_url = ""
+
+                try:
+                    routed = ocr_router.route_and_process_region(
+                        s["text"], rtype, req.profile, crop_img=crop_img, crop_url=crop_url
+                    )
+                except Exception as route_err:
+                    logger.warning("Region routing failed for %r: %s", s.get("text", "")[:30], route_err)
+                    routed = {
+                        "processed_text": s["text"],
+                        "confidence": 0.85,
+                        "validation_status": "NEEDS_REVIEW",
+                        "needs_review": True,
+                        "specialized_data": {},
+                    }
+
                 regions.append({
                     "id": s["id"],
-                    "type": classification["type"],
+                    "type": rtype,
                     "text": routed["processed_text"],
                     "raw_text": s["text"],
                     "bbox": s["bbox"],
                     "confidence": routed["confidence"],
+                    "validation_status": routed.get("validation_status", "VALIDATED"),
+                    "needs_review": routed.get("needs_review", False),
+                    "crop_url": crop_url,
                     "source": s["source"],
                     "formula_objects": s.get("formula_objects", []),
                     "specialized_data": routed.get("specialized_data", {}),
@@ -385,9 +519,11 @@ async def process_page_sequentially(req: ProcessPageRequest):
             # 5. Build structured questions
             structured_questions = question_parser.build_structured_questions(sorted_regions, saved_diagrams)
 
-            # 6. Overall page confidence calculation
+            # 6. Overall page confidence calculation & Strict Review Quality Control
             all_confs = [r.get("confidence", 0.95) for r in sorted_regions]
             page_avg_conf = round(sum(all_confs) / max(len(all_confs), 1), 3) if all_confs else 0.95
+            has_unverified_formulas = any(r.get("needs_review") for r in sorted_regions)
+            page_needs_review = has_unverified_formulas or (page_avg_conf < config.CONFIDENCE_BALANCED_THRESHOLD)
 
             # Immediate garbage collection to free RAM
             gc.collect()
@@ -399,7 +535,7 @@ async def process_page_sequentially(req: ProcessPageRequest):
                 "width": img_w,
                 "height": img_h,
                 "overall_confidence": page_avg_conf,
-                "needs_review": page_avg_conf < config.CONFIDENCE_BALANCED_THRESHOLD,
+                "needs_review": page_needs_review,
                 "regions": sorted_regions,
                 "diagrams": saved_diagrams,
                 "questions": structured_questions,
@@ -410,9 +546,7 @@ async def process_page_sequentially(req: ProcessPageRequest):
 @router.post("/snip/process")
 async def process_visual_snip(req: SnipRequest):
     """Processes localized visual crop bounding box on demand."""
-    img_p = Path(req.page_image_path)
-    if not img_p.is_absolute():
-        img_p = config.BASE_DIR / img_p.as_posix().lstrip("/")
+    img_p = resolve_file_path(req.page_image_path, config.STORAGE_DOCUMENTS)
 
     try:
         snip_res = snipping_engine.process_snip(str(img_p), req.bbox, req.mode)
@@ -438,9 +572,7 @@ async def generate_omr(req: OMRGenerateRequest):
 @router.post("/omr/evaluate")
 async def evaluate_omr(req: OMREvaluateRequest):
     """Evaluates uploaded OMR sheet scan against answer key snapshot."""
-    img_p = Path(req.omr_image_path)
-    if not img_p.is_absolute():
-        img_p = config.BASE_DIR / img_p.as_posix().lstrip("/")
+    img_p = resolve_file_path(req.omr_image_path, config.STORAGE_OMR)
 
     try:
         eval_res = omr_evaluator.evaluate_omr_sheet(
@@ -460,9 +592,7 @@ class DetectCandidateRequest(BaseModel):
 @router.post("/omr/detect-candidate-info")
 async def detect_candidate_info_endpoint(req: DetectCandidateRequest):
     """Runs RapidOCR on the OMR candidate header to extract handwritten/printed Student Name and Roll Number."""
-    img_p = Path(req.omr_image_path)
-    if not img_p.is_absolute():
-        img_p = config.BASE_DIR / img_p.as_posix().lstrip("/")
+    img_p = resolve_file_path(req.omr_image_path, config.STORAGE_OMR)
 
     try:
         cand_res = omr_evaluator.detect_candidate_info(str(img_p))
@@ -595,8 +725,7 @@ async def parse_questions_file_endpoint(
     try:
         target_path: Optional[Path] = None
         if file_path:
-            p = Path(file_path)
-            target_path = p if p.is_absolute() else config.BASE_DIR / p.as_posix().lstrip("/")
+            target_path = resolve_file_path(file_path, config.STORAGE_UPLOADS)
         elif file:
             suffix = Path(file.filename or "uploaded.docx").suffix
             import tempfile
@@ -639,8 +768,7 @@ async def extract_raw_text_endpoint(
     try:
         target_path: Optional[Path] = None
         if req and req.file_path:
-            p = Path(req.file_path)
-            target_path = p if p.is_absolute() else config.BASE_DIR / p.as_posix().lstrip("/")
+            target_path = resolve_file_path(req.file_path, config.STORAGE_UPLOADS)
         elif file:
             suffix = Path(file.filename or "uploaded.txt").suffix
             import tempfile
@@ -731,12 +859,7 @@ def _decode_image_payload(crop_path: Optional[str], crop_base64: Optional[str]) 
         return cv2.imdecode(arr, cv2.IMREAD_COLOR)
 
     if crop_path:
-        p = Path(crop_path)
-        if not p.is_absolute():
-            clean_rel = str(crop_path).lstrip("/").lstrip("\\")
-            if clean_rel.startswith("data/") or clean_rel.startswith("data\\"):
-                clean_rel = clean_rel[5:]
-            p = config.DATA_DIR / clean_rel
+        p = resolve_file_path(crop_path, config.STORAGE_DIAGRAMS)
         if p.exists():
             return cv2.imread(str(p))
 
@@ -1127,6 +1250,135 @@ async def validate_formula_endpoint(req: ValidateFormulaRequest):
         "raw_text": input_str,
         "validation": report.to_dict()
     }
+
+
+# =========================================================================
+# V2 HIGH-FIDELITY MULTIMODAL DOCUMENT INTELLIGENCE ENDPOINTS (Pass 1 - 16)
+# =========================================================================
+
+class ProcessPageV2Request(BaseModel):
+    doc_path: str
+    doc_id: str
+    page_number: int
+    profile: str = "BALANCED"
+    watermark_action: str = "KEEP_ORIGINAL"
+
+class ExportHighFidelityRequest(BaseModel):
+    pages_data: List[Dict[str, Any]]
+    mode: str = "STRUCTURED_RECONSTRUCTION"  # STRUCTURED_RECONSTRUCTION | SOURCE_FIDELITY
+    quality: str = "HIGH_QUALITY"           # STANDARD | HIGH_QUALITY | PRINT_QUALITY | ARCHIVAL
+    watermark_action: str = "KEEP_ORIGINAL"  # KEEP_ORIGINAL | HIDE_IN_PREVIEW | REMOVE_FROM_EXPORT
+    output_filename: Optional[str] = None
+
+class WatermarkActionRequest(BaseModel):
+    image_path: str
+    watermark_id: str
+    action: str = "KEEP_ORIGINAL"
+    bbox: List[int]
+    user_authorized: bool = False
+
+@router.get("/accuracy-dashboard")
+async def get_accuracy_dashboard_endpoint():
+    """Requirement 122: Returns Measured Accuracy Dashboard and real-time benchmark statistics."""
+    from ..pipeline.multimodal_v2 import multimodal_pipeline_v2
+    return {
+        "status": "SUCCESS",
+        "data": multimodal_pipeline_v2.get_accuracy_dashboard()
+    }
+
+@router.get("/fonts/registry")
+async def get_font_registry_endpoint():
+    """Requirement 80, 113: Returns system and OpenType math fonts registry with licensing metadata."""
+    from ..core.font_manager import font_manager
+    return {
+        "status": "SUCCESS",
+        "data": font_manager.get_font_registry()
+    }
+
+@router.get("/fonts/coverage-test")
+async def get_font_coverage_test_endpoint(font_name: Optional[str] = None):
+    """Requirement 114: Tests glyph coverage across scientific & mathematical Unicode symbol blocks."""
+    from ..core.font_manager import font_manager
+    return {
+        "status": "SUCCESS",
+        "data": font_manager.test_symbol_coverage(font_name=font_name)
+    }
+
+@router.post("/watermarks/detect")
+async def detect_watermarks_endpoint(image_path: str = Form(...)):
+    """Requirement 95: Detects repeated background logos and low-opacity watermark candidates."""
+    from ..layout.watermark_detector import watermark_detector
+    img_p = resolve_file_path(image_path, config.STORAGE_DOCUMENTS)
+    if not img_p.exists():
+        raise HTTPException(status_code=404, detail="Image not found")
+    bgr = cv2.imread(str(img_p))
+    candidates = watermark_detector.detect_watermark_candidates([bgr] if bgr is not None else [])
+    return {
+        "status": "SUCCESS",
+        "candidates": candidates
+    }
+
+@router.post("/watermarks/apply-action")
+async def apply_watermark_action_endpoint(req: WatermarkActionRequest):
+    """Requirement 94, 96: Applies user-authorized action on derivative copy (never mutating original)."""
+    from ..layout.watermark_detector import watermark_detector
+    img_p = resolve_file_path(req.image_path, config.STORAGE_DOCUMENTS)
+    if not img_p.exists():
+        raise HTTPException(status_code=404, detail="Image not found")
+    bgr = cv2.imread(str(img_p))
+    derivative, res = watermark_detector.apply_watermark_action(
+        bgr,
+        watermark_id=req.watermark_id,
+        action=req.action,
+        bbox=req.bbox,
+        user_authorized=req.user_authorized
+    )
+    # Save derivative if modified
+    der_name = f"der_{Path(req.image_path).stem}_{req.watermark_id}.jpg"
+    der_path = config.STORAGE_DOCUMENTS / der_name
+    cv2.imwrite(str(der_path), derivative)
+    return {
+        "status": "SUCCESS",
+        "derivative_url": f"/data/documents/{der_name}",
+        "details": res
+    }
+
+@router.post("/v2/documents/process-page")
+async def process_page_v2_endpoint(req: ProcessPageV2Request):
+    """Requirement 72-74: 16-Pass High-Fidelity Multimodal Document Extraction Pipeline."""
+    async with resource_manager.heavy_job_semaphore:
+        resource_manager.active_jobs_count += 1
+        try:
+            from ..pipeline.multimodal_v2 import multimodal_pipeline_v2
+            doc_p = resolve_file_path(req.doc_path, config.STORAGE_UPLOADS)
+            if not doc_p.exists():
+                raise HTTPException(status_code=404, detail=f"Document file not found: {doc_p.name}")
+
+            res = await asyncio.to_thread(
+                multimodal_pipeline_v2.process_page_v2,
+                doc_path=doc_p,
+                doc_id=req.doc_id,
+                page_number=req.page_number,
+                profile=req.profile,
+                watermark_action=req.watermark_action,
+            )
+            return res
+        finally:
+            resource_manager.active_jobs_count -= 1
+
+@router.post("/export/high-fidelity-pdf")
+async def export_high_fidelity_pdf_endpoint(req: ExportHighFidelityRequest):
+    """Requirement 97-106: High-Fidelity Document Renderer with Dual-Mode export and post-validation."""
+    from ..document.high_fidelity_renderer import high_fidelity_renderer
+    res = await asyncio.to_thread(
+        high_fidelity_renderer.render_document,
+        pages_data=req.pages_data,
+        mode=req.mode,
+        quality=req.quality,
+        watermark_action=req.watermark_action,
+        output_filename=req.output_filename or f"export_{int(time.time())}.pdf"
+    )
+    return res
 
 
 

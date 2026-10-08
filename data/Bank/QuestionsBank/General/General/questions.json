@@ -27,8 +27,8 @@
     "difficulty": "MEDIUM",
     "diagrams": [],
     "tags": [],
-    "createdAt": "2026-09-18T07:24:48.456Z",
-    "updatedAt": "2026-09-18T07:24:48.456Z"
+    "createdAt": {},
+    "updatedAt": {}
   },
   {
     "id": "7dc6a297-23f0-4d81-9246-93a7517c1bb0",
@@ -58,8 +58,8 @@
     "difficulty": "MEDIUM",
     "diagrams": [],
     "tags": [],
-    "createdAt": "2026-09-18T07:24:48.485Z",
-    "updatedAt": "2026-09-18T07:24:48.485Z"
+    "createdAt": {},
+    "updatedAt": {}
   },
   {
     "id": "131e830e-1968-445a-b9bb-f811255b15d5",
@@ -89,8 +89,8 @@
     "difficulty": "MEDIUM",
     "diagrams": [],
     "tags": [],
-    "createdAt": "2026-09-18T07:24:48.517Z",
-    "updatedAt": "2026-09-18T07:24:48.517Z"
+    "createdAt": {},
+    "updatedAt": {}
   },
   {
     "id": "2ee42997-6945-4037-8f1c-e07a7dafd57f",
@@ -120,8 +120,8 @@
     "difficulty": "MEDIUM",
     "diagrams": [],
     "tags": [],
-    "createdAt": "2026-09-18T07:24:48.549Z",
-    "updatedAt": "2026-09-18T07:24:48.549Z"
+    "createdAt": {},
+    "updatedAt": {}
   },
   {
     "id": "54156c25-fcca-4cb7-9450-46749987c5a8",
@@ -151,8 +151,8 @@
     "difficulty": "MEDIUM",
     "diagrams": [],
     "tags": [],
-    "createdAt": "2026-09-18T07:24:48.574Z",
-    "updatedAt": "2026-09-18T07:24:48.574Z"
+    "createdAt": {},
+    "updatedAt": {}
   },
   {
     "id": "903321c3-1b9a-49a0-bc6e-b139b4ab5f17",
@@ -182,8 +182,8 @@
     "difficulty": "MEDIUM",
     "diagrams": [],
     "tags": [],
-    "createdAt": "2026-09-18T07:24:48.603Z",
-    "updatedAt": "2026-09-18T07:24:48.603Z"
+    "createdAt": {},
+    "updatedAt": {}
   },
   {
     "id": "de95676f-67ad-4ba4-b0d4-5edc0e32b1c7",
@@ -213,8 +213,8 @@
     "difficulty": "MEDIUM",
     "diagrams": [],
     "tags": [],
-    "createdAt": "2026-09-18T07:24:48.630Z",
-    "updatedAt": "2026-09-18T07:24:48.630Z"
+    "createdAt": {},
+    "updatedAt": {}
   },
   {
     "id": "a6f12641-7e23-4a96-b1bd-4258c7341e57",
@@ -247,7 +247,6 @@
         "diagram_id": "diag_f78037ef",
         "filename": "36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_f78037ef.png",
         "relative_url": "/data/diagrams/36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_f78037ef.png",
-        "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_f78037ef.png",
         "bbox": [
           195,
           730,
@@ -262,7 +261,6 @@
         "diagram_id": "diag_379c00cb",
         "filename": "36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_379c00cb.png",
         "relative_url": "/data/diagrams/36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_379c00cb.png",
-        "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_379c00cb.png",
         "bbox": [
           859,
           570,
@@ -277,7 +275,6 @@
         "diagram_id": "diag_07a56cd9",
         "filename": "36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_07a56cd9.png",
         "relative_url": "/data/diagrams/36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_07a56cd9.png",
-        "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_07a56cd9.png",
         "bbox": [
           195,
           449,
@@ -290,8 +287,8 @@
       }
     ],
     "tags": [],
-    "createdAt": "2026-09-19T08:58:48.188Z",
-    "updatedAt": "2026-09-19T08:58:48.188Z"
+    "createdAt": {},
+    "updatedAt": {}
   },
   {
     "id": "169c7a19-6c15-4ef0-aaa7-9dc11bc6db8b",
@@ -324,7 +321,6 @@
         "diagram_id": "diag_f78037ef",
         "filename": "36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_f78037ef.png",
         "relative_url": "/data/diagrams/36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_f78037ef.png",
-        "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_f78037ef.png",
         "bbox": [
           195,
           730,
@@ -339,7 +335,6 @@
         "diagram_id": "diag_379c00cb",
         "filename": "36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_379c00cb.png",
         "relative_url": "/data/diagrams/36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_379c00cb.png",
-        "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_379c00cb.png",
         "bbox": [
           859,
           570,
@@ -354,7 +349,6 @@
         "diagram_id": "diag_07a56cd9",
         "filename": "36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_07a56cd9.png",
         "relative_url": "/data/diagrams/36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_07a56cd9.png",
-        "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\36a0b0f5-c63e-4d9b-a017-90d816b9b2b0_p1_diag_07a56cd9.png",
         "bbox": [
           195,
           449,
@@ -367,8 +361,8 @@
       }
     ],
     "tags": [],
-    "createdAt": "2026-09-19T08:58:48.272Z",
-    "updatedAt": "2026-09-19T08:58:48.272Z"
+    "createdAt": {},
+    "updatedAt": {}
   },
   {
     "id": "885b06c7-1e41-4cfa-9989-0c7cf29736f4",
@@ -401,7 +395,6 @@
         "diagram_id": "diag_b5f33adc",
         "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_b5f33adc.png",
         "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_b5f33adc.png",
-        "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p14_diag_b5f33adc.png",
         "bbox": [
           897,
           298,
@@ -414,7 +407,7 @@
       }
     ],
     "tags": [],
-    "createdAt": "2026-09-20T14:00:16.048Z",
-    "updatedAt": "2026-09-20T14:00:16.048Z"
+    "createdAt": {},
+    "updatedAt": {}
   }
 ]

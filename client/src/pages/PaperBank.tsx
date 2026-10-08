@@ -26,8 +26,11 @@ import {
   HardDrive,
   Upload,
   Code,
+  Lock,
 } from 'lucide-react';
 import { api } from '../lib/api';
+import { useAuthStore } from '../lib/authStore';
+import { triggerFileDownload, extractErrorMessage } from '../lib/downloadHelper';
 
 export const PaperBank: React.FC = () => {
   const navigate = useNavigate();
@@ -46,10 +49,18 @@ export const PaperBank: React.FC = () => {
   const [modalExamCode, setModalExamCode] = useState('EXAM-101');
   const [modalClass, setModalClass] = useState('Class 12');
   const [modalSubject, setModalSubject] = useState('Physics');
-  const [modalSchoolName, setModalSchoolName] = useState('DELHI PUBLIC SCHOOL');
+  const [modalSchoolName, setModalSchoolName] = useState('CAMBRIDGE INTERNATIONAL SCHOOL MANDI');
   const [modalMaxMarks, setModalMaxMarks] = useState(70);
   const [modalDuration, setModalDuration] = useState(180);
   const paperFileInputRef = useRef<HTMLInputElement>(null);
+
+  const { user } = useAuthStore();
+
+  const canExportPaper = (p: any) => {
+    if (!user) return false;
+    if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') return true;
+    return p.creatorId === user.id;
+  };
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -176,76 +187,78 @@ export const PaperBank: React.FC = () => {
     }
   };
 
-  const handleExportWord = async (paperId: string, title: string) => {
+  const handleExportWord = async (paperId: string, title: string, creatorId?: string) => {
+    if (creatorId && !canExportPaper({ id: paperId, creatorId })) {
+      showToast('🔒 Access Restricted: You can only export or print papers assigned to your account.');
+      return;
+    }
     try {
+      showToast(`📄 Preparing Microsoft Word export for "${title}"...`);
       const res = await api.get(`/papers/${paperId}/export/word`, { responseType: 'blob' });
       const blob = new Blob([res.data], { type: 'application/msword; charset=utf-8;' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
       const safeTitle = (title || 'Question_Paper').replace(/[^a-zA-Z0-9_-]/g, '_');
-      link.download = `${safeTitle}.doc`;
-      link.click();
-      window.URL.revokeObjectURL(url);
+      triggerFileDownload(blob, `${safeTitle}.doc`);
       showToast(`📄 Exported "${title}" as editable Microsoft Word document (.doc)!`);
     } catch (err: any) {
-      alert(`Word Export failed: ${err.message}`);
+      const msg = await extractErrorMessage(err);
+      alert(`Word Export failed: ${msg}`);
     }
   };
 
-  const handleExportExcel = async (paperId: string, title: string) => {
+  const handleExportExcel = async (paperId: string, title: string, creatorId?: string) => {
+    if (creatorId && !canExportPaper({ id: paperId, creatorId })) {
+      showToast('🔒 Access Restricted: You can only export or print papers assigned to your account.');
+      return;
+    }
     try {
+      showToast(`📊 Preparing Excel CSV export for "${title}"...`);
       const res = await api.get(`/papers/${paperId}/export/excel`, { responseType: 'blob' });
       const blob = new Blob([res.data], { type: 'text/csv; charset=utf-8;' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
       const safeTitle = (title || 'Question_Paper').replace(/[^a-zA-Z0-9_-]/g, '_');
-      link.download = `${safeTitle}.csv`;
-      link.click();
-      window.URL.revokeObjectURL(url);
+      triggerFileDownload(blob, `${safeTitle}.csv`);
       showToast(`📊 Exported "${title}" as Excel CSV (.csv)!`);
     } catch (err: any) {
-      alert(`Excel Export failed: ${err.message}`);
+      const msg = await extractErrorMessage(err);
+      alert(`Excel Export failed: ${msg}`);
     }
   };
 
-  const handleExportJson = async (paperId: string, title: string) => {
+  const handleExportJson = async (paperId: string, title: string, creatorId?: string) => {
+    if (creatorId && !canExportPaper({ id: paperId, creatorId })) {
+      showToast('🔒 Access Restricted: You can only export or print papers assigned to your account.');
+      return;
+    }
     try {
+      showToast(`📦 Preparing JSON backup for "${title}"...`);
       const res = await api.get(`/papers/${paperId}/export/json`);
       const jsonStr = JSON.stringify(res.data, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json; charset=utf-8;' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
       const safeTitle = (title || 'Question_Paper').replace(/[^a-zA-Z0-9_-]/g, '_');
-      link.download = `${safeTitle}.json`;
-      link.click();
-      window.URL.revokeObjectURL(url);
+      triggerFileDownload(blob, `${safeTitle}.json`);
       showToast(`📦 Exported "${title}" as portable JSON (.json)!`);
     } catch (err: any) {
-      alert(`JSON Export failed: ${err.message}`);
+      const msg = await extractErrorMessage(err);
+      alert(`JSON Export failed: ${msg}`);
     }
   };
 
-  const handleExportOfficialPdf = async (paperId: string, title: string, withAnswers = false) => {
+  const handleExportOfficialPdf = async (paperId: string, title: string, withAnswers = false, creatorId?: string) => {
+    if (creatorId && !canExportPaper({ id: paperId, creatorId })) {
+      showToast('🔒 Access Restricted: You can only export or print papers assigned to your account.');
+      return;
+    }
     try {
       showToast(`📄 Generating official A4 PDF ${withAnswers ? 'with Marking Scheme' : ''}...`);
       const res = await api.get(`/papers/${paperId}/export/pdf?withAnswers=${withAnswers}`, {
         responseType: 'blob',
       });
       const blob = new Blob([res.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
       const safeTitle = (title || 'Question_Paper').replace(/[^a-zA-Z0-9_-]/g, '_');
-      link.download = `${safeTitle}${withAnswers ? '_With_Answers' : ''}.pdf`;
-      link.click();
-      window.URL.revokeObjectURL(url);
+      triggerFileDownload(blob, `${safeTitle}${withAnswers ? '_With_Answers' : ''}.pdf`);
       showToast(`📄 Downloaded official PDF ${withAnswers ? 'with Marking Scheme' : ''}!`);
     } catch (err: any) {
       console.warn('Backend PDF endpoint error, falling back to print view:', err.message);
-      handleDownloadPDF(paperId, title);
+      handleDownloadPDF(paperId, title, creatorId);
     }
   };
 
@@ -266,7 +279,11 @@ export const PaperBank: React.FC = () => {
   };
 
   // Direct PDF Download / Print from Paper Bank
-  const handleDownloadPDF = async (paperId: string, title: string) => {
+  const handleDownloadPDF = async (paperId: string, title: string, creatorId?: string) => {
+    if (creatorId && !canExportPaper({ id: paperId, creatorId })) {
+      showToast('🔒 Access Restricted: You can only export or print papers assigned to your account.');
+      return;
+    }
     try {
       showToast(`📄 Preparing A4 PDF for "${title}"...`);
       const res = await api.get(`/papers/${paperId}`);
@@ -432,7 +449,7 @@ export const PaperBank: React.FC = () => {
         <body>
           <div class="header-wrap">
             ${schoolLogoUrl ? `<div class="logo-wrap"><img src="${schoolLogoUrl}" class="logo-img" /></div>` : ''}
-            <div class="school-name">${paper.schoolName || 'DELHI PUBLIC SCHOOL'}</div>
+            <div class="school-name">${paper.schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI'}</div>
             <div class="exam-name">${paper.title}</div>
             <div class="meta-grid">
               <span>EXAM CODE: ${paper.examCode}</span>
@@ -528,13 +545,13 @@ export const PaperBank: React.FC = () => {
       )}
 
       {/* Page Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-slate-800">
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white border border-[#D1D5DB] p-4 sm:p-5 rounded-xl shadow-sm">
         <div>
-          <h1 className="text-2xl font-bold font-display text-white flex items-center space-x-2.5">
-            <FolderTree className="w-7 h-7 text-indigo-400" />
+          <h1 className="text-xl font-bold font-display text-[#111827] flex items-center space-x-2.5">
+            <FolderTree className="w-6 h-6 text-[#0B1F3A]" />
             <span>Question Paper Bank</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-[#4B5563] mt-1">
             Organized examination archive. Save, browse, and export papers by Class and Subject in Word, Excel, and PDF formats.
           </p>
         </div>
@@ -551,11 +568,11 @@ export const PaperBank: React.FC = () => {
           <button
             type="button"
             onClick={() => paperFileInputRef.current?.click()}
-            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 border border-teal-500/40 text-teal-300 hover:text-white rounded-xl text-xs font-semibold flex items-center space-x-2 transition-all shadow"
+            className="px-4 py-2 bg-white hover:bg-slate-50 border border-[#D1D5DB] text-[#111827] rounded-xl text-xs font-semibold flex items-center space-x-2 transition-all shadow-xs"
             title="Import an entire Question Paper from standard JSON (.json) format"
           >
-            <Upload className="w-4 h-4 text-teal-400" />
-            <span>📥 Import Paper (JSON)</span>
+            <Upload className="w-4 h-4 text-teal-600" />
+            <span>Import Paper (JSON)</span>
           </button>
 
           <button
@@ -563,16 +580,16 @@ export const PaperBank: React.FC = () => {
             onClick={async () => {
               try {
                 const res = await api.post('/papers/sync-storage');
-                showToast(`💾 Synced all Question Papers & Question Bank to D:\\...\\data\\Bank!`);
+                showToast(`💾 Synced all Question Papers & Question Bank to storage (data/Bank)!`);
               } catch (err: any) {
                 alert(`Sync failed: ${err.message}`);
               }
             }}
-            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-indigo-300 hover:text-white rounded-xl text-xs font-semibold flex items-center space-x-2 transition-all shadow"
+            className="px-4 py-2 bg-white hover:bg-slate-50 border border-[#D1D5DB] text-[#111827] rounded-xl text-xs font-semibold flex items-center space-x-2 transition-all shadow-xs"
             title="Sync all papers and questions to storage"
           >
-            <HardDrive className="w-4 h-4 text-indigo-400" />
-            <span>💾 Sync to Storage</span>
+            <HardDrive className="w-4 h-4 text-[#0B1F3A]" />
+            <span>Sync to Storage</span>
           </button>
 
           <button
@@ -582,10 +599,10 @@ export const PaperBank: React.FC = () => {
               setModalExamCode(`EXAM-${Math.floor(100 + Math.random() * 900)}`);
               setIsModalOpen(true);
             }}
-            className="btn-primary flex items-center space-x-2 text-xs py-2.5 px-4 shadow-lg shadow-indigo-600/30"
+            className="flex items-center space-x-2 text-xs py-2 px-4 bg-[#0B1F3A] hover:bg-[#152e52] text-white font-semibold rounded-xl transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
-            <span>+ Create New Question Paper</span>
+            <span>Create New Question Paper</span>
           </button>
         </div>
       </div>
@@ -593,10 +610,10 @@ export const PaperBank: React.FC = () => {
       {/* Main 2-Column Taxonomy & Archive Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* LEFT COLUMN: Class & Subject Hierarchy Tree (col-span-3) */}
-        <div className="lg:col-span-3 glass-panel rounded-2xl p-4 space-y-4 max-h-[750px] overflow-y-auto">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-1.5">
-              <Folder className="w-4 h-4 text-indigo-400" />
+        <div className="lg:col-span-3 bg-white border border-[#D1D5DB] rounded-xl shadow-sm p-4 space-y-4 max-h-[750px] overflow-y-auto">
+          <div className="flex items-center justify-between pb-2 border-b border-[#E5E7EB]">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#111827] flex items-center space-x-1.5">
+              <Folder className="w-4 h-4 text-[#0B1F3A]" />
               <span>Taxonomy Folders</span>
             </span>
             {(selectedClass !== 'ALL' || selectedSubject !== 'ALL') && (
@@ -605,7 +622,7 @@ export const PaperBank: React.FC = () => {
                   setSelectedClass('ALL');
                   setSelectedSubject('ALL');
                 }}
-                className="text-[11px] text-indigo-400 hover:underline font-semibold"
+                className="text-xs text-[#0B1F3A] hover:underline font-semibold"
               >
                 Reset
               </button>
@@ -620,20 +637,20 @@ export const PaperBank: React.FC = () => {
             }}
             className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
               selectedClass === 'ALL' && selectedSubject === 'ALL'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                : 'text-slate-300 hover:bg-slate-900/80'
+                ? 'bg-[#0B1F3A] text-white shadow-xs'
+                : 'text-[#4B5563] hover:bg-slate-100 hover:text-[#111827]'
             }`}
           >
             <div className="flex items-center space-x-2">
               <Layers className="w-4 h-4" />
               <span>All Question Papers</span>
             </div>
-            <span className="text-[10px] font-mono opacity-80">({papers.length})</span>
+            <span className="text-xs font-mono opacity-80">({papers.length})</span>
           </button>
 
           {/* Classes & Sub-Subjects Hierarchy */}
           <div className="space-y-3 pt-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#6B7280] px-1">
               Select Class & Subject
             </span>
 
@@ -650,15 +667,15 @@ export const PaperBank: React.FC = () => {
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
                       isClassSelected && selectedSubject === 'ALL'
-                        ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40'
-                        : 'text-slate-300 hover:bg-slate-900'
+                        ? 'bg-[#0B1F3A]/10 text-[#0B1F3A] border border-[#0B1F3A]/30'
+                        : 'text-[#111827] hover:bg-slate-100'
                     }`}
                   >
                     <div className="flex items-center space-x-2">
-                      <Folder className="w-3.5 h-3.5 text-amber-400" />
+                      <Folder className="w-3.5 h-3.5 text-amber-600" />
                       <span>{cls}</span>
                     </div>
-                    <span className="text-[10px] font-mono text-slate-400">({papersInClass.length})</span>
+                    <span className="text-xs font-mono text-[#6B7280]">({papersInClass.length})</span>
                   </button>
 
                   {/* Sub-Subjects */}
@@ -676,18 +693,18 @@ export const PaperBank: React.FC = () => {
                             setSelectedClass(cls);
                             setSelectedSubject(subj);
                           }}
-                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                             isSubjSelected
-                              ? 'bg-indigo-600 text-white font-bold'
-                              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                              ? 'bg-[#0B1F3A] text-white font-bold shadow-xs'
+                              : 'text-[#4B5563] hover:text-[#111827] hover:bg-slate-100'
                           }`}
                         >
                           <div className="flex items-center space-x-1.5">
-                            <ChevronRight className="w-3 h-3 text-slate-500" />
+                            <ChevronRight className="w-3 h-3 text-[#6B7280]" />
                             <span>{subj}</span>
                           </div>
                           {papersInSubj.length > 0 && (
-                            <span className="text-[10px] font-mono opacity-75">({papersInSubj.length})</span>
+                            <span className="text-xs font-mono opacity-75">({papersInSubj.length})</span>
                           )}
                         </button>
                       );
@@ -700,17 +717,17 @@ export const PaperBank: React.FC = () => {
         </div>
 
         {/* RIGHT COLUMN: Question Paper Cards & Export Actions (col-span-9) */}
-        <div className="lg:col-span-9 glass-panel rounded-2xl p-5 space-y-5">
+        <div className="lg:col-span-9 bg-white border border-[#D1D5DB] rounded-xl shadow-sm p-5 space-y-5">
           {/* Search, Status & Action Ribbon */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#E5E7EB]">
             <div className="relative flex-1 min-w-[240px]">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              <Search className="w-4 h-4 text-[#6B7280] absolute left-3.5 top-3" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search paper by name, exam code, subject..."
-                className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-white border border-[#D1D5DB] rounded-xl pl-10 pr-4 py-2 text-xs text-[#111827] placeholder-[#6B7280] focus:outline-none focus:border-[#0B1F3A] focus:ring-1 focus:ring-[#0B1F3A]/20"
               />
             </div>
 
@@ -718,7 +735,7 @@ export const PaperBank: React.FC = () => {
               <select
                 value={statusFilter}
                 onChange={(e: any) => setStatusFilter(e.target.value)}
-                className="bg-slate-900 border border-slate-700/80 text-xs rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-indigo-500"
+                className="bg-white border border-[#D1D5DB] text-xs rounded-xl px-3 py-2 text-[#111827] focus:outline-none focus:border-[#0B1F3A] focus:ring-1 focus:ring-[#0B1F3A]/20"
               >
                 <option value="ALL">All Statuses</option>
                 <option value="DRAFT">Draft Papers</option>
@@ -730,8 +747,8 @@ export const PaperBank: React.FC = () => {
           {/* Active Filter Pill Display */}
           {(selectedClass !== 'ALL' || selectedSubject !== 'ALL') && (
             <div className="flex items-center space-x-2 text-xs">
-              <span className="text-slate-400">Current Folder Filter:</span>
-              <span className="bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 px-2.5 py-0.5 rounded-full font-semibold">
+              <span className="text-[#6B7280]">Current Folder Filter:</span>
+              <span className="bg-[#0B1F3A]/10 text-[#0B1F3A] border border-[#0B1F3A]/30 px-2.5 py-0.5 rounded-full font-semibold">
                 📁 {selectedClass} &gt; {selectedSubject}
               </span>
             </div>
@@ -740,13 +757,13 @@ export const PaperBank: React.FC = () => {
           {/* Paper Cards Grid */}
           <div className="space-y-4 max-h-[650px] overflow-y-auto pr-1">
             {loading ? (
-              <div className="text-center py-20 text-xs text-slate-400">Loading paper archive...</div>
+              <div className="text-center py-20 text-xs text-[#6B7280]">Loading paper archive...</div>
             ) : filteredPapers.length === 0 ? (
-              <div className="text-center py-20 text-xs text-slate-400 border border-dashed border-slate-800 rounded-2xl space-y-2">
+              <div className="text-center py-20 text-xs text-[#6B7280] border border-dashed border-[#D1D5DB] rounded-xl space-y-2">
                 <p>No question papers found in this folder filter.</p>
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="text-indigo-400 hover:underline font-semibold"
+                  className="text-[#0B1F3A] hover:underline font-semibold"
                 >
                   + Create your first question paper here
                 </button>
@@ -758,33 +775,37 @@ export const PaperBank: React.FC = () => {
                 return (
                   <div
                     key={p.id}
-                    className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-all space-y-4 shadow-md group"
+                    className="p-5 rounded-xl bg-white border border-[#D1D5DB] hover:border-[#0B1F3A]/40 transition-all space-y-4 shadow-sm group"
                   >
                     {/* Header Row: Title, Exam Code & Status */}
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="space-y-1 flex-1">
                         <div className="flex items-center space-x-2.5">
-                          <h3 className="text-base font-bold text-white font-display group-hover:text-indigo-300 transition-colors">
+                          <h3 className="text-base font-bold text-[#111827] font-display group-hover:text-[#0B1F3A] transition-colors">
                             {p.title}
                           </h3>
-                          <span className="font-mono text-xs text-indigo-400 bg-indigo-950/80 border border-indigo-500/40 px-2 py-0.5 rounded-md font-semibold">
+                          <span className="font-mono text-xs text-[#0B1F3A] bg-[#0B1F3A]/5 border border-[#0B1F3A]/20 px-2 py-0.5 rounded-md font-semibold">
                             {p.examCode}
                           </span>
                           <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                               p.status === 'FINALIZED'
-                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                                : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                : 'bg-amber-100 text-amber-800 border border-amber-300'
                             }`}
                           >
                             {p.status === 'FINALIZED' ? '✓ FINALIZED' : 'DRAFT'}
                           </span>
                         </div>
-                        <div className="text-xs text-slate-400 flex items-center space-x-3">
-                          <span>🏫 {p.schoolName || 'DELHI PUBLIC SCHOOL'}</span>
-                          <span>&bull;</span>
-                          <span className="text-indigo-300 font-semibold">
-                            📁 {meta.className} &gt; {meta.subjectName}
+                        <div className="text-xs text-classic-text-secondary flex items-center space-x-3 font-medium">
+                          <span className="flex items-center space-x-1.5 text-classic-navy font-semibold">
+                            <School className="w-3.5 h-3.5 text-classic-navy shrink-0" />
+                            <span>{p.schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI'}</span>
+                          </span>
+                          <span className="text-slate-300">&bull;</span>
+                          <span className="flex items-center space-x-1.5 text-classic-navy font-bold">
+                            <Folder className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            <span>{meta.className} &gt; {meta.subjectName}</span>
                           </span>
                         </div>
                       </div>
@@ -792,90 +813,97 @@ export const PaperBank: React.FC = () => {
                       {/* Primary Open Button */}
                       <button
                         onClick={() => handleOpenPaperInDesigner(p)}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-lg shadow-indigo-600/25 transition-all"
+                        className="px-4 py-2 bg-[#0B1F3A] hover:bg-[#152e52] text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm transition-all"
                       >
-                        <Edit3 className="w-3.5 h-3.5" />
+                        <Edit3 className="w-3.5 h-3.5 text-white" />
                         <span>Open in Designer</span>
                       </button>
                     </div>
 
                     {/* Metadata Badges */}
-                    <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-slate-300 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                    <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-[#111827] bg-slate-50 p-3 rounded-xl border border-[#E5E7EB]">
                       <div className="flex items-center space-x-1.5">
-                        <Award className="w-4 h-4 text-amber-400" />
+                        <Award className="w-4 h-4 text-amber-600 shrink-0" />
                         <span>Max Marks: <strong>{p.maxMarks}</strong></span>
                       </div>
                       <div className="flex items-center space-x-1.5">
-                        <Clock className="w-4 h-4 text-teal-400" />
+                        <Clock className="w-4 h-4 text-teal-600 shrink-0" />
                         <span>Duration: <strong>{p.durationMinutes} Mins</strong></span>
                       </div>
                       <div className="flex items-center space-x-1.5">
-                        <Layers className="w-4 h-4 text-indigo-400" />
+                        <Layers className="w-4 h-4 text-[#0B1F3A] shrink-0" />
                         <span>Questions: <strong>{meta.questionCount}</strong></span>
                       </div>
-                      <div className="flex items-center space-x-1.5 text-slate-400">
-                        <Calendar className="w-4 h-4" />
-                        <span>Updated: {new Date(p.updatedAt).toLocaleDateString()}</span>
+                      <div className="flex items-center space-x-1.5 text-[#374151]">
+                        <Calendar className="w-4 h-4 text-indigo-600 shrink-0" />
+                        <span>Updated: <strong>{new Date(p.updatedAt).toLocaleDateString()}</strong></span>
                       </div>
                     </div>
 
                     {/* Multi-Format Export Action Bar */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-slate-800/80">
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-[#E5E7EB]">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[11px] font-semibold text-slate-400 mr-1">Export:</span>
+                        <span className="text-xs font-bold text-classic-text-primary mr-1">Export:</span>
+
+                        {!canExportPaper(p) && (
+                          <span className="text-xs text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 flex items-center space-x-1 mr-1" title="Only assigned users or admins can download or export this paper">
+                            <Lock className="w-3 h-3 text-amber-700" />
+                            <span>Assigned Access Only</span>
+                          </span>
+                        )}
 
                         {/* Export to Word with Marking Scheme */}
                         <button
                           type="button"
-                          onClick={() => handleExportWord(p.id, p.title)}
-                          className="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/40 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all"
+                          onClick={() => handleExportWord(p.id, p.title, p.creatorId)}
+                          className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all shadow-xs"
                           title="Download styled Microsoft Word document (.doc) with complete layout & Marking Scheme appendix"
                         >
-                          <FileText className="w-3.5 h-3.5" />
+                          <FileText className="w-4 h-4 text-blue-700 shrink-0" />
                           <span>Word (.doc)</span>
                         </button>
 
                         {/* Export Official PDF */}
                         <button
                           type="button"
-                          onClick={() => handleExportOfficialPdf(p.id, p.title, false)}
-                          className="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all"
+                          onClick={() => handleExportOfficialPdf(p.id, p.title, false, p.creatorId)}
+                          className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-200 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all shadow-xs"
                           title="Download publication-ready A4 PDF Question Paper"
                         >
-                          <Download className="w-3.5 h-3.5" />
+                          <Download className="w-4 h-4 text-rose-700 shrink-0" />
                           <span>PDF</span>
                         </button>
 
                         {/* Export PDF with Answers */}
                         <button
                           type="button"
-                          onClick={() => handleExportOfficialPdf(p.id, p.title, true)}
-                          className="px-3 py-1.5 bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white border border-amber-500/40 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all"
+                          onClick={() => handleExportOfficialPdf(p.id, p.title, true, p.creatorId)}
+                          className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all shadow-xs"
                           title="Download A4 PDF Exam Paper with Official Marking Scheme & Solutions Appendix"
                         >
-                          <Download className="w-3.5 h-3.5" />
+                          <Download className="w-4 h-4 text-amber-700 shrink-0" />
                           <span>PDF + Answers</span>
                         </button>
 
                         {/* Export Portable JSON */}
                         <button
                           type="button"
-                          onClick={() => handleExportJson(p.id, p.title)}
-                          className="px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600 text-teal-300 hover:text-white border border-teal-500/40 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all"
+                          onClick={() => handleExportJson(p.id, p.title, p.creatorId)}
+                          className="px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-900 border border-teal-200 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all shadow-xs"
                           title="Download portable JSON (.json) format for LMS and external apps"
                         >
-                          <Code className="w-3.5 h-3.5" />
+                          <Code className="w-4 h-4 text-teal-700 shrink-0" />
                           <span>JSON (.json)</span>
                         </button>
 
                         {/* Export to Excel */}
                         <button
                           type="button"
-                          onClick={() => handleExportExcel(p.id, p.title)}
-                          className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/40 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all"
+                          onClick={() => handleExportExcel(p.id, p.title, p.creatorId)}
+                          className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all shadow-xs"
                           title="Download Excel spreadsheet (.csv) with UTF-8 support for all languages"
                         >
-                          <FileSpreadsheet className="w-3.5 h-3.5" />
+                          <FileSpreadsheet className="w-4 h-4 text-emerald-700 shrink-0" />
                           <span>Excel (.csv)</span>
                         </button>
                       </div>
@@ -885,19 +913,19 @@ export const PaperBank: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleClonePaper(p.id, p.title)}
-                          className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold flex items-center space-x-1 transition-colors"
+                          className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-[#111827] border border-[#D1D5DB] rounded-xl text-xs font-semibold flex items-center space-x-1 transition-colors"
                           title="Clone this paper to create an alternate Set (Set B)"
                         >
-                          <Copy className="w-3.5 h-3.5" />
+                          <Copy className="w-3.5 h-3.5 text-slate-700" />
                           <span>Clone Set</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeletePaper(p.id, p.title)}
-                          className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-xl transition-colors"
+                          className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-colors"
                           title="Delete paper"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4 text-rose-700" />
                         </button>
                       </div>
                     </div>
@@ -911,98 +939,98 @@ export const PaperBank: React.FC = () => {
 
       {/* Create New Question Paper Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl animate-fade-in">
-            <h3 className="text-lg font-bold text-white flex items-center space-x-2">
-              <Plus className="w-5 h-5 text-indigo-400" />
+        <div className="fixed inset-0 bg-black/50  z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-[#D1D5DB] rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl animate-fade-in">
+            <h3 className="text-lg font-bold text-[#111827] flex items-center space-x-2">
+              <Plus className="w-5 h-5 text-[#0B1F3A]" />
               <span>Create New Examination Paper</span>
             </h3>
 
             <form onSubmit={handleCreateNewPaper} className="space-y-3.5 text-xs">
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Paper Name / Exam Title</label>
+                <label className="block text-[#4B5563] font-semibold mb-1">Paper Name / Exam Title</label>
                 <input
                   type="text"
                   required
                   value={modalTitle}
                   onChange={(e) => setModalTitle(e.target.value)}
                   placeholder="e.g. Annual Examination - 2026"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-white border border-[#D1D5DB] rounded-xl px-3 py-2 text-[#111827] focus:outline-none focus:border-[#0B1F3A] focus:ring-1 focus:ring-[#0B1F3A]/20"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Class Folder</label>
+                  <label className="block text-[#4B5563] font-semibold mb-1">Class Folder</label>
                   <input
                     type="text"
                     required
                     value={modalClass}
                     onChange={(e) => setModalClass(e.target.value)}
                     placeholder="e.g. Class 12, Class 10"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-white border border-[#D1D5DB] rounded-xl px-3 py-2 text-[#111827] focus:outline-none focus:border-[#0B1F3A] focus:ring-1 focus:ring-[#0B1F3A]/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Subject Subfolder</label>
+                  <label className="block text-[#4B5563] font-semibold mb-1">Subject Subfolder</label>
                   <input
                     type="text"
                     required
                     value={modalSubject}
                     onChange={(e) => setModalSubject(e.target.value)}
                     placeholder="e.g. Physics, Mathematics"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-white border border-[#D1D5DB] rounded-xl px-3 py-2 text-[#111827] focus:outline-none focus:border-[#0B1F3A] focus:ring-1 focus:ring-[#0B1F3A]/20"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Exam Code</label>
+                  <label className="block text-[#4B5563] font-semibold mb-1">Exam Code</label>
                   <input
                     type="text"
                     required
                     value={modalExamCode}
                     onChange={(e) => setModalExamCode(e.target.value)}
                     placeholder="e.g. PHY-101"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-white border border-[#D1D5DB] rounded-xl px-3 py-2 text-[#111827] font-mono focus:outline-none focus:border-[#0B1F3A] focus:ring-1 focus:ring-[#0B1F3A]/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Target Max Marks</label>
+                  <label className="block text-[#4B5563] font-semibold mb-1">Target Max Marks</label>
                   <input
                     type="number"
                     required
                     value={modalMaxMarks}
                     onChange={(e) => setModalMaxMarks(parseInt(e.target.value, 10))}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-white border border-[#D1D5DB] rounded-xl px-3 py-2 text-[#111827] focus:outline-none focus:border-[#0B1F3A] focus:ring-1 focus:ring-[#0B1F3A]/20"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">School / Institute Name</label>
+                <label className="block text-[#4B5563] font-semibold mb-1">School / Institute Name</label>
                 <input
                   type="text"
                   required
                   value={modalSchoolName}
                   onChange={(e) => setModalSchoolName(e.target.value)}
-                  placeholder="e.g. DELHI PUBLIC SCHOOL"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white uppercase focus:outline-none focus:border-indigo-500"
+                  placeholder="e.g. CAMBRIDGE INTERNATIONAL SCHOOL MANDI"
+                  className="w-full bg-white border border-[#D1D5DB] rounded-xl px-3 py-2 text-[#111827] uppercase focus:outline-none focus:border-[#0B1F3A] focus:ring-1 focus:ring-[#0B1F3A]/20"
                 />
               </div>
 
-              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-800">
+              <div className="flex justify-end space-x-2 pt-3 border-t border-[#E5E7EB]">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold transition-colors"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-[#111827] border border-[#D1D5DB] rounded-xl font-semibold transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-colors shadow-lg shadow-indigo-600/30"
+                  className="px-5 py-2 bg-[#0B1F3A] hover:bg-[#152e52] text-white rounded-xl font-bold transition-colors shadow-sm"
                 >
                   Create & Open Designer
                 </button>

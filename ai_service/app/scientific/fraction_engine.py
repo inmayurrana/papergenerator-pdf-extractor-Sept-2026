@@ -216,6 +216,50 @@ class FractionTreeParser:
             paren_node.add_child(cls.parse_component(inner))
             return paren_node
 
+        # 2b. Check for Cancellation: \cancel{...}
+        cancel_match = re.match(r"^\\cancel\{(.+?)\}$", clean)
+        if cancel_match:
+            inner_node = cls.parse_component(cancel_match.group(1))
+            node = FormulaNode(NodeType.CANCELLATION)
+            node.add_child(inner_node)
+            return node
+
+        # 2c. Check for Double Factorial: e.g. n!! or 10!!
+        dfact_match = re.match(r"^(.+?)!!$", clean)
+        if dfact_match:
+            inner_node = cls.parse_component(dfact_match.group(1))
+            node = FormulaNode(NodeType.DOUBLE_FACTORIAL)
+            node.add_child(inner_node)
+            return node
+
+        # 2d. Check for Factorial: e.g. 20!, n!, (n-1)!
+        fact_match = re.match(r"^(.+?)!$", clean)
+        if fact_match:
+            inner_node = cls.parse_component(fact_match.group(1))
+            node = FormulaNode(NodeType.FACTORIAL)
+            node.add_child(inner_node)
+            return node
+
+        # 2e. Check for Ellipsis
+        if clean in ("...", "…", r"\cdots", r"\dots", r"\ldots"):
+            return FormulaNode(NodeType.ELLIPSIS, attributes={"latex": r"\cdots"})
+
+        # 2f. Check for explicit multiplication in component: e.g. 20 \times 19 \times 18! or 6 \cdot 7
+        mult_split = re.split(r"\s*(?:\\times|\\cdot|×|·|\*)\s*", clean)
+        if len(mult_split) > 1:
+            mult_node = FormulaNode(NodeType.MULTIPLY, attributes={"implicit": False})
+            for p in mult_split:
+                mult_node.add_child(cls.parse_component(p))
+            return mult_node
+
+        # 2g. Check for adjacent factorials: e.g. 6!4! or 6! 4!
+        adj_fact_matches = list(re.finditer(r"([0-9a-zA-Z]+|\([^)]+\))!", clean))
+        if len(adj_fact_matches) > 1 and "".join(m.group(0) for m in adj_fact_matches).replace(" ", "") == clean.replace(" ", ""):
+            mult_node = FormulaNode(NodeType.MULTIPLY, attributes={"implicit": True})
+            for m in adj_fact_matches:
+                mult_node.add_child(cls.parse_component(m.group(0)))
+            return mult_node
+
         # 3. Check for Nested Fraction in component: \frac{a}{b}
         if r"\frac{" in clean:
             frac_nested = cls.parse_fraction_string(clean)
@@ -484,8 +528,10 @@ class FractionTreeParser:
             has_p = r"\left(" in clean or clean.startswith("(")
             return cls.build_fraction_ast(n_str, d_str, trailing=trail, has_parens=has_p)
 
-        # 7. Slashed fraction: ((M₁ + M₂)/(M₁ + M₂ + M₃)) F or 1/2 or x^2/y^3 or M₁/M₂ or (a+b)/(c+d)
-        slash_pat = re.compile(r"^(?:\(\s*)?(?:\(([^\(\)]+)\)|([A-Za-z0-9_+\-\^₀-₉⁰-⁹α-ωΑ-Ω ]+))\s*/\s*(?:\(([^\(\)]+)\)|([A-Za-z0-9_+\-\^₀-₉⁰-⁹α-ωΑ-Ω ]+))(?:\s*\))?(?:\s+(.+))?$")
+        # 7. Slashed fraction: ((M₁ + M₂)/(M₁ + M₂ + M₃)) F or 1/2 or 20!/18! or 10!/(6!4!) or (20 \times 19 \times 18!)/18!
+        slash_pat = re.compile(
+            r"^(?:\(\s*)?(?:\((.+?)\)|([A-Za-z0-9_+\-\^!\\{}*×·\s₀-₉⁰-⁹α-ωΑ-Ω]+))\s*/\s*(?:\((.+?)\)|([A-Za-z0-9_+\-\^!\\{}*×·\s₀-₉⁰-⁹α-ωΑ-Ω]+))(?:\s*\))?(?:\s+(.+))?$"
+        )
         m_slash = slash_pat.match(clean)
         if m_slash:
             n_grp1, n_grp2, d_grp1, d_grp2, trail = m_slash.groups()

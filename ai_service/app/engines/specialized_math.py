@@ -217,12 +217,48 @@ class SpecializedMathEngine:
 
         # 0. Protect already bracketed LaTeX formulas FIRST to prevent double-encoding
         placeholders = {}
-        def repl_protect(m):
+        def repl_protect(m_or_val):
             key = f"__EXACTMATH_{len(placeholders)}__"
-            placeholders[key] = m.group(0)
+            val = m_or_val.group(0) if hasattr(m_or_val, "group") else str(m_or_val)
+            val = val.strip()
+            # Resolve any previously stored placeholders inside val to prevent nesting
+            for pk, pv in list(placeholders.items()):
+                if pk in val:
+                    inner_val = pv
+                    if inner_val.startswith("$") and inner_val.endswith("$"):
+                        inner_val = inner_val[1:-1]
+                    val = val.replace(pk, inner_val)
+            if not val.startswith("$"):
+                val = f"${val}$"
+            placeholders[key] = val
             return key
 
         s = re.sub(r"\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$|\\\[[\s\S]*?\\\]|\\\([^\)]+?\\\)", repl_protect, s)
+
+        # 0b. Protect complete \frac and \sqrt formulas that are not yet wrapped in $
+        def protect_complete_frac(m):
+            raw_f = m.group(0).replace("$", "").strip()
+            # Clean common internal text math artifacts
+            raw_f = re.sub(r"\\thita\b", r"\\theta", raw_f, flags=re.IGNORECASE)
+            raw_f = re.sub(r"([A-Za-z0-9])(sin|cos|tan|cot|sec|csc)\b", r"\1 \\\2", raw_f, flags=re.IGNORECASE)
+            raw_f = re.sub(r"(?<!\\)\b(sin|cos|tan|cot|sec|csc)\b", r"\\\1", raw_f, flags=re.IGNORECASE)
+            raw_f = re.sub(r"\\(sin|cos|tan|cot|sec|csc)\s*\\?(?:theta|thita|θ)", r"\\\1\\theta", raw_f, flags=re.IGNORECASE)
+            raw_f = re.sub(r"\s+", " ", raw_f)
+            return repl_protect(raw_f)
+
+        # 0b. Protect complete \left...\right, \frac and \sqrt formulas that are not yet wrapped in $
+        s = re.sub(
+            r'(?<![\$\w\\])\\left\s*([(\[{])[^\$\n]*?\\right\s*([)\]}])(?:\^\{?[0-9a-zA-Z\+\-]+\}?)?',
+            protect_complete_frac, s
+        )
+        s = re.sub(
+            r'(?<![\$\w\\])(?:(?:\\left\s*\(|\()\s*)?(\\frac\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})(?:\s*(?:\\right\s*\)|\)))?(?:\^\{?[0-9a-zA-Z\+\-]+\}?)?',
+            protect_complete_frac, s
+        )
+        s = re.sub(
+            r'(?<![\$\w\\])\\sqrt\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}',
+            protect_complete_frac, s
+        )
 
         # Sanitize any \thita in existing LaTeX equations
         for k in list(placeholders.keys()):
@@ -305,6 +341,75 @@ class SpecializedMathEngine:
             s
         )
 
+        # 2b. Inverse trigonometric functions:
+        # e.g. \tan^{-1}\left( \frac{4}{5} \right), tan^{-1} \left( \frac{4}{5} \right), tan-1(4/5), tan^{-1}(m), \tan^{-1}\left(\frac{5}{4}\right)
+        def repl_inv_trig(m):
+            fn = m.group(1).lower()
+            arg = m.group(2).strip()
+            # Clean internal $ in arg
+            arg = arg.replace("$", "").strip()
+            # If arg is simple fraction like 4/5 or 5/4
+            frac_m = re.match(r"^(\d+)\s*/\s*(\d+)$", arg)
+            if frac_m:
+                arg = f"\\frac{{{frac_m.group(1)}}}{{{frac_m.group(2)}}}"
+            # Ensure proper \left( ... \right) wrapping
+            if arg.startswith(r"\left(") and arg.endswith(r"\right)"):
+                wrapped_arg = arg
+            elif arg.startswith("(") and arg.endswith(")"):
+                inner = arg[1:-1].strip()
+                wrapped_arg = f"\\left( {inner} \\right)"
+            else:
+                wrapped_arg = f"\\left( {arg} \\right)"
+            return repl_protect(f"\\{fn}^{{-1}}{wrapped_arg}")
+
+        s = re.sub(
+            r"(?<![\$\w\\])(?:\\)?(sin|cos|tan|cot|sec|csc|cosec)(?:[-–]1|\^[-–]?1|\^\{\s*[-–]?1\s*\}|[\xad\ufffd\x80]1)\s*(?:\\left\s*\(|\()?\s*(\\frac\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|\d+\s*/\s*\d+|[a-zA-Z0-9_\-\.\/]+)\s*(?:\\right\s*\)|\))?",
+            repl_inv_trig,
+            s, flags=re.IGNORECASE
+        )
+
+        # 2c. Normal trigonometric functions with fractional or parenthesized arguments:
+        # e.g. \tan\left(\frac{\pi}{4}\right), \sin(4/5)
+        def repl_trig_frac(m):
+            fn = m.group(1).lower()
+            arg = m.group(2).strip().replace("$", "").strip()
+            frac_m = re.match(r"^(\d+)\s*/\s*(\d+)$", arg)
+            if frac_m:
+                arg = f"\\frac{{{frac_m.group(1)}}}{{{frac_m.group(2)}}}"
+            if not (arg.startswith(r"\left(") and arg.endswith(r"\right)")) and not (arg.startswith("(") and arg.endswith(")")):
+                arg = f"\\left( {arg} \\right)"
+            return repl_protect(f"\\{fn}{arg}")
+
+        s = re.sub(
+            r"(?<![\$\w\\])(?:\\)?(sin|cos|tan|cot|sec|csc|cosec)\s*(?:\\left\s*\(|\()\s*(\\frac\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|\d+\s*/\s*\d+|[a-zA-Z0-9_\-\.\/\\]+)\s*(?:\\right\s*\)|\))",
+            repl_trig_frac,
+            s, flags=re.IGNORECASE
+        )
+
+        # 2d. Physics trig combinations: mg \sin\theta, mg/\cos\theta, mg\sin\theta ± F\cos\theta
+        s = re.sub(r'\b([a-zA-Z0-9]+?)(sin|cos|tan|cot|sec|csc|cosec)([θq])\b', r'\1 \\\2 \\theta', s, flags=re.IGNORECASE)
+        s = re.sub(r'\b([a-zA-Z0-9]+?)(sin|cos|tan|cot|sec|csc|cosec)\b', r'\1 \\\2', s, flags=re.IGNORECASE)
+        s = re.sub(r'(?<!\\)\b(sin|cos|tan|cot|sec|csc|cosec)[θq]\b', r'\\\1 \\theta', s, flags=re.IGNORECASE)
+        # Slashed division: mg / \cos\theta -> \frac{mg}{\cos\theta}
+        s = re.sub(r'(?<![\$\w\\])([a-zA-Z0-9]+)\s*/\s*\\?(cos|sin|tan)\s*\\theta', lambda m: repl_protect(f"\\frac{{{m.group(1)}}}{{\\{m.group(2)}\\theta}}"), s, flags=re.IGNORECASE)
+        # Two-term combinations: mg\sin\theta + F\cos\theta or mg \sin\theta - F \cos\theta
+        def repl_two_term_trig(m):
+            t1 = re.sub(r'\s+', '', m.group(1))
+            t2 = re.sub(r'\s+', '', m.group(3))
+            op = m.group(2)
+            return repl_protect(f"{t1} {op} {t2}")
+        s = re.sub(
+            r'(?<![\$\w\\])([a-zA-Z0-9]*\s*\\?(?:sin|cos|tan)\s*\\theta)\s*([+\-–±])\s*([a-zA-Z0-9]*\s*\\?(?:sin|cos|tan)\s*\\theta)(?![$\w])',
+            repl_two_term_trig,
+            s, flags=re.IGNORECASE
+        )
+        # Single-term: mg \sin\theta, mg \cos\theta
+        s = re.sub(
+            r'(?<![\$\w\\])([a-zA-Z0-9]+)\s*\\?(sin|cos|tan)\s*\\theta(?![$\w])',
+            lambda m: repl_protect(f"{m.group(1)}\\{m.group(2)}\\theta"),
+            s, flags=re.IGNORECASE
+        )
+
         # 3. Radicals: e.g. 10√2, √2, √(D), ∛8, ∜16
         s = re.sub(r"∛\s*(\d+|[a-zA-Z]+|\([^)]+\))", lambda m: f"$\\sqrt[3]{{{m.group(1).strip('()')}}}$", s)
         s = re.sub(r"∜\s*(\d+|[a-zA-Z]+|\([^)]+\))", lambda m: f"$\\sqrt[4]{{{m.group(1).strip('()')}}}$", s)
@@ -312,8 +417,15 @@ class SpecializedMathEngine:
                    lambda m: f"${m.group(1)}\\sqrt{{{m.group(2).strip('()')}}}$" if m.group(1) else f"$\\sqrt{{{m.group(2).strip('()')}}}$", s)
         s = re.sub(r"(?<![\$\w\\])(\d*)\s*\\sqrt\{([^}]+)\}",
                    lambda m: f"${m.group(1)}\\sqrt{{{m.group(2)}}}$" if m.group(1) else f"$\\sqrt{{{m.group(2)}}}$", s)
-        # 3b. Fractions: e.g. \frac{a}{b}
-        s = re.sub(r"(?<![\$\w\\])(\\frac\{[^}]+\}\{[^}]+\})", r"$\1$", s)
+        # 3b. Fractions with optional delimiters: \left( \frac{a}{b} \right) or \frac{a}{b}
+        def wrap_frac(m):
+            left_delim = m.group(1) or ""
+            frac = m.group(2)
+            right_delim = m.group(3) or ""
+            if left_delim or right_delim:
+                return repl_protect(f"\\left( {frac} \\right)")
+            return repl_protect(frac)
+        s = re.sub(r"(?<![\$\w\\])(\\left\s*\(|\()?\s*(\\frac\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})\s*(\\right\s*\)|\))?", wrap_frac, s)
 
         # 4. Group coefficients / fractions with Greek letters
         # Order matters: match LONGER patterns first to avoid premature substitution.
@@ -377,9 +489,30 @@ class SpecializedMathEngine:
         # Match multi-term equations: variable = expression (excluding conjunctions)
         s = re.sub(r"(?<!\$)\b[VvXxYyZzAaBbCcRr]\s*=\s*[^,;?.!\n]+?(?=[,;?.!]|\s+\b(?:at|when|where|if|and|or)\b|$)", eq_replacer, s)
 
-        # Restore placeholders
-        for k, v in placeholders.items():
-            s = s.replace(k, v)
+        # 10b. Detect and wrap physics vector and component equations:
+        # e.g. \vec{R} + \vec{T} + \vec{W} = 0, T^{2} = R^{2} + W^{2}, T^2 = R^2 + W^2, T = R + W
+        def vec_repl(m):
+            body = m.group(0).replace("$", "").strip()
+            return f"${body}$"
+        s = re.sub(r"(?<!\$)(?:\\vec\{[A-Za-z]\}\s*[\+\-\=]\s*)+\d+", vec_repl, s)
+        s = re.sub(r"(?<!\$)\b[A-Za-z](?:\^\{?2\}?|²)\s*=\s*[A-Za-z](?:\^\{?2\}?|²)\s*[\+\-]\s*[A-Za-z](?:\^\{?2\}?|²)", vec_repl, s)
+        s = re.sub(r"(?<!\$)\b[A-Za-z]\s*=\s*[A-Za-z]\s*[\+\-]\s*[A-Za-z]\b", vec_repl, s)
+
+        # Restore placeholders iteratively to ensure no nested __EXACTMATH_ remain
+        max_restore_passes = 10
+        pass_count = 0
+        while "__EXACTMATH_" in s and pass_count < max_restore_passes:
+            pass_count += 1
+            changed = False
+            for k, v in list(placeholders.items()):
+                if k in s:
+                    s = s.replace(k, v)
+                    changed = True
+            if not changed:
+                break
+
+        # Fallback self-healing: remove any orphaned unresolvable __EXACTMATH_ tokens
+        s = re.sub(r"__EXACTMATH_\d+__", "", s)
 
         # Clean up any duplicate or escaped dollar artifacts
         s = re.sub(r"\$\s*\\\$\s*", "$", s)
@@ -389,6 +522,10 @@ class SpecializedMathEngine:
         s = re.sub(r"\\frac\{[$\s]*([^}]+?)[$\s]*\}\{[$\s]*([^}]+?)[$\s]*\}", r"\\frac{\1}{\2}", s)
         s = re.sub(r"\\sqrt\{[$\s]*([^}]+?)[$\s]*\}", r"\\sqrt{\1}", s)
         s = re.sub(r"\\pi([a-zA-Z])", r"\\pi \1", s)
+
+        # Fix any nested or orphaned $ inside \left( ... \right)
+        s = re.sub(r"\\left\s*\(\s*\$\s*([^$]+?)\s*\$\s*\\right\s*\)", r"\\left( \1 \\right)", s)
+        s = re.sub(r"\\left\s*\(\s*\$([^$]+?)\$\s*\\right\s*\)", r"$\\left( \1 \\right)$", s)
 
         # Final self-healing pass: repair any malformed nested/slashed \frac{\frac{dr/dt}} or \frac{dr/dt}
         s = re.sub(r"\\frac\{\\frac\{d([A-Za-z])\s*/\s*d([A-Za-z])\}\}", r"\\frac{d\1}{d\2}", s)

@@ -202,5 +202,446 @@
         }
       }
     }
+  },
+  "70a4645a83ccac428d777a656e9b2c3d637919da0a12ca4ef9e07879c4aa7e59": {
+    "hash": "70a4645a83ccac428d777a656e9b2c3d637919da0a12ca4ef9e07879c4aa7e59",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "",
+      "formula_component": "",
+      "unit": null,
+      "latex": "$$",
+      "raw_latex": "",
+      "mathml": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mrow></mrow></math>",
+      "structured_ast": {
+        "type": "ROOT",
+        "value": "",
+        "attributes": {},
+        "confidence": 1.0,
+        "children": []
+      },
+      "spatial_meta": {
+        "has_subscript": false,
+        "has_superscript": false,
+        "has_fraction": false,
+        "has_integral": false,
+        "has_matrix": false,
+        "has_vector": false,
+        "has_root": false
+      },
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.7,
+        "visual_similarity": 0.5,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.745,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": true,
+          "confidence": 1.0,
+          "errors": [],
+          "warnings": [],
+          "tokens_count": 0,
+          "ast": null
+        }
+      }
+    }
+  },
+  "b00f633e8160966523d204710d71bd4295e9949f09bcd176d3baf022becd43f7": {
+    "hash": "b00f633e8160966523d204710d71bd4295e9949f09bcd176d3baf022becd43f7",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "",
+      "formula_component": "",
+      "unit": null,
+      "latex": "$$",
+      "raw_latex": "",
+      "mathml": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mrow></mrow></math>",
+      "structured_ast": {
+        "type": "ROOT",
+        "value": "",
+        "attributes": {},
+        "confidence": 1.0,
+        "children": []
+      },
+      "spatial_meta": {
+        "has_subscript": false,
+        "has_superscript": false,
+        "has_fraction": false,
+        "has_integral": false,
+        "has_matrix": false,
+        "has_vector": false,
+        "has_root": false
+      },
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.7,
+        "visual_similarity": 0.5,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.745,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": true,
+          "confidence": 1.0,
+          "errors": [],
+          "warnings": [],
+          "tokens_count": 0,
+          "ast": null
+        }
+      }
+    }
+  },
+  "0ea197685d8b2bb52874b83a97fdf9438b839b8b06d1d4fd2251ad3cd324e929": {
+    "hash": "0ea197685d8b2bb52874b83a97fdf9438b839b8b06d1d4fd2251ad3cd324e929",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "",
+      "formula_component": "",
+      "unit": null,
+      "latex": "$$",
+      "raw_latex": "",
+      "mathml": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mrow></mrow></math>",
+      "structured_ast": {
+        "type": "ROOT",
+        "value": "",
+        "attributes": {},
+        "confidence": 1.0,
+        "children": []
+      },
+      "spatial_meta": {
+        "has_subscript": false,
+        "has_superscript": false,
+        "has_fraction": false,
+        "has_integral": false,
+        "has_matrix": false,
+        "has_vector": false,
+        "has_root": false
+      },
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.7,
+        "visual_similarity": 0.5,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.745,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": true,
+          "confidence": 1.0,
+          "errors": [],
+          "warnings": [],
+          "tokens_count": 0,
+          "ast": null
+        }
+      }
+    }
+  },
+  "a0a64423b5ae541e87f36caf7603976705d4ec8e98e0be3634de1539f7b4b0f5": {
+    "hash": "a0a64423b5ae541e87f36caf7603976705d4ec8e98e0be3634de1539f7b4b0f5",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "",
+      "formula_component": "",
+      "unit": null,
+      "latex": "$$",
+      "raw_latex": "",
+      "mathml": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mrow></mrow></math>",
+      "structured_ast": {
+        "type": "ROOT",
+        "value": "",
+        "attributes": {},
+        "confidence": 1.0,
+        "children": []
+      },
+      "spatial_meta": {
+        "has_subscript": false,
+        "has_superscript": false,
+        "has_fraction": false,
+        "has_integral": false,
+        "has_matrix": false,
+        "has_vector": false,
+        "has_root": false
+      },
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.7,
+        "visual_similarity": 0.5,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.745,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": true,
+          "confidence": 1.0,
+          "errors": [],
+          "warnings": [],
+          "tokens_count": 0,
+          "ast": null
+        }
+      }
+    }
+  },
+  "a3770c4ba0a119b907377f19b9d3ae18843c0d9e2e5572362286a4cf3abb4b8c": {
+    "hash": "a3770c4ba0a119b907377f19b9d3ae18843c0d9e2e5572362286a4cf3abb4b8c",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "",
+      "formula_component": "",
+      "unit": null,
+      "latex": "$$",
+      "raw_latex": "",
+      "mathml": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mrow></mrow></math>",
+      "structured_ast": {
+        "type": "ROOT",
+        "value": "",
+        "attributes": {},
+        "confidence": 1.0,
+        "children": []
+      },
+      "spatial_meta": {
+        "has_subscript": false,
+        "has_superscript": false,
+        "has_fraction": false,
+        "has_integral": false,
+        "has_matrix": false,
+        "has_vector": false,
+        "has_root": false
+      },
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.7,
+        "visual_similarity": 0.5,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.745,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": true,
+          "confidence": 1.0,
+          "errors": [],
+          "warnings": [],
+          "tokens_count": 0,
+          "ast": null
+        }
+      }
+    }
+  },
+  "cadd07355ae87a71f27f5644d7978e01c349fd5ea056a90badb51f842b326166": {
+    "hash": "cadd07355ae87a71f27f5644d7978e01c349fd5ea056a90badb51f842b326166",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "",
+      "formula_component": "",
+      "unit": null,
+      "latex": "$$",
+      "raw_latex": "",
+      "mathml": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mrow></mrow></math>",
+      "structured_ast": {
+        "type": "ROOT",
+        "value": "",
+        "attributes": {},
+        "confidence": 1.0,
+        "children": []
+      },
+      "spatial_meta": {
+        "has_subscript": false,
+        "has_superscript": false,
+        "has_fraction": false,
+        "has_integral": false,
+        "has_matrix": false,
+        "has_vector": false,
+        "has_root": false
+      },
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.7,
+        "visual_similarity": 0.5,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.745,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": true,
+          "confidence": 1.0,
+          "errors": [],
+          "warnings": [],
+          "tokens_count": 0,
+          "ast": null
+        }
+      }
+    }
+  },
+  "f7a156d8feedd83750fd6604caac23db56e4fe55c001090a2e4b36d09ec368d7": {
+    "hash": "f7a156d8feedd83750fd6604caac23db56e4fe55c001090a2e4b36d09ec368d7",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "",
+      "formula_component": "",
+      "unit": null,
+      "latex": "$$",
+      "raw_latex": "",
+      "mathml": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mrow></mrow></math>",
+      "structured_ast": {
+        "type": "ROOT",
+        "value": "",
+        "attributes": {},
+        "confidence": 1.0,
+        "children": []
+      },
+      "spatial_meta": {
+        "has_subscript": false,
+        "has_superscript": false,
+        "has_fraction": false,
+        "has_integral": false,
+        "has_matrix": false,
+        "has_vector": false,
+        "has_root": false
+      },
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.7,
+        "visual_similarity": 0.5,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.745,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": true,
+          "confidence": 1.0,
+          "errors": [],
+          "warnings": [],
+          "tokens_count": 0,
+          "ast": null
+        }
+      }
+    }
+  },
+  "7d73a32c526b27159dbb8c06193deb2cd967dbe50ac0ebc4fa6222f47ceab3da": {
+    "hash": "7d73a32c526b27159dbb8c06193deb2cd967dbe50ac0ebc4fa6222f47ceab3da",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "",
+      "formula_component": "",
+      "unit": null,
+      "latex": "$$",
+      "raw_latex": "",
+      "mathml": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mrow></mrow></math>",
+      "structured_ast": {
+        "type": "ROOT",
+        "value": "",
+        "attributes": {},
+        "confidence": 1.0,
+        "children": []
+      },
+      "spatial_meta": {
+        "has_subscript": false,
+        "has_superscript": false,
+        "has_fraction": false,
+        "has_integral": false,
+        "has_matrix": false,
+        "has_vector": false,
+        "has_root": false
+      },
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.7,
+        "visual_similarity": 0.5,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.745,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": true,
+          "confidence": 1.0,
+          "errors": [],
+          "warnings": [],
+          "tokens_count": 0,
+          "ast": null
+        }
+      }
+    }
+  },
+  "e909c3aba40ba6607a908061f1ad030a9aec4597e3fe8850bd6bde98f09e4775": {
+    "hash": "e909c3aba40ba6607a908061f1ad030a9aec4597e3fe8850bd6bde98f09e4775",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "",
+      "formula_component": "",
+      "unit": null,
+      "latex": "$$",
+      "raw_latex": "",
+      "mathml": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mrow></mrow></math>",
+      "structured_ast": {
+        "type": "ROOT",
+        "value": "",
+        "attributes": {},
+        "confidence": 1.0,
+        "children": []
+      },
+      "spatial_meta": {
+        "has_subscript": false,
+        "has_superscript": false,
+        "has_fraction": false,
+        "has_integral": false,
+        "has_matrix": false,
+        "has_vector": false,
+        "has_root": false
+      },
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.7,
+        "visual_similarity": 0.5,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.745,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": true,
+          "confidence": 1.0,
+          "errors": [],
+          "warnings": [],
+          "tokens_count": 0,
+          "ast": null
+        }
+      }
+    }
   }
 }

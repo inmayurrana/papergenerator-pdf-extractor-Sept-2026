@@ -57,7 +57,7 @@ powershell -ExecutionPolicy Bypass -File .\start_all.ps1
 
 - **Frontend Application**: `http://localhost:3010`
 - **Backend API**: `http://localhost:5010`
-- **AI Microservice**: `http://localhost:8001`
+- **AI Microservice**: `http://localhost:8010`
 - **Default Admin Account**:
   - Email: `admin@school.local`
   - Password: `Admin@12345`

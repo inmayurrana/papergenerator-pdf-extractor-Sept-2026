@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, Trash2, Sparkles, AlertTriangle, Image as ImageIcon, UploadCloud, Check, Clipboard } from 'lucide-react';
+import { X, Plus, Trash2, Sparkles, AlertTriangle, Image as ImageIcon, UploadCloud, Check, Clipboard, RotateCcw } from 'lucide-react';
 import { api } from '../../lib/api';
 import { MathRenderer } from '../common/MathRenderer';
 import { ResizableImage } from '../common/ResizableImage';
@@ -315,21 +315,21 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
-      <div className="glass-panel w-full max-w-3xl rounded-3xl p-6 space-y-6 shadow-2xl border border-slate-700 my-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs overflow-y-auto">
+      <div className="bg-white w-full max-w-3xl rounded-2xl p-6 space-y-6 shadow-2xl border border-[#D1D5DB] my-8">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div className="flex items-center justify-between pb-4 border-b border-[#E5E7EB]">
           <div>
-            <h2 className="text-lg font-bold text-white">
+            <h2 className="text-lg font-bold text-[#111827]">
               {question ? `Edit Question Q${qNumber}` : 'Create New Structured Question'}
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[#6B7280]">
               KaTeX LaTeX formulas, chemistry notation, option images, and diagram figures
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+            className="p-2 text-[#6B7280] hover:text-[#111827] rounded-lg hover:bg-slate-100 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -352,11 +352,11 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
           {/* Metadata Row */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Folder Taxonomy</label>
+              <label className="block text-xs font-semibold text-[#374151] mb-1">Folder Taxonomy</label>
               <select
                 value={selectedFolder}
                 onChange={(e) => setSelectedFolder(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200"
+                className="w-full bg-white border border-[#D1D5DB] rounded-lg px-3 py-2 text-xs text-[#111827] focus:outline-none focus:border-[#0B1F3A]"
               >
                 <option value="">Root / Unassigned</option>
                 {folders.map((f: any) => (
@@ -368,33 +368,33 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Question Number</label>
+              <label className="block text-xs font-semibold text-[#374151] mb-1">Question Number</label>
               <input
                 type="text"
                 value={qNumber}
                 onChange={(e) => setQNumber(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                className="w-full bg-white border border-[#D1D5DB] rounded-lg px-3 py-2 text-xs text-[#111827] focus:outline-none focus:border-[#0B1F3A]"
                 placeholder="1"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Marks</label>
+              <label className="block text-xs font-semibold text-[#374151] mb-1">Marks</label>
               <input
                 type="number"
                 value={marks}
                 onChange={(e) => setMarks(parseInt(e.target.value, 10))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                className="w-full bg-white border border-[#D1D5DB] rounded-lg px-3 py-2 text-xs text-[#111827] focus:outline-none focus:border-[#0B1F3A]"
                 min={1}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Difficulty</label>
+              <label className="block text-xs font-semibold text-[#374151] mb-1">Difficulty</label>
               <select
                 value={difficulty}
                 onChange={(e) => setDifficulty(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200"
+                className="w-full bg-white border border-[#D1D5DB] rounded-lg px-3 py-2 text-xs text-[#111827] focus:outline-none focus:border-[#0B1F3A]"
               >
                 <option value="EASY">Easy</option>
                 <option value="MEDIUM">Medium</option>
@@ -496,19 +496,19 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
               rows={4}
               value={qText}
               onChange={(e) => setQText(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-indigo-500"
+              className="w-full bg-white border border-[#D1D5DB] rounded-xl p-3 text-xs text-[#111827] placeholder-[#6B7280] font-mono focus:outline-none focus:border-[#0B1F3A] focus:ring-1 focus:ring-[#0B1F3A]/20"
               placeholder="Enter question text. Use $...$ for inline math or $$...$$ for block equations."
             />
 
             {/* Attached Question Diagrams List */}
             {diagrams.length > 0 && (
-              <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800 space-y-2">
-                <div className="text-[11px] font-semibold text-slate-400">Attached Question Diagrams ({diagrams.length}):</div>
+              <div className="p-3 bg-slate-50 rounded-xl border border-[#E5E7EB] space-y-2">
+                <div className="text-[11px] font-semibold text-[#6B7280]">Attached Question Diagrams ({diagrams.length}):</div>
                 <div className="flex flex-wrap gap-3">
                   {diagrams.map((d: any, dIdx) => {
                     const diagUrl = typeof d === 'string' ? d : d.relative_url || d.url || '';
                     return (
-                      <div key={dIdx} className="p-2 rounded-xl bg-slate-900 border border-slate-700/80 space-y-1.5">
+                      <div key={dIdx} className="p-2 rounded-xl bg-white border border-[#D1D5DB] space-y-1.5 shadow-xs">
                         <ResizableImage
                           src={diagUrl}
                           alt={`Question Diagram ${dIdx + 1}`}
@@ -522,16 +522,16 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
                             setDiagrams(updated);
                           }}
                         />
-                        <div className="flex flex-wrap items-center justify-between gap-1.5 text-[10px] text-slate-400 font-mono px-1 border-t border-slate-800 pt-1">
-                          <span className="font-semibold text-slate-300">Figure {dIdx + 1}</span>
+                        <div className="flex flex-wrap items-center justify-between gap-1.5 text-[10px] text-[#6B7280] font-mono px-1 border-t border-[#E5E7EB] pt-1">
+                          <span className="font-semibold text-[#111827]">Figure {dIdx + 1}</span>
 
                           {/* Destination Selector: Move to Question Body or Option */}
                           <div className="flex items-center space-x-1">
-                            <span className="text-[9px] text-slate-500 font-mono">Dest:</span>
+                            <span className="text-[9px] text-[#6B7280] font-mono">Dest:</span>
                             <select
                               value="BODY"
                               onChange={(e) => handleMoveImageInEditor('BODY', dIdx, e.target.value)}
-                              className="bg-slate-950 border border-slate-700 text-slate-300 text-[10px] rounded px-1.5 py-0.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                              className="bg-white border border-[#D1D5DB] text-[#111827] text-[10px] rounded px-1.5 py-0.5 focus:outline-none focus:border-[#0B1F3A] cursor-pointer"
                               title="Move this figure to an Option or keep in Question Body"
                             >
                               <option value="BODY">📌 Question Body</option>
@@ -546,10 +546,10 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
                           <button
                             type="button"
                             onClick={() => handleRemoveDiagram(dIdx)}
-                            className="text-rose-400 hover:text-rose-200 hover:underline flex items-center space-x-0.5 ml-2 font-sans font-semibold"
+                            className="text-rose-600 hover:text-rose-800 hover:underline flex items-center space-x-0.5 ml-2 font-sans font-semibold"
                             title={`Delete Figure ${dIdx + 1}`}
                           >
-                            <Trash2 className="w-3 h-3 text-rose-400" />
+                            <Trash2 className="w-3 h-3 text-rose-600" />
                             <span>Delete</span>
                           </button>
                         </div>
@@ -562,8 +562,8 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
 
             {/* Live KaTeX Preview Box */}
             {qText && (
-              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800/80 text-xs">
-                <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Live Formula Render:</div>
+              <div className="p-3 bg-slate-50 rounded-xl border border-[#E5E7EB] text-xs text-[#111827]">
+                <div className="text-[10px] uppercase font-bold text-[#6B7280] mb-1">Live Formula Render:</div>
                 <MathRenderer content={qText} />
               </div>
             )}
@@ -572,13 +572,29 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
           {/* MCQ Options Builder with Option Image Attachments */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-slate-300">
-                MCQ Options (With Image & Formula Support)
-              </label>
+              <div className="flex items-center space-x-2">
+                <label className="block text-xs font-semibold text-[#374151]">
+                  MCQ Options (With Image & Formula Support)
+                </label>
+                {correctAnswer && (
+                  <span className="inline-flex items-center space-x-1.5 bg-emerald-50 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-md text-[11px] font-bold">
+                    <span>Key: Option {correctAnswer}</span>
+                    <button
+                      type="button"
+                      onClick={() => setCorrectAnswer('')}
+                      className="text-rose-600 hover:text-rose-800 hover:underline flex items-center space-x-0.5 cursor-pointer ml-1"
+                      title="Undo / Clear correct answer selection"
+                    >
+                      <RotateCcw className="w-2.5 h-2.5" />
+                      <span>Undo</span>
+                    </button>
+                  </span>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={handleAddOption}
-                className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center space-x-1"
+                className="text-xs text-[#0B1F3A] hover:underline flex items-center space-x-1 font-semibold"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Option</span>
@@ -596,9 +612,9 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
 
             <div className="space-y-3">
               {options.map((opt, idx) => (
-                <div key={idx} className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+                <div key={idx} className="p-2.5 rounded-xl bg-slate-50 border border-[#E5E7EB] space-y-2">
                   <div className="flex items-center space-x-2">
-                    <span className="w-7 h-7 rounded-lg bg-slate-800 text-indigo-400 font-mono font-bold text-xs flex items-center justify-center shrink-0">
+                    <span className="w-7 h-7 rounded-lg bg-slate-200 text-[#0B1F3A] font-mono font-bold text-xs flex items-center justify-center shrink-0">
                       {opt.key}
                     </span>
 
@@ -607,7 +623,7 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
                       value={opt.text}
                       onChange={(e) => handleOptionChange(idx, e.target.value)}
                       placeholder={`Option (${opt.key}) text or formula e.g. $\\sqrt{2}$`}
-                      className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white"
+                      className="flex-1 bg-white border border-[#D1D5DB] rounded-xl px-3 py-1.5 text-xs text-[#111827] focus:outline-none focus:border-[#0B1F3A] focus:ring-1 focus:ring-[#0B1F3A]/20"
                     />
 
                     {/* Paste clipboard text into option */}
@@ -621,10 +637,10 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
                           }
                         } catch {}
                       }}
-                      className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 rounded-lg text-xs flex items-center space-x-1"
+                      className="p-1.5 bg-slate-100 hover:bg-slate-200 text-[#111827] border border-[#D1D5DB] rounded-lg text-xs flex items-center space-x-1"
                       title={`Paste clipboard text into Option (${opt.key}) verbatim`}
                     >
-                      <Clipboard className="w-3.5 h-3.5 text-emerald-400" />
+                      <Clipboard className="w-3.5 h-3.5 text-emerald-600" />
                       <span className="text-[11px] hidden sm:inline">Paste</span>
                     </button>
 
@@ -635,30 +651,50 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
                         setTargetOptionIdx(idx);
                         optionFileInputRef.current?.click();
                       }}
-                      className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-indigo-400 rounded-lg text-xs flex items-center space-x-1"
+                      className="p-1.5 bg-slate-100 hover:bg-slate-200 text-[#111827] border border-[#D1D5DB] rounded-lg text-xs flex items-center space-x-1"
                       title={`Attach image to Option (${opt.key})`}
                     >
-                      <ImageIcon className="w-3.5 h-3.5" />
+                      <ImageIcon className="w-3.5 h-3.5 text-[#0B1F3A]" />
                       <span className="text-[11px] hidden sm:inline">Image</span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setCorrectAnswer(opt.key)}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 ${
-                        correctAnswer === opt.key
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-slate-800 text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      {correctAnswer === opt.key ? 'Correct' : 'Mark Correct'}
-                    </button>
+                    {correctAnswer === opt.key ? (
+                      <div className="flex items-center space-x-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setCorrectAnswer('')}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors bg-emerald-600 hover:bg-emerald-700 text-white flex items-center space-x-1 shadow-sm"
+                          title="Currently marked as correct answer. Click to undo / unmark."
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Correct</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCorrectAnswer('')}
+                          className="px-2 py-1.5 rounded-lg text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 transition-colors flex items-center space-x-1"
+                          title="Undo / Deselect this answer"
+                        >
+                          <RotateCcw className="w-3 h-3 text-rose-600" />
+                          <span className="text-[11px]">Undo</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setCorrectAnswer(opt.key)}
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 bg-slate-100 text-[#4B5563] hover:text-[#111827] hover:bg-slate-200 border border-[#D1D5DB]"
+                        title={`Mark Option (${opt.key}) as correct`}
+                      >
+                        Mark Correct
+                      </button>
+                    )}
 
                     {options.length > 2 && (
                       <button
                         type="button"
                         onClick={() => handleRemoveOption(idx)}
-                        className="p-1.5 text-slate-500 hover:text-rose-400"
+                        className="p-1.5 text-[#6B7280] hover:text-rose-600"
                         title="Delete option"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -686,17 +722,17 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
                         }}
                       />
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[11px] text-slate-400 font-mono">
+                        <span className="text-[11px] text-[#6B7280] font-mono">
                           Attached to Option ({opt.key})
                         </span>
 
                         {/* Destination Selector: Move from Option to Body or another Option */}
                         <div className="flex items-center space-x-1">
-                          <span className="text-[9px] text-slate-500 font-mono">Dest:</span>
+                          <span className="text-[9px] text-[#6B7280] font-mono">Dest:</span>
                           <select
                             value={opt.key}
                             onChange={(e) => handleMoveImageInEditor(opt.key, 0, e.target.value)}
-                            className="bg-slate-900 border border-slate-700 text-slate-300 text-[10px] rounded px-1.5 py-0.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                            className="bg-white border border-[#D1D5DB] text-[#111827] text-[10px] rounded px-1.5 py-0.5 focus:outline-none focus:border-[#0B1F3A] cursor-pointer"
                             title="Move this image to Question Body or another Option"
                           >
                             <option value={opt.key}>Option ({opt.key})</option>
@@ -712,7 +748,7 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
                         <button
                           type="button"
                           onClick={() => handleRemoveOptionImage(idx)}
-                          className="px-2 py-0.5 bg-rose-950/70 hover:bg-rose-900 border border-rose-500/40 text-rose-300 text-[11px] rounded flex items-center space-x-1 transition-colors"
+                          className="px-2 py-0.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-[11px] rounded flex items-center space-x-1 transition-colors"
                           title={`Delete image from Option (${opt.key})`}
                         >
                           <Trash2 className="w-2.5 h-2.5" />
@@ -729,7 +765,7 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
           {/* Explanation & Access Restriction */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-slate-300">Explanation / Solution</label>
+              <label className="block text-xs font-semibold text-[#374151]">Explanation / Solution</label>
               <button
                 type="button"
                 onClick={async () => {
@@ -740,7 +776,7 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
                     }
                   } catch {}
                 }}
-                className="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center space-x-1"
+                className="text-[11px] text-emerald-600 hover:text-emerald-700 flex items-center space-x-1 font-medium"
                 title="Paste clipboard text into explanation verbatim"
               >
                 <Clipboard className="w-3 h-3" />
@@ -751,7 +787,7 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
               rows={2}
               value={explanation}
               onChange={(e) => setExplanation(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+              className="w-full bg-white border border-[#D1D5DB] rounded-lg p-2.5 text-xs text-[#111827] focus:outline-none focus:border-[#0B1F3A]"
               placeholder="Step-by-step solution..."
             />
           </div>
@@ -762,24 +798,24 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
               id="isRestricted"
               checked={isRestricted}
               onChange={(e) => setIsRestricted(e.target.checked)}
-              className="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-indigo-500"
+              className="rounded bg-white border-[#D1D5DB] text-[#0B1F3A] focus:ring-[#0B1F3A]"
             />
-            <label htmlFor="isRestricted" className="text-xs text-slate-300 font-medium">
+            <label htmlFor="isRestricted" className="text-xs text-[#374151] font-medium">
               Restrict Access (Confidential question - only permitted users can view)
             </label>
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+        <div className="flex items-center justify-between pt-4 border-t border-[#E5E7EB]">
           <div>
             {(question || onDeleteQuestion) && (
               <button
                 type="button"
                 onClick={handleDelete}
-                className="px-3 py-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 rounded-xl text-xs font-medium flex items-center space-x-1.5 transition-colors"
+                className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-sm"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-3.5 h-3.5 text-white" />
                 <span>Delete Question</span>
               </button>
             )}
@@ -789,16 +825,16 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition-colors"
+              className="px-4 py-2 bg-white hover:bg-[#F3F4F6] text-[#374151] border border-[#D1D5DB] rounded-lg text-xs font-semibold transition-colors shadow-sm"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-indigo-600/25 transition-all flex items-center space-x-1.5"
+              className="px-6 py-2 bg-[#0B1F3A] hover:bg-[#16365F] text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center space-x-1.5"
             >
-              <Check className="w-4 h-4" />
+              <Check className="w-4 h-4 text-white" />
               <span>{question ? 'Update Question' : 'Save Question'}</span>
             </button>
           </div>

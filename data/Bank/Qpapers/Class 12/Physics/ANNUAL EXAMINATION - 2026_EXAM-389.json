@@ -28,7 +28,7 @@
         "difficulty": "MEDIUM",
         "tagsJson": "[]",
         "formulasJson": "[]",
-        "diagramsJson": "[{\"diagram_id\":\"diag_aa25b43b\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"bbox\":[971,438,327,90],\"width\":327,\"height\":54,\"labels\":[],\"alignment\":\"inline\",\"offsetX\":0,\"offsetY\":-5}]",
+        "diagramsJson": "[{\"diagram_id\":\"diag_aa25b43b\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"bbox\":[971,438,327,90],\"width\":327,\"height\":54,\"labels\":[],\"alignment\":\"inline\",\"offsetX\":0,\"offsetY\":-5}]",
         "isRestricted": false,
         "isApproved": true,
         "createdAt": "2026-09-20T00:37:57.264Z",
@@ -48,7 +48,6 @@
             "diagram_id": "diag_aa25b43b",
             "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
             "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
-            "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
             "bbox": [
               971,
               438,
@@ -139,7 +138,7 @@
       "difficulty": "MEDIUM",
       "tagsJson": "[]",
       "formulasJson": "[]",
-      "diagramsJson": "[{\"diagram_id\":\"diag_aa25b43b\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"absolute_path\":\"D:\\\\Recovered_school_app\\\\PAPERGENERATOR\\\\data\\\\diagrams\\\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"bbox\":[971,438,327,90],\"width\":327,\"height\":54,\"labels\":[],\"alignment\":\"inline\",\"offsetX\":0,\"offsetY\":-5}]",
+      "diagramsJson": "[{\"diagram_id\":\"diag_aa25b43b\",\"filename\":\"4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"relative_url\":\"/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png\",\"bbox\":[971,438,327,90],\"width\":327,\"height\":54,\"labels\":[],\"alignment\":\"inline\",\"offsetX\":0,\"offsetY\":-5}]",
       "isRestricted": false,
       "isApproved": true,
       "createdAt": "2026-09-20T00:37:57.264Z",
@@ -159,7 +158,6 @@
           "diagram_id": "diag_aa25b43b",
           "filename": "4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
           "relative_url": "/data/diagrams/4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
-          "absolute_path": "D:\\Recovered_school_app\\PAPERGENERATOR\\data\\diagrams\\4bd19cdf-3df8-46b8-9a06-2f0d5c237b54_p19_diag_aa25b43b.png",
           "bbox": [
             971,
             438,
@@ -176,5 +174,5 @@
       ]
     }
   ],
-  "updatedAt": "2026-09-20T01:02:30.611Z"
+  "updatedAt": {}
 }

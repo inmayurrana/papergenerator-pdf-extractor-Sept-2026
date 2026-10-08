@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "total_rules": 71,
+  "total_rules": 68,
   "rules": [
     {
       "id": "rule_times_accent",
@@ -580,39 +580,6 @@
       "context_domain": "QUESTION_TEXT"
     },
     {
-      "id": "exact_698581",
-      "raw_pattern": "and",
-      "replacement": "42 N",
-      "is_regex": false,
-      "description": "User exact correction: 'and...' -> '42 N...'",
-      "occurrences": 1,
-      "confidence": 0.95,
-      "created_from": "USER_CORRECTION",
-      "context_domain": "OPTION_FORMULA"
-    },
-    {
-      "id": "diff_347741",
-      "raw_pattern": "and",
-      "replacement": "42 N",
-      "is_regex": true,
-      "description": "Learned token mapping: 'and' -> '42 N'",
-      "occurrences": 1,
-      "confidence": 0.92,
-      "created_from": "TOKEN_DIFF",
-      "context_domain": "OPTION_FORMULA"
-    },
-    {
-      "id": "exact_133083",
-      "raw_pattern": "do not have any relative motion is :",
-      "replacement": "42 kgf",
-      "is_regex": false,
-      "description": "User exact correction: 'do not have any relative motio...' -> '42 kgf...'",
-      "occurrences": 1,
-      "confidence": 0.95,
-      "created_from": "USER_CORRECTION",
-      "context_domain": "OPTION_FORMULA"
-    },
-    {
       "id": "exact_481801",
       "raw_pattern": "25 kg, falling with an accleration of 9.2 m/s^2 ,\n$Z:\\NODE02\\B0B0-BA\\TARGET\\PHY\\ENG\\MODULE_01\\04-NLM\\04-NLM_EXERCISE.P65$\nwill be :\nNL0101",
       "replacement": "The frictional force of the air on a body of mass 0.25 kg, falling with an accleration of 9.2 m/s^2 , will be:",
@@ -654,17 +621,6 @@
       "occurrences": 1,
       "confidence": 0.95,
       "created_from": "USER_CORRECTION",
-      "context_domain": "QUESTION_TEXT"
-    },
-    {
-      "id": "diff_923890",
-      "raw_pattern": "42\\ N",
-      "replacement": "and",
-      "is_regex": true,
-      "description": "Learned token mapping: '42 N' -> 'and'",
-      "occurrences": 1,
-      "confidence": 0.92,
-      "created_from": "TOKEN_DIFF",
       "context_domain": "QUESTION_TEXT"
     },
     {
@@ -776,6 +732,17 @@
       "confidence": 0.95,
       "created_from": "USER_CORRECTION",
       "context_domain": "QUESTION_TEXT"
+    },
+    {
+      "id": "exact_200036",
+      "raw_pattern": "$\\left( \\frac{v_{0}}{\\mu g} \\right)$ 2",
+      "replacement": "$\\left( \\frac{v_{0}}2{\\mu g} \\right)$",
+      "is_regex": false,
+      "description": "User exact correction: '$\\left( \\frac{v_{0}}{\\mu g} \\r...' -> '$\\left( \\frac{v_{0}}2{\\mu g} \\...'",
+      "occurrences": 1,
+      "confidence": 0.95,
+      "created_from": "USER_CORRECTION",
+      "context_domain": "OPTION_FORMULA"
     }
   ]
 }

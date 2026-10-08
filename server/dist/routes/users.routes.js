@@ -8,8 +8,21 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const prisma_1 = require("../prisma");
 const auth_1 = require("../middleware/auth");
 const audit_1 = require("../middleware/audit");
+const securitySettings_service_1 = require("../services/securitySettings.service");
 const router = (0, express_1.Router)();
 router.use(auth_1.authenticateJwt);
+// Helper for password complexity
+const validatePasswordStrength = (pwd) => {
+    if (!pwd || pwd.length < 8)
+        return "Password must be at least 8 characters long";
+    if (!/[A-Z]/.test(pwd))
+        return "Password must contain at least one uppercase letter";
+    if (!/[a-z]/.test(pwd))
+        return "Password must contain at least one lowercase letter";
+    if (!/[0-9]/.test(pwd))
+        return "Password must contain at least one number";
+    return null;
+};
 // List users (Admins & Content Managers)
 router.get("/", (0, auth_1.requireRole)(["SUPER_ADMIN", "ADMIN", "CONTENT_MANAGER"]), async (req, res) => {
     try {
@@ -20,6 +33,10 @@ router.get("/", (0, auth_1.requireRole)(["SUPER_ADMIN", "ADMIN", "CONTENT_MANAGE
                 fullName: true,
                 role: true,
                 isActive: true,
+                failedLoginAttempts: true,
+                lockedUntil: true,
+                lastLoginAt: true,
+                lastLoginIp: true,
                 createdAt: true,
                 aclRules: true,
             },
@@ -39,12 +56,18 @@ router.post("/", (0, auth_1.requireRole)(["SUPER_ADMIN", "ADMIN"]), async (req, 
             res.status(400).json({ error: "Email, password, and full name are required" });
             return;
         }
+        const strengthErr = validatePasswordStrength(password);
+        if (strengthErr) {
+            res.status(400).json({ error: strengthErr });
+            return;
+        }
         const existing = await prisma_1.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
         if (existing) {
             res.status(400).json({ error: "A user with this email already exists" });
             return;
         }
-        const salt = await bcryptjs_1.default.genSalt(10);
+        const saltRounds = await securitySettings_service_1.SecuritySettingsService.getBcryptSaltRounds();
+        const salt = await bcryptjs_1.default.genSalt(saltRounds);
         const hash = await bcryptjs_1.default.hash(password, salt);
         const user = await prisma_1.prisma.user.create({
             data: {
@@ -59,10 +82,12 @@ router.post("/", (0, auth_1.requireRole)(["SUPER_ADMIN", "ADMIN"]), async (req, 
                 fullName: true,
                 role: true,
                 isActive: true,
+                failedLoginAttempts: true,
+                lockedUntil: true,
                 createdAt: true,
             },
         });
-        await (0, audit_1.logAuditAction)(req.user.id, "CREATE_USER", "USER", user.id, { email: user.email, role: user.role });
+        await (0, audit_1.logAuditAction)(req.user.id, "CREATE_USER", "USER", user.id, { email: user.email, role: user.role, saltRounds }, { req, status: "SUCCESS" });
         res.status(201).json({ user });
     }
     catch (err) {
@@ -116,21 +141,54 @@ router.post("/:id/reset-password", (0, auth_1.requireRole)(["SUPER_ADMIN", "ADMI
     try {
         const { id } = req.params;
         const { newPassword } = req.body;
-        if (!newPassword || newPassword.length < 6) {
-            res.status(400).json({ error: "New password must be at least 6 characters" });
+        const strengthErr = validatePasswordStrength(newPassword);
+        if (strengthErr) {
+            res.status(400).json({ error: strengthErr });
             return;
         }
-        const salt = await bcryptjs_1.default.genSalt(10);
+        const saltRounds = await securitySettings_service_1.SecuritySettingsService.getBcryptSaltRounds();
+        const salt = await bcryptjs_1.default.genSalt(saltRounds);
         const hash = await bcryptjs_1.default.hash(newPassword, salt);
         const updated = await prisma_1.prisma.user.update({
             where: { id },
             data: { passwordHash: hash },
             select: { id: true, email: true, fullName: true },
         });
-        await (0, audit_1.logAuditAction)(req.user.id, "RESET_PASSWORD", "USER", id, {
-            targetEmail: updated.email,
-        });
+        await (0, audit_1.logAuditAction)(req.user.id, "RESET_PASSWORD", "USER", id, { targetEmail: updated.email, saltRounds }, { req, status: "SUCCESS" });
         res.json({ message: `Password reset successfully for ${updated.fullName} (${updated.email})` });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// Manually unlock user account (Admins only)
+router.post("/:id/unlock", (0, auth_1.requireRole)(["SUPER_ADMIN", "ADMIN"]), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const targetUser = await prisma_1.prisma.user.findUnique({ where: { id } });
+        if (!targetUser) {
+            res.status(404).json({ error: "User not found" });
+            return;
+        }
+        const updated = await prisma_1.prisma.user.update({
+            where: { id },
+            data: {
+                failedLoginAttempts: 0,
+                lockedUntil: null,
+            },
+            select: {
+                id: true,
+                email: true,
+                fullName: true,
+                failedLoginAttempts: true,
+                lockedUntil: true,
+            },
+        });
+        await (0, audit_1.logAuditAction)(req.user.id, "UNLOCK_USER", "USER", id, { targetEmail: targetUser.email, targetFullName: targetUser.fullName }, { req, status: "SUCCESS" });
+        res.json({
+            message: `Account for ${targetUser.fullName} (${targetUser.email}) unlocked successfully`,
+            user: updated,
+        });
     }
     catch (err) {
         res.status(500).json({ error: err.message });

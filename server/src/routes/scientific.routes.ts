@@ -100,4 +100,16 @@ router.put("/settings", authenticateJwt, async (req: AuthRequest, res: Response)
   }
 });
 
+// Parse LaTeX into 2D Spatial AST & MathML
+router.post("/parse", authenticateJwt, async (req: AuthRequest, res: Response) => {
+  try {
+    const { latex } = req.body;
+    const aiRes = await axios.post(`${config.AI_SERVICE_URL}/api/visual-math/parse-latex`, { latex });
+    res.json({ status: "SUCCESS", data: aiRes.data });
+  } catch (err: any) {
+    res.status(500).json({ error: err.response?.data?.detail || err.message });
+  }
+});
+
 export default router;
+

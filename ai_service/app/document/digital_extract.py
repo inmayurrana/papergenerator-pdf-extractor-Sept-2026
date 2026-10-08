@@ -41,10 +41,30 @@ _SYMBOL_FONT_MAP: Dict[str, str] = {
     '\xb5': r'\propto',
     '\xab': r'\approx',
     '\xd7': r'\times',
-    '\xf7': r'\div',
+    # Symbol font tall bracket components (parenlefttp, parenrighttp, etc.)
+    '\xe6': '(',   # parenlefttp
+    '\xe7': '',    # parenleftex
+    '\xe8': '',    # parenleftbt
+    '\xf6': ')',   # parenrighttp
+    '\xf7': '',    # parenrightex (Symbol 0xF7 is right paren vertical extension)
+    '\xf8': '',    # parenrightbt
+    '\xe9': '[',   # bracketlefttp
+    '\xea': '',    # bracketleftex
+    '\xeb': '',    # bracketleftbt
+    '\xf9': ']',   # bracketrighttp
+    '\xfa': '',    # bracketrightex
+    '\xfb': '',    # bracketrightbt
+    '\xec': '{',   # bracelefttp
+    '\xed': '',    # braceleftmid
+    '\xee': '',    # braceleftbt
+    '\xef': '',    # braceleftex
+    '\xfc': '}',   # bracerighttp
+    '\xfd': '',    # bracerightmid
+    '\xfe': '',    # bracerightbt
+    '\xff': '',    # bracerightex
 }
 
-_SYMBOL_FONT_KEYWORDS = ('symbol', 'wingdings', 'zapf', 'mathtype', 'mtextra')
+_SYMBOL_FONT_KEYWORDS = ('symbol', 'wingdings', 'zapf', 'mathtype', 'mtextra', 'mt-extra', 'extra')
 
 
 def _decode_symbol_font_span(text: str, font_name: str) -> str:
@@ -55,6 +75,9 @@ def _decode_symbol_font_span(text: str, font_name: str) -> str:
     fn = font_name.lower()
     if not any(k in fn for k in _SYMBOL_FONT_KEYWORDS):
         return text
+    # MT-Extra font character 'r' is right-arrow vector over a variable
+    if 'extra' in fn:
+        return ''.join('r' if ch == 'r' else _SYMBOL_FONT_MAP.get(ch, ch) for ch in text)
     return ''.join(_SYMBOL_FONT_MAP.get(ch, ch) for ch in text)
 
 
@@ -71,6 +94,24 @@ def sanitize_math_font_artifacts(text: str) -> str:
         return ""
 
     s = text
+
+    # 0. Tall bracket artifacts from Symbol / SymbolMT font in PageMaker / Word
+    # Left parenthesis components: æ (top), ç (ext), è (bot)
+    s = re.sub(r'(?:[æçè]\s*)+', r'(', s)
+    # Right parenthesis components: ö (top), ÷ (ext), ø (bot)
+    s = re.sub(r'(?:ö\s*(?:\\div|÷)?\s*ø|[öø])', r')', s)
+    s = re.sub(r'\b\\div\b(?=\s*\))', '', s)
+    # Square bracket components: é (top), ê (ext), ë (bot) -> [; ù (top), ú (ext), û (bot) -> ]
+    s = re.sub(r'(?:[éêë]\s*)+', r'[', s)
+    s = re.sub(r'(?:[ùúû]\s*)+', r']', s)
+    # Curly brace components:
+    s = re.sub(r'(?:[ìíîï]\s*)+', r'{', s)
+    s = re.sub(r'(?:[üýþÿ]\s*)+', r'}', s)
+    # Convert regular parens enclosing a fraction to \left( ... \right) without duplicating \left(
+    s = re.sub(r'(?<!\\left)\(\s*([^()]*?\\frac\{[^}]+\}\{[^}]+\}[^()]*)\s*\)(?!\\right)', r'\\left( \1 \\right)', s)
+    s = re.sub(r'\\left\s*\\left\(', r'\\left(', s)
+    s = re.sub(r'\\right\s*\\right\)', r'\\right)', s)
+    s = re.sub(r'\(\s*\)', '', s)
 
     # 1. Acute accent U+00B4, grave `, prime ′ or ' ' between numbers/parentheses -> \\times
     s = re.sub(r'(\d+|\))\s*[´`\u2018\u2019′×✕✖]\s*(\d+|\()', r'\1 \\times \2', s)
@@ -119,6 +160,11 @@ def sanitize_math_font_artifacts(text: str) -> str:
     # NOTE: use negative lookbehind (?<!\\) to avoid double-encoding already LaTeX-encoded \theta
     s = re.sub(r'\\thita\b', r'\\theta', s, flags=re.IGNORECASE)
     s = re.sub(r'\\Thita\b', r'\\Theta', s)
+    # Inverse trig functions with superscript minus/en-dash/ad: tan^{-1}, tan-1, tan1 -> \tan^{-1}
+    s = re.sub(r'\b(sin|cos|tan|cot|sec|csc|cosec)[\s\xad\ufffd\u2013\-–]*1(?!\d)', r'\\\1^{-1}', s, flags=re.IGNORECASE)
+    # Separate attached variable names from trig: mgsin -> mg sin, Fcos -> F cos
+    s = re.sub(r'\b([a-zA-Z0-9]+?)(sin|cos|tan|cot|sec|csc|cosec)([θq])\b', r'\1 \\\2 \\theta', s, flags=re.IGNORECASE)
+    s = re.sub(r'\b([a-zA-Z0-9]+?)(sin|cos|tan|cot|sec|csc|cosec)\b', r'\1 \\\2', s, flags=re.IGNORECASE)
     s = re.sub(r'\b(sin|cos|tan|cot|sec|csc|cosec)\s*(?<!\\)(?:theta|thita|0|q)\b', r'\1 \\theta', s, flags=re.IGNORECASE)
     s = re.sub(r'\b(sin|cos|tan|cot|sec|csc|cosec)[θq]\b', r'\1 \\theta', s, flags=re.IGNORECASE)
     s = re.sub(r'\b(\d*g|g)\s*sin\s*q\b', r'\1 \\sin\\theta', s, flags=re.IGNORECASE)
@@ -127,6 +173,11 @@ def sanitize_math_font_artifacts(text: str) -> str:
     s = re.sub(r'(?<!\\)\b(?:Theta|Thita)\b', r'\\Theta', s)
     s = re.sub(r'[θϑ]', r'\\theta ', s)
     s = re.sub(r'Θ', r'\\Theta ', s)
+
+    # 7a. MT-Extra vector notation (right arrow over variable): e.g. R r + T r + W r = 0 -> \vec{R} + \vec{T} + \vec{W} = 0
+    s = re.sub(r'\bforce\s+(?:\\rho|r)\s+([A-Za-z])\b', r'force \\vec{\1}', s, flags=re.IGNORECASE)
+    s = re.sub(r'\b([A-Z])\s*(?:\\rho|r)(?=\s*[\+\-\=]|\s*\$)', r'\\vec{\1}', s)
+    s = re.sub(r'\b([A-Z])\s*(?:\\rho|r)\b', r'\\vec{\1}', s)
 
     # 7b. Contextual symbol-font fallback patterns (for spans whose font info has been lost
     # after text joining – these rely on surrounding words rather than font name).
@@ -301,7 +352,74 @@ def _detect_radical_drawings(page: Any) -> List[Dict[str, Any]]:
     return radicals
 
 
-def _detect_fraction_drawings(page: Any, page_dict: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _assemble_spans_with_scripts(spans_list: List[Dict[str, Any]], rad_drawings_list: Optional[List[Dict[str, Any]]] = None) -> str:
+    """Assembles text spans preserving subscripts, superscripts, and radicals correctly."""
+    if not spans_list:
+        return ""
+    if rad_drawings_list:
+        for s in spans_list:
+            if s.get("is_special"):
+                continue
+            sb = s.get("bbox", [0, 0, 0, 0])
+            for rd in rad_drawings_list:
+                vx0, vy, vx1 = rd["vinculum"]
+                if (sb[0] >= vx0 - 4.0 and sb[2] <= vx1 + 4.0) and (vy - 2.0 <= sb[1] <= vy + 14.0):
+                    raw_txt = s.get("text", "").strip()
+                    if raw_txt:
+                        s["text"] = f"\\sqrt{{{raw_txt}}}"
+                        s["is_special"] = True
+                    break
+
+    sizes = [s.get("size", 10.0) for s in spans_list if not s.get("is_special")]
+    normal_size = max(sizes) if sizes else 10.0
+
+    def sort_key(s):
+        x0 = s["bbox"][0]
+        y0 = s["bbox"][1]
+        sz = s.get("size", 10.0)
+        is_sub = (sz < normal_size * 0.85 and y0 > spans_list[0]["bbox"][1] + 2.0)
+        sec_key = 0 if is_sub else 1
+        return (round(x0 / 1.5) * 1.5, sec_key, x0)
+
+    spans_sorted = sorted(spans_list, key=sort_key)
+    parts = []
+    base_s = None
+    for s in spans_sorted:
+        t = s["text"]
+        sz = s.get("size", 10.0)
+        sb = s.get("bbox", [0, 0, 0, 0])
+        is_spec = s.get("is_special", False)
+
+        is_script = False
+        if not is_spec and base_s and sz < base_s.get("size", 10.0) * 0.85 and sb[0] <= base_s["bbox"][2] + 4.0:
+            base_mid_y = (base_s["bbox"][1] + base_s["bbox"][3]) / 2.0
+            span_mid_y = (sb[1] + sb[3]) / 2.0
+            if span_mid_y > base_mid_y + 1.0:
+                parts.append(f"_{{{t}}}")
+                is_script = True
+            elif span_mid_y < base_mid_y - 1.0:
+                parts.append(f"^{{{t}}}")
+                is_script = True
+
+        if not is_script:
+            if parts and not parts[-1].endswith("{") and not parts[-1].endswith("^") and not parts[-1].endswith("_") and t not in ("+", "-", "=") and parts[-1] not in ("+", "-", "="):
+                parts.append(" ")
+            parts.append(t)
+            if not is_spec and sz >= normal_size * 0.85:
+                base_s = s
+
+    res = "".join(parts).strip()
+    res = re.sub(r'(?<!\\)sin\s*\\theta', r'\\sin\\theta', res)
+    res = re.sub(r'([0-9a-zA-Z])sin', r'\1\\sin', res)
+    res = re.sub(r'([0-9a-zA-Z])cos', r'\1\\cos', res)
+    return re.sub(r'\s+', ' ', res)
+
+
+def _detect_fraction_drawings(
+    page: Any,
+    page_dict: Dict[str, Any],
+    rad_drawings: Optional[List[Dict[str, Any]]] = None
+) -> List[Dict[str, Any]]:
     """
     Finds horizontal vector division bars representing stacked fractions on a PDF page
     and pairs them with adjacent numerator and denominator text spans.
@@ -323,26 +441,6 @@ def _detect_fraction_drawings(page: Any, page_dict: Dict[str, Any]) -> List[Dict
                         "size": s.get("size", 10),
                         "font": s.get("font", ""),
                     })
-
-    def _assemble_fraction_spans(spans_list):
-        spans_sorted = sorted(spans_list, key=lambda s: s["bbox"][0])
-        parts = []
-        prev_s = None
-        for s in spans_sorted:
-            t = s["text"]
-            if prev_s and s.get("size", 10) < prev_s.get("size", 10) * 0.85 and s["bbox"][1] > prev_s["bbox"][1] + 1.0 and s["bbox"][0] <= prev_s["bbox"][2] + 2.5:
-                parts.append(f"_{{{t}}}")
-            elif prev_s and s.get("size", 10) < prev_s.get("size", 10) * 0.85 and s["bbox"][3] < prev_s["bbox"][3] - 1.0 and s["bbox"][0] <= prev_s["bbox"][2] + 2.5:
-                parts.append(f"^{{{t}}}")
-            else:
-                if parts and not parts[-1].endswith("{") and not t in "+-=" and not parts[-1] in "+-=":
-                    parts.append(" ")
-                parts.append(t)
-            prev_s = s
-        res = "".join(parts).strip()
-        res = re.sub(r'(?<!\\)sin\s*\\theta', r'\\sin\\theta', res)
-        res = re.sub(r'([0-9a-zA-Z])sin', r'\1\\sin', res)
-        return re.sub(r'\s+', ' ', res)
 
     drawings = page.get_drawings()
     frac_drawings = []
@@ -384,31 +482,47 @@ def _detect_fraction_drawings(page: Any, page_dict: Dict[str, Any]) -> List[Dict
         if nums and dens:
             nums_sorted = sorted(nums, key=lambda s: s["bbox"][0])
             dens_sorted = sorted(dens, key=lambda s: s["bbox"][0])
-            num_t = _assemble_fraction_spans(nums_sorted)
-            den_t = _assemble_fraction_spans(dens_sorted)
+            # Radicals that strictly belong to numerator (do NOT cover the entire fraction)
+            num_rads = [
+                rd for rd in (rad_drawings or [])
+                if not (rd["vinculum"][0] <= fx0 + 4.0 and rd["vinculum"][2] >= fx1 - 4.0 and rd["rect"].y1 >= fy + 4.0)
+            ]
+            num_t = _assemble_spans_with_scripts(nums_sorted, num_rads)
+            den_t = _assemble_spans_with_scripts(dens_sorted, num_rads)
             frac_latex = f"\\frac{{{num_t}}}{{{den_t}}}"
-            has_parens = bool(left_brackets or right_brackets)
+            has_parens = bool(left_brackets and right_brackets)
             if has_parens:
                 frac_latex = f"\\left( {frac_latex} \\right)"
-            bracket_spans_refs = [s["span_ref"] for s in left_brackets + right_brackets]
-            frac_x0 = fx0 - (6.0 if left_brackets else 0)
-            frac_x1 = fx1 + (6.0 if right_brackets else 0)
+                bracket_spans_refs = [s["span_ref"] for s in left_brackets + right_brackets]
+            else:
+                bracket_spans_refs = []
+            frac_x0 = fx0 - (6.0 if has_parens else 0)
+            frac_x1 = fx1 + (6.0 if has_parens else 0)
 
-            # Detect trailing factor/variable (e.g. F, g, v, a, T, etc.)
+            # Detect trailing factor/variable or exponent power (e.g. ^2, F, g, v, a, T, etc.)
             trail_x = (max(s["bbox"][2] for s in right_brackets) if right_brackets else frac_x1)
             trailing_spans = [
                 s for s in all_spans
-                if trail_x <= s["bbox"][0] <= trail_x + 18.0
-                and fy - 14.0 <= s["bbox"][1] <= fy + 14.0
+                if trail_x - 1.0 <= s["bbox"][0] <= trail_x + 18.0
+                and fy - 16.0 <= s["bbox"][1] <= fy + 16.0
                 and not opt_label_pat.match(s["text"].strip())
-                and len(s["text"].strip()) <= 3
-                and s["text"].strip() in ("F", "g", "a", "v", "T", "m", "N", "k", "P", "E", "W", "R")
+                and len(s["text"].strip()) <= 4
             ]
-            trailing_spans_refs = [s["span_ref"] for s in trailing_spans]
-            if trailing_spans:
-                trail_str = " ".join(s["text"].strip() for s in trailing_spans)
-                frac_latex = f"{frac_latex} {trail_str}"
-                frac_x1 = max(frac_x1, max(s["bbox"][2] for s in trailing_spans))
+            valid_trailing = []
+            for ts in trailing_spans:
+                ttxt = ts["text"].strip()
+                tsz = ts.get("size", 10.0)
+                if right_brackets and (tsz < 8.0 or ts["bbox"][3] < fy):
+                    frac_latex = f"{frac_latex}^{{{ttxt}}}"
+                    frac_x1 = max(frac_x1, ts["bbox"][2])
+                    valid_trailing.append(ts)
+                elif ttxt in ("F", "g", "a", "v", "T", "m", "N", "k", "P", "E", "W", "R"):
+                    frac_latex = f"{frac_latex} {ttxt}"
+                    frac_x1 = max(frac_x1, ts["bbox"][2])
+                    valid_trailing.append(ts)
+            trailing_spans_refs = [s["span_ref"] for s in valid_trailing]
+            if valid_trailing:
+                frac_x1 = max(frac_x1, max(s["bbox"][2] for s in valid_trailing))
 
             formula_bbox = [frac_x0, fy - 14.0, frac_x1, fy + 14.0]
 
@@ -481,7 +595,7 @@ class DigitalTextExtractor:
         rad_drawings = _detect_radical_drawings(page)
         raw_dict = page.get_text("rawdict")
         page_dict: Dict[str, Any] = raw_dict if isinstance(raw_dict, dict) else {}
-        frac_drawings = _detect_fraction_drawings(page, page_dict)
+        frac_drawings = _detect_fraction_drawings(page, page_dict, rad_drawings=rad_drawings)
 
         for fd in frac_drawings:
             first_num = fd["num_spans"][0]
@@ -497,7 +611,27 @@ class DigitalTextExtractor:
             for s in fd.get("trailing_spans", []):
                 s["is_consumed"] = True
 
-        raw_blocks = [b for b in page_dict.get("blocks", []) if b.get("type") == 0]
+        raw_blocks = []
+        for b in page_dict.get("blocks", []):
+            if b.get("type") == 0:
+                valid_lines = []
+                for l in b.get("lines", []):
+                    dir_v = l.get("dir", (1.0, 0.0))
+                    # Ignore diagonal or vertical watermark/margin lines (rotation > ~11 deg)
+                    if abs(dir_v[1]) > 0.2:
+                        continue
+                    clean_spans = [
+                        s for s in l.get("spans", [])
+                        if s.get("color") != 12566464 and s.get("size", 10) <= 60
+                    ]
+                    if clean_spans:
+                        l_copy = dict(l)
+                        l_copy["spans"] = clean_spans
+                        valid_lines.append(l_copy)
+                if valid_lines:
+                    b_copy = dict(b)
+                    b_copy["lines"] = valid_lines
+                    raw_blocks.append(b_copy)
         clusters = []
         mid_x = pdf_w / 2.0
         for b in raw_blocks:
@@ -512,7 +646,7 @@ class DigitalTextExtractor:
                     c_y_mid = (c_bb[1] + c_bb[3]) / 2
                     same_col = (bb[0] < mid_x and c_bb[0] < mid_x) or (bb[0] >= mid_x and c_bb[0] >= mid_x)
                     overlap_y = min(bb[3], c_bb[3]) - max(bb[1], c_bb[1])
-                    if same_col and c_h < 45.0 and (overlap_y > 0.4 * min(h, c_h) or abs(y_mid - c_y_mid) < 8.0):
+                    if same_col and c_h < 45.0 and (overlap_y > 0.25 * min(h, c_h) or abs(y_mid - c_y_mid) < 14.0):
                         cl["blocks"].append(b)
                         cl["bbox"] = [min(c_bb[0], bb[0]), min(c_bb[1], bb[1]), max(c_bb[2], bb[2]), max(c_bb[3], bb[3])]
                         matched = True
@@ -551,7 +685,14 @@ class DigitalTextExtractor:
                     txt = s.get("special_latex")
                     is_spec = bool(txt)
                     vinculum_idx = -1
-                    if not txt:
+                    if is_spec:
+                        sb = s.get("bbox", [0, 0, 0, 0])
+                        for ri, rd in enumerate(rad_drawings):
+                            vx0, vy, vx1 = rd["vinculum"]
+                            if (sb[0] >= vx0 - 8.0 and sb[2] <= vx1 + 8.0) and (rd["rect"].y0 - 2.0 <= sb[1] and sb[3] <= rd["rect"].y1 + 4.0):
+                                vinculum_idx = ri
+                                break
+                    else:
                         chars = s.get("chars", [])
                         raw_span_text = "".join(ch.get("c", "") for ch in chars) if chars else s.get("text", "")
                         if not raw_span_text.strip():
@@ -561,11 +702,11 @@ class DigitalTextExtractor:
                             vx0, vy, vx1 = rd["vinculum"]
                             # Span is under this vinculum if it overlaps the x-range and is at the right y-level
                             span_x_mid = (sb[0] + sb[2]) / 2.0
-                            if (sb[0] >= vx0 - 4.0 and sb[2] <= vx1 + 4.0) and (vy - 2.0 <= sb[1] <= vy + 14.0):
+                            if (sb[0] >= vx0 - 4.0 and sb[2] <= vx1 + 4.0) and (vy - 2.0 <= sb[1] <= rd["rect"].y1 + 4.0):
                                 vinculum_idx = ri
                                 break
                             # Also accept spans that merely start in the vinculum x-range
-                            elif (sb[0] >= vx0 - 4.0 and sb[0] <= vx1 + 2.0) and (vy - 2.0 <= sb[1] <= vy + 14.0):
+                            elif (sb[0] >= vx0 - 4.0 and sb[0] <= vx1 + 2.0) and (vy - 2.0 <= sb[1] <= rd["rect"].y1 + 4.0):
                                 vinculum_idx = ri
                                 break
                         txt = _decode_symbol_font_span(raw_span_text, s.get("font", ""))
@@ -589,24 +730,14 @@ class DigitalTextExtractor:
                         # Collect all spans for this vinculum
                         under_spans = [r for r in span_records if r["vinculum_idx"] == vi]
                         under_spans.sort(key=lambda r: r["bbox"][0])
-                        # Build expression from the sub-spans (with sub/superscript logic)
-                        sub_parts: List[str] = []
-                        prev_r = None
-                        for ur in under_spans:
-                            t = ur["text"]
-                            if prev_r and not ur["is_special"] and not prev_r["is_special"] and ur["size"] < prev_r["size"] * 0.85 and ur["bbox"][1] > prev_r["bbox"][1] + 1.0 and ur["bbox"][0] <= prev_r["bbox"][2] + 2.5:
-                                sub_parts.append(f"_{{{t}}}")
-                            elif prev_r and not ur["is_special"] and not prev_r["is_special"] and ur["size"] < prev_r["size"] * 0.85 and ur["bbox"][3] < prev_r["bbox"][3] - 1.0 and ur["bbox"][0] <= prev_r["bbox"][2] + 2.5:
-                                sub_parts.append(f"^{{{t}}}")
-                            else:
-                                if sub_parts and not sub_parts[-1].endswith("{") and t not in "+-=":
-                                    sub_parts.append(" ")
-                                sub_parts.append(t)
-                            prev_r = ur
-                        combined = "".join(sub_parts).strip()
+                        combined = _assemble_spans_with_scripts(under_spans)
+                        comb_x0 = min(r["bbox"][0] for r in under_spans)
+                        comb_y0 = min(r["bbox"][1] for r in under_spans)
+                        comb_x1 = max(r["bbox"][2] for r in under_spans)
+                        comb_y1 = max(r["bbox"][3] for r in under_spans)
                         surviving_spans.append({
                             "text": f"\\sqrt{{{combined}}}",
-                            "bbox": rec["bbox"],
+                            "bbox": [comb_x0, comb_y0, comb_x1, comb_y1],
                             "size": rec["size"],
                             "is_special": True,  # treat as already-processed
                             "formula_object": rec.get("formula_object"),
@@ -634,21 +765,7 @@ class DigitalTextExtractor:
                         seg = spans_sorted[start_idx:end_idx]
                         if not seg:
                             continue
-                        sub_parts = []
-                        prev_s = None
-                        for s in seg:
-                            t = s["text"]
-                            if prev_s and not s["is_special"] and not prev_s["is_special"] and s["size"] < prev_s["size"] * 0.85 and s["bbox"][1] > prev_s["bbox"][1] + 1.0 and s["bbox"][0] <= prev_s["bbox"][2] + 2.5:
-                                sub_parts.append(f"_{{{t}}}")
-                            elif prev_s and not s["is_special"] and not prev_s["is_special"] and s["size"] < prev_s["size"] * 0.85 and s["bbox"][3] < prev_s["bbox"][3] - 1.0 and s["bbox"][0] <= prev_s["bbox"][2] + 2.5:
-                                sub_parts.append(f"^{{{t}}}")
-                            else:
-                                if sub_parts and not sub_parts[-1].endswith("{") and t not in ("+", "-", "=") and sub_parts[-1] not in ("+", "-", "="):
-                                    sub_parts.append(" ")
-                                sub_parts.append(t)
-                            prev_s = s
-
-                        sub_full = "".join(sub_parts).strip()
+                        sub_full = _assemble_spans_with_scripts(seg)
                         if not sub_full:
                             continue
                         clean_sub = sanitize_math_font_artifacts(sub_full)
@@ -667,11 +784,13 @@ class DigitalTextExtractor:
                             clean_sub,
                             bbox=(seg_x0, seg_y0, seg_w, seg_h)
                         )
-                        seen_sub_latex = {fo["latex"] for fo in seg_formula_objs}
-                        for tfo in sub_text_fos:
-                            if tfo["latex"] not in seen_sub_latex:
-                                seg_formula_objs.append(tfo)
-                                seen_sub_latex.add(tfo["latex"])
+                        # Prioritize complete formulas (e.g. \tan^{-1}\left(\frac{4}{5}\right)) over inner fragments (\frac{4}{5})
+                        final_fos = list(sub_text_fos)
+                        for sfo in seg_formula_objs:
+                            s_ltx = sfo.get("latex", "")
+                            if not any(s_ltx in tfo.get("latex", "") for tfo in final_fos):
+                                final_fos.append(sfo)
+                        seg_formula_objs = final_fos
 
                         spans.append({
                             "id": f"p{page_number}_b{b_idx}_opt{k+1}",
@@ -685,20 +804,7 @@ class DigitalTextExtractor:
                         })
                     continue
 
-                parts = []
-                prev_s = None
-                for s in spans_sorted:
-                    t = s["text"]
-                    if prev_s and not s["is_special"] and not prev_s["is_special"] and s["size"] < prev_s["size"] * 0.85 and s["bbox"][1] > prev_s["bbox"][1] + 1.0 and s["bbox"][0] <= prev_s["bbox"][2] + 2.5:
-                        parts.append(f"_{{{t}}}")
-                    elif prev_s and not s["is_special"] and not prev_s["is_special"] and s["size"] < prev_s["size"] * 0.85 and s["bbox"][3] < prev_s["bbox"][3] - 1.0 and s["bbox"][0] <= prev_s["bbox"][2] + 2.5:
-                        parts.append(f"^{{{t}}}")
-                    else:
-                        if parts and not parts[-1].endswith("{") and t not in ("+", "-", "=") and parts[-1] not in ("+", "-", "="):
-                            parts.append(" ")
-                        parts.append(t)
-                    prev_s = s
-                full_text = "".join(parts).strip()
+                full_text = _assemble_spans_with_scripts(spans_sorted)
             else:
                 lines_text = []
                 for block in cl["blocks"]:
