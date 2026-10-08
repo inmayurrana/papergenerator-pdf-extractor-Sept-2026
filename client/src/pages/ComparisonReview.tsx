@@ -455,8 +455,8 @@ export const ComparisonReview: React.FC = () => {
 
   const handleFitPage = () => {
     if (pageData?.width && pageData?.height && viewportRef.current) {
-      const containerWidth = viewportRef.current.clientWidth - 24;
-      const containerHeight = viewportRef.current.clientHeight - 24;
+      const containerWidth = viewportRef.current.clientWidth - 32;
+      const containerHeight = viewportRef.current.clientHeight - 32;
       const scaleX = containerWidth / pageData.width;
       const scaleY = containerHeight / pageData.height;
       const scale = Math.min(scaleX, scaleY, 1.0);
@@ -589,13 +589,27 @@ export const ComparisonReview: React.FC = () => {
     }
   };
 
-  // Wheel event: Do NOT zoom on accidental wheel movement; ONLY zoom if Ctrl is held down!
+  // Wheel event: Zoom with Ctrl + Wheel; Pan/Scroll vertically with normal Wheel
   const handleWheel = (e: React.WheelEvent) => {
     if (e.ctrlKey) {
       e.preventDefault();
       const delta = e.deltaY < 0 ? 0.1 : -0.1;
       setZoom((prev) => Math.min(3.0, Math.max(0.15, prev + delta)));
       setFitMode('CUSTOM');
+    } else {
+      const pageH = (pageData?.height || 2339) * zoom;
+      const containerH = viewportRef.current?.clientHeight || 900;
+      if (pageH > containerH - 24) {
+        e.preventDefault();
+        setPan((prev) => {
+          const minY = containerH - pageH - 24;
+          const newY = prev.y - e.deltaY * 0.8;
+          return {
+            ...prev,
+            y: Math.max(minY, Math.min(10, newY)),
+          };
+        });
+      }
     }
   };
 
@@ -2166,7 +2180,7 @@ export const ComparisonReview: React.FC = () => {
       </div>
 
       {/* THREE-PANEL REVIEW WORKSPACE */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[750px]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[900px] xl:min-h-[1100px]">
         {/* PANEL 1 (LEFT): ORIGINAL PAGE IMAGE WITH TEXT SELECT, IMAGE CROPPER & PAN */}
         <div
           className={`${leftColSpan} ${
@@ -2328,8 +2342,11 @@ export const ComparisonReview: React.FC = () => {
             onMouseUpCapture={handleTextSelection}
             style={{
               touchAction: interactionMode === 'CROP_IMAGE' || interactionMode === 'PAN' ? 'none' : 'auto',
+              minHeight: pageData?.height
+                ? `${Math.max(900, Math.ceil(pageData.height * zoom) + 36)}px`
+                : '1050px',
             }}
-            className={`flex-1 min-h-[420px] sm:min-h-[600px] max-h-[75vh] sm:max-h-[780px] overflow-hidden rounded-xl bg-slate-950 p-2 border border-slate-900 relative ${
+            className={`flex-1 min-h-[850px] lg:min-h-[1050px] xl:min-h-[1200px] overflow-hidden rounded-xl bg-[#F8FAFC] p-3 border border-[#D1D5DB] shadow-xs relative transition-all duration-150 ${
               interactionMode === 'PAN'
                 ? isPanning
                   ? 'cursor-grabbing select-none'
@@ -2346,12 +2363,12 @@ export const ComparisonReview: React.FC = () => {
                   transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
                 }}
               >
-                <div className="relative inline-block shadow-2xl rounded-lg">
+                <div className="relative inline-block shadow-md rounded-lg bg-white border border-[#D1D5DB]">
                   <img
                     ref={imageRef}
                     src={resolvePageImageUrl(activePageImageUrl, imgAttempt)}
                     alt={`Page ${currentPageNum}`}
-                    className="rounded-lg max-w-none block pointer-events-none select-none"
+                    className="rounded-lg max-w-none block pointer-events-none select-none bg-white"
                     draggable={false}
                     onLoad={() => {
                       setImgLoadError(false);
@@ -3015,7 +3032,7 @@ export const ComparisonReview: React.FC = () => {
             );
           })()}
 
-          <div className="flex-1 overflow-y-auto space-y-4 pr-1 max-h-[700px]">
+          <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-[700px] max-h-[1150px] xl:max-h-none">
             {pageData?.questions?.length === 0 ? (
               <div className="text-center py-20 text-xs text-slate-400">
                 No questions identified on this page. Click "+ Add Question" or snip from the left.

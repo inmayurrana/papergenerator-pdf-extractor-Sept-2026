@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ShieldCheck,
   Lock,
@@ -62,6 +62,7 @@ export const Login: React.FC = () => {
   const { user, setAuth } = useAuthStore();
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   // Load custom branding on mount
   useEffect(() => {
@@ -175,14 +176,102 @@ export const Login: React.FC = () => {
     }
   };
 
+  // Handle SSO Redirect / Callback Query Params (?sso_token=... or ?error=...)
+  useEffect(() => {
+    const ssoError = searchParams.get('error');
+    if (ssoError) {
+      setError(decodeURIComponent(ssoError));
+      return;
+    }
+
+    const ssoToken = searchParams.get('sso_token');
+    const ssoRefresh = searchParams.get('sso_refresh');
+    const ssoSession = searchParams.get('sso_session');
+
+    if (ssoToken && ssoRefresh) {
+      setLoading(true);
+      // Fetch user profile and permissions using Bearer token
+      api
+        .get('/auth/me', {
+          headers: {
+            Authorization: `Bearer ${ssoToken}`,
+          },
+        })
+        .then((res) => {
+          if (res.data?.user) {
+            setAuth(
+              res.data.user,
+              ssoToken,
+              ssoRefresh,
+              res.data.permissions || [],
+              ssoSession || res.data.sessionId
+            );
+            navigate('/', { replace: true });
+          } else {
+            setError('Google Single Sign-On failed to retrieve user profile.');
+          }
+        })
+        .catch((err) => {
+          console.error('SSO me request failed', err);
+          setError(
+            err.response?.data?.error ||
+              'Google Single Sign-On session initialization failed. Please try again.'
+          );
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+  }, [searchParams, navigate, setAuth]);
+
+  // Handle SSO Popup postMessage Handover
+  useEffect(() => {
+    const handleSsoMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'GOOGLE_SSO_SUCCESS' && event.data?.payload) {
+        const { user, token, refreshToken, permissions, sessionId } = event.data.payload;
+        if (user && token && refreshToken) {
+          setAuth(user, token, refreshToken, permissions || [], sessionId);
+          navigate('/', { replace: true });
+        }
+      }
+    };
+
+    window.addEventListener('message', handleSsoMessage);
+    return () => {
+      window.removeEventListener('message', handleSsoMessage);
+    };
+  }, [navigate, setAuth]);
+
   const handleGoogleLogin = async () => {
+    if (isLocked) return;
     try {
+      setLoading(true);
+      setError('');
       const res = await api.get('/auth/google/url');
       if (res.data?.url) {
-        window.location.href = res.data.url;
+        // Attempt opening centered popup for seamless login experience
+        const width = 520;
+        const height = 650;
+        const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
+        const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2);
+        const popup = window.open(
+          res.data.url,
+          'google_sso_window',
+          `width=${width},height=${height},left=${left},top=${top},status=no,menubar=no,toolbar=no`
+        );
+
+        // Fallback to top-level navigation if popup was blocked
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+          window.location.href = res.data.url;
+        }
       }
     } catch (e: any) {
-      setError('Google Single Sign-On is currently unavailable in this environment.');
+      setError(
+        e.response?.data?.error ||
+          'Google Single Sign-On is currently unavailable in this environment.'
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -415,7 +504,7 @@ export const Login: React.FC = () => {
             <button
               type="button"
               onClick={handleGoogleLogin}
-              disabled={isLocked}
+              disabled={isLocked || loading}
               style={{ height: '44px' }}
               className="classic-button classic-button-secondary w-full text-sm font-medium flex items-center justify-center gap-3 border border-[#D1D5DB] bg-white hover:bg-[#F9FAFB] text-[#111827]"
             >

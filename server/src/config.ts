@@ -24,4 +24,5 @@ export const config = {
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || "super-secure-offline-refresh-secret-key-2026",
   AI_SERVICE_URL: process.env.AI_SERVICE_URL || "http://127.0.0.1:8010",
   DATA_DIR: resolveDataDir(),
+  FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:3010",
 };
