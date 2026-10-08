@@ -376,6 +376,14 @@ export const ComparisonReview: React.FC = () => {
 
     // Display preview image if available in document pages, or reset pageData so previous page's questions don't linger
     const fallbackPage = initialPageDoc || document?.pages?.find((p: any) => p.pageNumber === pageNum);
+    let initialLocalQuestions: any[] = [];
+    try {
+      const localSavedStr = localStorage.getItem(`pg_doc_${docId}_p${pageNum}_questions`);
+      if (localSavedStr) {
+        initialLocalQuestions = JSON.parse(localSavedStr) || [];
+      }
+    } catch {}
+
     if (fallbackPage) {
       setPageData({
         page_number: pageNum,
@@ -386,7 +394,7 @@ export const ComparisonReview: React.FC = () => {
         overall_confidence: fallbackPage.confidence || 0.95,
         needs_review: fallbackPage.needsReview || false,
         regions: fallbackPage.regions || [],
-        questions: [],
+        questions: initialLocalQuestions,
       });
     } else {
       setPageData({
@@ -398,7 +406,7 @@ export const ComparisonReview: React.FC = () => {
         overall_confidence: 0.95,
         needs_review: false,
         regions: [],
-        questions: [],
+        questions: initialLocalQuestions,
       });
     }
 
@@ -418,6 +426,25 @@ export const ComparisonReview: React.FC = () => {
       }
       if (rawExtracted) {
         rawExtracted.imageUrl = rawExtracted.page_image;
+        try {
+          const localSavedKey = `pg_doc_${docId}_p${pageNum}_questions`;
+          const localSavedStr = localStorage.getItem(localSavedKey);
+          if (localSavedStr) {
+            const localSavedQuestions = JSON.parse(localSavedStr);
+            if (Array.isArray(localSavedQuestions) && localSavedQuestions.length > 0) {
+              const currentList = rawExtracted.questions || [];
+              const existingNums = new Set(
+                currentList.map((q: any) => String(q.question_number || q.questionNumber || ''))
+              );
+              const toAdd = localSavedQuestions.filter(
+                (q: any) => !existingNums.has(String(q.question_number || q.questionNumber || ''))
+              );
+              rawExtracted.questions = [...currentList, ...toAdd];
+            }
+          }
+        } catch (e) {
+          console.warn('Error merging local saved questions:', e);
+        }
       }
       setPageData(rawExtracted);
     } catch (err: any) {

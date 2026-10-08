@@ -25,6 +25,13 @@ import {
   FileUp,
   Image as ImageIcon,
   Check,
+  Save,
+  Trash2,
+  Plus,
+  Pin,
+  ExternalLink,
+  CheckCircle2,
+  X,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { MathRenderer } from '../components/common/MathRenderer';
@@ -32,6 +39,23 @@ import { FormulaEditorModal } from '../components/common/FormulaEditorModal';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { ConfidenceBadge } from '../components/ui/Badge';
+
+export interface WorkingOption {
+  key: string;
+  text: string;
+  imageUrl?: string;
+}
+
+export interface WorkingQuestionDraft {
+  questionNumber: string;
+  questionText: string;
+  marks: number;
+  diagrams: Array<{ relative_url: string; width?: number; height?: number }>;
+  options: WorkingOption[];
+  correctAnswer: string;
+  explanation: string;
+  folderId?: string;
+}
 
 export const SnippingWorkspace: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -218,6 +242,94 @@ export const SnippingWorkspace: React.FC = () => {
   const [snipDestination, setSnipDestination] = useState<string>('BODY');
   const [processing, setProcessing] = useState(false);
 
+  // Working Question Draft State
+  const [workingQuestion, setWorkingQuestion] = useState<WorkingQuestionDraft>({
+    questionNumber: '1',
+    questionText: '',
+    marks: 1,
+    diagrams: [],
+    options: [
+      { key: 'A', text: '', imageUrl: '' },
+      { key: 'B', text: '', imageUrl: '' },
+      { key: 'C', text: '', imageUrl: '' },
+      { key: 'D', text: '', imageUrl: '' },
+    ],
+    correctAnswer: '',
+    explanation: '',
+    folderId: '',
+  });
+
+  const [toastMessage, setToastMessage] = useState<string>('');
+  const [savedQuestionsOnPage, setSavedQuestionsOnPage] = useState<any[]>([]);
+  const [folders, setFolders] = useState<any[]>([]);
+  const [flatFolders, setFlatFolders] = useState<any[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = useState<string>('');
+  const [savingToBank, setSavingToBank] = useState<boolean>(false);
+  const [savingToDoc, setSavingToDoc] = useState<boolean>(false);
+
+  const getSavedPageQuestionsKey = (dId?: string, pNum?: number) => {
+    const effectiveDocId = dId || docId || document?.id || 'default';
+    const effectivePage = pNum || pageNum || 1;
+    return `pg_doc_${effectiveDocId}_p${effectivePage}_questions`;
+  };
+
+  const loadSavedQuestionsForPage = () => {
+    try {
+      const key = getSavedPageQuestionsKey();
+      const data = localStorage.getItem(key);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) {
+          setSavedQuestionsOnPage(parsed);
+          return parsed;
+        }
+      }
+    } catch {}
+    setSavedQuestionsOnPage([]);
+    return [];
+  };
+
+  const fetchFolders = async () => {
+    try {
+      const res = await api.get('/folders');
+      const rootFolders = res.data.folders || [];
+      setFolders(rootFolders);
+
+      const flat: any[] = [];
+      const traverse = (list: any[], depth = 0) => {
+        for (const item of list) {
+          flat.push({
+            ...item,
+            displayName: (depth > 0 ? '— '.repeat(depth) : '') + item.name,
+          });
+          if (item.children && item.children.length > 0) traverse(item.children, depth + 1);
+        }
+      };
+      traverse(rootFolders);
+      setFlatFolders(flat);
+      if (flat.length > 0 && !selectedFolderId) {
+        setSelectedFolderId(flat[0].id);
+      }
+    } catch (err) {
+      console.error('Failed to load folders in SnippingWorkspace:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchFolders();
+  }, []);
+
+  useEffect(() => {
+    const list = loadSavedQuestionsForPage();
+    if (list.length > 0) {
+      const nextNum = list.length + 1;
+      setWorkingQuestion((prev) => ({
+        ...prev,
+        questionNumber: prev.questionText ? prev.questionNumber : String(nextNum),
+      }));
+    }
+  }, [docId, pageNum, document?.id]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
@@ -333,42 +445,311 @@ export const SnippingWorkspace: React.FC = () => {
     setIsEditorOpen(false);
   };
 
-  const handleCreateQuestionFromSnip = async () => {
-    if (!snipResult) return;
-    try {
-      const imgUrl = snipResult.snip?.imageUrl;
-      const questionData: any = {
-        questionText: snipResult.aiData?.extracted_text || 'Snippet Question',
-        marks: 1,
-      };
+  const extractQuestionNumberFromText = (text: string): string | null => {
+    if (!text) return null;
+    const match = text.match(/^\s*(?:Q(?:uestion)?[\s\.]*|)(\d+)(?:[\.\):]|\s+)/i);
+    return match ? match[1] : null;
+  };
 
-      if (snipDestination === 'BODY') {
-        questionData.diagrams = [
-          {
-            relative_url: imgUrl,
-            width: snipResult.aiData?.width,
-            height: snipResult.aiData?.height,
-          },
-        ];
-      } else {
-        questionData.options = [
-          { key: 'A', text: '', imageUrl: snipDestination === 'A' ? imgUrl : undefined },
-          { key: 'B', text: '', imageUrl: snipDestination === 'B' ? imgUrl : undefined },
-          { key: 'C', text: '', imageUrl: snipDestination === 'C' ? imgUrl : undefined },
-          { key: 'D', text: '', imageUrl: snipDestination === 'D' ? imgUrl : undefined },
-        ];
+  const handleSaveToBody = () => {
+    if (!snipResult) return;
+    const rawText = (snipResult.aiData?.extracted_text || '').trim();
+    const imgUrl = snipResult.snip?.imageUrl;
+
+    setWorkingQuestion((prev) => {
+      let newText = prev.questionText;
+      if (rawText) {
+        newText = prev.questionText ? `${prev.questionText}\n${rawText}` : rawText;
       }
 
-      await api.post('/questions', questionData);
-      alert(`New question created in Question Bank with image in ${snipDestination === 'BODY' ? 'Question Body' : `Option (${snipDestination})`}!`);
-      navigate('/bank');
+      const newDiagrams = [...prev.diagrams];
+      if (imgUrl && !newDiagrams.some((d) => d.relative_url === imgUrl)) {
+        newDiagrams.push({
+          relative_url: imgUrl,
+          width: snipResult.aiData?.width,
+          height: snipResult.aiData?.height,
+        });
+      }
+
+      let newQNum = prev.questionNumber;
+      const detectedNum = extractQuestionNumberFromText(rawText);
+      if (detectedNum && (!prev.questionText || prev.questionNumber === '1')) {
+        newQNum = detectedNum;
+      }
+
+      return {
+        ...prev,
+        questionNumber: newQNum,
+        questionText: newText,
+        diagrams: newDiagrams,
+      };
+    });
+
+    setToastMessage('✓ Snippet saved to Question Body!');
+    setTimeout(() => setToastMessage(''), 3500);
+  };
+
+  const handleSaveToOption = (optKey: string) => {
+    if (!snipResult) return;
+    const rawText = (snipResult.aiData?.extracted_text || '').trim();
+    const imgUrl = snipResult.snip?.imageUrl;
+
+    const cleanedText = rawText.replace(new RegExp(`^\\(?\\s*${optKey}\\s*[\\)\\.:\\-]\\s*`, 'i'), '').trim();
+
+    setWorkingQuestion((prev) => {
+      const newOptions = prev.options.map((opt) => {
+        if (opt.key === optKey) {
+          return {
+            ...opt,
+            text: cleanedText || (rawText || opt.text),
+            imageUrl: imgUrl || opt.imageUrl || '',
+          };
+        }
+        return opt;
+      });
+
+      return {
+        ...prev,
+        options: newOptions,
+      };
+    });
+
+    setToastMessage(`✓ Snippet saved to Option (${optKey})!`);
+    setTimeout(() => setToastMessage(''), 3500);
+  };
+
+  const handleRemoveDiagram = (idx: number) => {
+    setWorkingQuestion((prev) => ({
+      ...prev,
+      diagrams: prev.diagrams.filter((_, i) => i !== idx),
+    }));
+  };
+
+  const handleRemoveOptionImage = (optKey: string) => {
+    setWorkingQuestion((prev) => ({
+      ...prev,
+      options: prev.options.map((opt) =>
+        opt.key === optKey ? { ...opt, imageUrl: '' } : opt
+      ),
+    }));
+  };
+
+  const handleResetWorkingQuestion = () => {
+    const nextNum = savedQuestionsOnPage.length > 0 ? String(savedQuestionsOnPage.length + 1) : '1';
+    setWorkingQuestion({
+      questionNumber: nextNum,
+      questionText: '',
+      marks: 1,
+      diagrams: [],
+      options: [
+        { key: 'A', text: '', imageUrl: '' },
+        { key: 'B', text: '', imageUrl: '' },
+        { key: 'C', text: '', imageUrl: '' },
+        { key: 'D', text: '', imageUrl: '' },
+      ],
+      correctAnswer: '',
+      explanation: '',
+      folderId: selectedFolderId || '',
+    });
+    setToastMessage('Draft reset to new question');
+    setTimeout(() => setToastMessage(''), 2500);
+  };
+
+  const handleLoadSavedQuestion = (q: any) => {
+    setWorkingQuestion({
+      questionNumber: String(q.questionNumber || q.question_number || '1'),
+      questionText: q.questionText || q.question_text || '',
+      marks: q.marks || 1,
+      diagrams: q.diagrams || [],
+      options: q.options && q.options.length > 0 ? q.options : [
+        { key: 'A', text: '', imageUrl: '' },
+        { key: 'B', text: '', imageUrl: '' },
+        { key: 'C', text: '', imageUrl: '' },
+        { key: 'D', text: '', imageUrl: '' },
+      ],
+      correctAnswer: q.correctAnswer || q.correct_answer || '',
+      explanation: q.explanation || '',
+      folderId: q.folderId || selectedFolderId || '',
+    });
+    setToastMessage(`Loaded Question Q.${q.questionNumber || q.question_number} into editor`);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
+  const handleDeleteSavedQuestion = (qNum: string) => {
+    const effectiveDocId = docId || document?.id || 'default';
+    const effectivePage = pageNum || 1;
+    const key = getSavedPageQuestionsKey(effectiveDocId, effectivePage);
+    const existing: any[] = JSON.parse(localStorage.getItem(key) || '[]');
+    const updated = existing.filter((q: any) => String(q.questionNumber || q.question_number) !== String(qNum));
+    localStorage.setItem(key, JSON.stringify(updated));
+    setSavedQuestionsOnPage(updated);
+    setToastMessage(`Removed Question Q.${qNum} from page questions`);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
+  const handleSaveToQuestion = async () => {
+    const hasBody = Boolean(workingQuestion.questionText.trim() || workingQuestion.diagrams.length > 0);
+    const hasOptions = workingQuestion.options.some((o) => o.text.trim() || o.imageUrl);
+    if (!hasBody && !hasOptions) {
+      alert('Please snip or enter question content before saving.');
+      return;
+    }
+
+    setSavingToDoc(true);
+    try {
+      const qNum = workingQuestion.questionNumber.trim() || '1';
+      const effectiveDocId = docId || document?.id || 'default';
+      const effectivePage = pageNum || 1;
+
+      const questionItem = {
+        id: `snip_q_${Date.now()}`,
+        question_number: qNum,
+        questionNumber: qNum,
+        question_text: workingQuestion.questionText.trim(),
+        questionText: workingQuestion.questionText.trim(),
+        marks: workingQuestion.marks || 1,
+        options: workingQuestion.options,
+        correct_answer: workingQuestion.correctAnswer || '',
+        correctAnswer: workingQuestion.correctAnswer || '',
+        explanation: workingQuestion.explanation || '',
+        diagrams: workingQuestion.diagrams,
+        folderId: selectedFolderId || workingQuestion.folderId || null,
+        documentId: effectiveDocId,
+        pageNumber: effectivePage,
+        savedAt: new Date().toISOString(),
+      };
+
+      const key = getSavedPageQuestionsKey(effectiveDocId, effectivePage);
+      const existing: any[] = JSON.parse(localStorage.getItem(key) || '[]');
+      const updated = [
+        ...existing.filter((q: any) => String(q.questionNumber || q.question_number) !== String(qNum)),
+        questionItem,
+      ];
+      localStorage.setItem(key, JSON.stringify(updated));
+      setSavedQuestionsOnPage(updated);
+
+      const nextNum = String(parseInt(qNum, 10) + 1 || (updated.length + 1));
+      setWorkingQuestion({
+        questionNumber: nextNum,
+        questionText: '',
+        marks: 1,
+        diagrams: [],
+        options: [
+          { key: 'A', text: '', imageUrl: '' },
+          { key: 'B', text: '', imageUrl: '' },
+          { key: 'C', text: '', imageUrl: '' },
+          { key: 'D', text: '', imageUrl: '' },
+        ],
+        correctAnswer: '',
+        explanation: '',
+        folderId: selectedFolderId || '',
+      });
+
+      setSnipResult(null);
+      setCurrentBox(null);
+      setToastMessage(`✓ Question Q.${qNum} saved to Document Page ${effectivePage}!`);
+      setTimeout(() => setToastMessage(''), 4500);
     } catch (err: any) {
       alert(`Error saving question: ${err.message}`);
+    } finally {
+      setSavingToDoc(false);
+    }
+  };
+
+  const handleAddToQuestionBank = async () => {
+    const hasBody = Boolean(workingQuestion.questionText.trim() || workingQuestion.diagrams.length > 0);
+    const hasOptions = workingQuestion.options.some((o) => o.text.trim() || o.imageUrl);
+    if (!hasBody && !hasOptions) {
+      alert('Please snip or enter question content before adding to Question Bank.');
+      return;
+    }
+
+    setSavingToBank(true);
+    try {
+      const qNum = workingQuestion.questionNumber.trim() || '1';
+      const effectiveDocId = docId || document?.id || 'default';
+      const effectivePage = pageNum || 1;
+
+      const payload = {
+        folderId: selectedFolderId || workingQuestion.folderId || null,
+        questionNumber: qNum,
+        questionText: workingQuestion.questionText.trim() || `Snippet Question Q.${qNum}`,
+        options: workingQuestion.options.map((o) => ({
+          key: o.key,
+          text: o.text || '',
+          imageUrl: o.imageUrl || undefined,
+        })),
+        correctAnswer: workingQuestion.correctAnswer || '',
+        explanation: workingQuestion.explanation || '',
+        marks: workingQuestion.marks || 1,
+        difficulty: 'MEDIUM',
+        diagrams: workingQuestion.diagrams,
+        tags: [
+          document?.filename ? `Doc: ${document.filename}` : `Doc: ${effectiveDocId}`,
+          `Page: ${effectivePage}`,
+          'Visual Snip',
+        ],
+      };
+
+      const res = await api.post('/questions', payload);
+
+      const questionItem = {
+        ...payload,
+        id: res.data?.question?.id || `snip_q_${Date.now()}`,
+        question_number: qNum,
+        questionNumber: qNum,
+        question_text: payload.questionText,
+        documentId: effectiveDocId,
+        pageNumber: effectivePage,
+        savedAt: new Date().toISOString(),
+      };
+      const key = getSavedPageQuestionsKey(effectiveDocId, effectivePage);
+      const existing: any[] = JSON.parse(localStorage.getItem(key) || '[]');
+      const updated = [
+        ...existing.filter((q: any) => String(q.questionNumber || q.question_number) !== String(qNum)),
+        questionItem,
+      ];
+      localStorage.setItem(key, JSON.stringify(updated));
+      setSavedQuestionsOnPage(updated);
+
+      const nextNum = String(parseInt(qNum, 10) + 1 || (updated.length + 1));
+      setWorkingQuestion({
+        questionNumber: nextNum,
+        questionText: '',
+        marks: 1,
+        diagrams: [],
+        options: [
+          { key: 'A', text: '', imageUrl: '' },
+          { key: 'B', text: '', imageUrl: '' },
+          { key: 'C', text: '', imageUrl: '' },
+          { key: 'D', text: '', imageUrl: '' },
+        ],
+        correctAnswer: '',
+        explanation: '',
+        folderId: selectedFolderId || '',
+      });
+
+      setSnipResult(null);
+      setCurrentBox(null);
+      setToastMessage(`✓ Question Q.${qNum} added to Question Bank!`);
+      setTimeout(() => setToastMessage(''), 5000);
+    } catch (err: any) {
+      alert(`Failed to add question to Question Bank: ${err.response?.data?.error || err.message}`);
+    } finally {
+      setSavingToBank(false);
     }
   };
 
   return (
     <div className="space-y-6">
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-50 flex items-center space-x-2.5 bg-[#0B1F3A] text-white px-4 py-3 rounded-lg shadow-xl border border-blue-400/40 text-xs sm:text-sm font-semibold animate-in fade-in slide-in-from-top-2 duration-200">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Hidden File Input for Direct Upload */}
       <input
         type="file"
@@ -582,7 +963,7 @@ export const SnippingWorkspace: React.FC = () => {
         {/* Left Snipping Canvas View */}
         <div
           ref={containerRef}
-          className="lg:col-span-8 bg-slate-100 rounded-lg p-4 overflow-auto flex items-center justify-center relative select-none border border-[#CBD5E1] shadow-xs"
+          className="lg:col-span-7 bg-slate-100 rounded-lg p-4 overflow-auto flex items-center justify-center relative select-none border border-[#CBD5E1] shadow-xs min-h-[600px]"
         >
           {pageImageUrl ? (
             <div
@@ -720,11 +1101,26 @@ export const SnippingWorkspace: React.FC = () => {
         </div>
 
         {/* Right Crop Result & Actions Panel */}
-        <Card className="lg:col-span-4 p-5 flex flex-col justify-between space-y-6 border-[#D1D5DB]">
+        <Card className="lg:col-span-5 p-5 flex flex-col space-y-5 border-[#D1D5DB] max-h-[960px] overflow-y-auto">
           <div className="space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
               <span className="text-sm font-bold uppercase tracking-wider text-[#111827]">Localized Crop Recognition</span>
-              <Sparkles className="w-5 h-5 text-[#0B1F3A]" />
+              <div className="flex items-center space-x-2">
+                {snipResult && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSnipResult(null);
+                      setCurrentBox(null);
+                    }}
+                    className="text-xs text-slate-500 hover:text-slate-800 hover:underline flex items-center space-x-1"
+                    title="Clear current crop"
+                  >
+                    <span>Clear Crop</span>
+                  </button>
+                )}
+                <Sparkles className="w-5 h-5 text-[#0B1F3A]" />
+              </div>
             </div>
 
             {snipResult ? (
@@ -784,61 +1180,368 @@ export const SnippingWorkspace: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Direct Destination Save Buttons */}
+                <div className="space-y-2 p-3.5 bg-blue-50/70 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#0B1F3A] uppercase tracking-wide flex items-center space-x-1.5">
+                      <Pin className="w-3.5 h-3.5 text-blue-700" />
+                      <span>Insert Snippet Content Into:</span>
+                    </span>
+                    <span className="text-[11px] text-blue-800 font-bold bg-white px-2 py-0.5 rounded border border-blue-300">
+                      Click to Save
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveToBody}
+                    className="w-full px-3.5 py-2.5 rounded-md text-xs font-bold border transition-all text-left flex items-center justify-between bg-[#0B1F3A] hover:bg-[#163660] text-white shadow-xs cursor-pointer"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Pin className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Save to Question Body</span>
+                    </div>
+                    {workingQuestion.questionText && (
+                      <span className="text-[10px] bg-blue-900/80 text-blue-200 px-2 py-0.5 rounded border border-blue-400/40 font-mono">
+                        Body has content
+                      </span>
+                    )}
+                  </button>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    {['A', 'B', 'C', 'D'].map((opt) => {
+                      const optData = workingQuestion.options.find((o) => o.key === opt);
+                      const hasContent = Boolean(optData?.text || optData?.imageUrl);
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => handleSaveToOption(opt)}
+                          className={`px-3 py-2 rounded-md text-xs font-bold border transition-all text-left flex items-center justify-between cursor-pointer ${
+                            hasContent
+                              ? 'bg-emerald-50 border-emerald-400 text-emerald-900 hover:bg-emerald-100'
+                              : 'bg-white border-[#D1D5DB] text-[#111827] hover:bg-slate-100'
+                          }`}
+                        >
+                          <span>Save to Option ({opt})</span>
+                          {hasContent && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             ) : (
-              <div className="text-sm text-[#4B5563] py-20 text-center space-y-3">
-                <Crop className="w-10 h-10 mx-auto text-[#6B7280]" />
-                <p>Click and drag on the document page image to select a region, then select a recognition path above.</p>
+              <div className="text-sm text-[#4B5563] py-8 text-center space-y-3 bg-slate-50 rounded-lg border border-dashed border-[#D1D5DB] p-4">
+                <Crop className="w-9 h-9 mx-auto text-[#6B7280]" />
+                <p className="text-xs">
+                  Click and drag on the document page image to select a question, formula, or diagram region, then click <strong>Process Crop</strong> above.
+                </p>
               </div>
             )}
           </div>
 
-          {/* Action Buttons */}
-          <div className="space-y-3 pt-4 border-t border-[#E5E7EB]">
-            {snipResult && (
-              <div className="space-y-2 p-3 bg-slate-50 rounded-md border border-[#E5E7EB]">
-                <span className="block text-xs font-bold text-[#111827]">
-                  Place Image / Diagram in:
+          {/* Current Working Question Draft Assembly */}
+          <div className="space-y-4 pt-4 border-t border-[#E5E7EB]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Edit3 className="w-4 h-4 text-[#0B1F3A]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-[#111827]">
+                  Current Assembled Question Draft
                 </span>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSnipDestination('BODY')}
-                    className={`px-3 py-2 rounded-md text-xs font-bold border transition-all text-left flex items-center space-x-1.5 ${
-                      snipDestination === 'BODY'
-                        ? 'bg-[#0B1F3A] border-[#0B1F3A] text-white shadow-xs'
-                        : 'bg-white border-[#D1D5DB] text-[#111827] hover:bg-slate-100'
+              </div>
+              <button
+                type="button"
+                onClick={handleResetWorkingQuestion}
+                className="text-xs text-slate-500 hover:text-slate-900 flex items-center space-x-1 hover:underline cursor-pointer"
+                title="Start a fresh question draft"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>Reset Draft</span>
+              </button>
+            </div>
+
+            {/* Q Num & Marks Row */}
+            <div className="grid grid-cols-2 gap-3 p-2.5 bg-slate-50 rounded-md border border-[#E5E7EB] text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Question Number:
+                </label>
+                <div className="flex items-center space-x-1">
+                  <span className="font-bold text-slate-600">Q.</span>
+                  <input
+                    type="text"
+                    value={workingQuestion.questionNumber}
+                    onChange={(e) =>
+                      setWorkingQuestion((prev) => ({ ...prev, questionNumber: e.target.value }))
+                    }
+                    className="w-full font-bold px-2 py-1 bg-white border border-slate-300 rounded text-xs text-[#111827] focus:ring-1 focus:ring-blue-700"
+                    placeholder="3"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Marks:
+                </label>
+                <div className="flex items-center space-x-1">
+                  <input
+                    type="number"
+                    min={1}
+                    value={workingQuestion.marks}
+                    onChange={(e) =>
+                      setWorkingQuestion((prev) => ({
+                        ...prev,
+                        marks: parseInt(e.target.value, 10) || 1,
+                      }))
+                    }
+                    className="w-full font-bold px-2 py-1 bg-white border border-slate-300 rounded text-xs text-[#111827] focus:ring-1 focus:ring-blue-700"
+                  />
+                  <span className="text-slate-600 font-medium">mark(s)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Question Body Input & Preview */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-[#111827]">
+                  Question Body Text / LaTeX:
+                </label>
+                {workingQuestion.questionText && (
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    {workingQuestion.questionText.length} chars
+                  </span>
+                )}
+              </div>
+              <textarea
+                value={workingQuestion.questionText}
+                onChange={(e) =>
+                  setWorkingQuestion((prev) => ({ ...prev, questionText: e.target.value }))
+                }
+                placeholder="Snippet text or LaTeX will appear here when you click 'Save to Question Body'..."
+                rows={3}
+                className="w-full text-xs font-mono p-2.5 rounded-md border border-[#D1D5DB] focus:ring-2 focus:ring-blue-700 bg-white"
+              />
+
+              {workingQuestion.questionText.trim() && (
+                <div className="p-2.5 bg-slate-50 rounded-md border border-[#E5E7EB] text-xs font-mono overflow-x-auto">
+                  <MathRenderer content={workingQuestion.questionText} />
+                </div>
+              )}
+
+              {/* Attached Question Body Diagrams */}
+              {workingQuestion.diagrams.length > 0 && (
+                <div className="space-y-1 pt-1">
+                  <span className="text-[11px] font-bold text-slate-600">
+                    Attached Question Diagram(s):
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {workingQuestion.diagrams.map((diag, dIdx) => (
+                      <div
+                        key={dIdx}
+                        className="relative group border border-slate-200 rounded p-1 bg-white inline-block shadow-xs"
+                      >
+                        <img
+                          src={diag.relative_url}
+                          alt="Question Diagram"
+                          className="max-h-20 max-w-[180px] rounded object-contain"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDiagram(dIdx)}
+                          className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full p-0.5 shadow-sm cursor-pointer"
+                          title="Remove diagram"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* MCQ Options A, B, C, D */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#111827]">
+                  Options (A, B, C, D):
+                </span>
+                <span className="text-[10px] text-slate-500">
+                  Select radio button for correct answer
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {workingQuestion.options.map((opt) => (
+                  <div
+                    key={opt.key}
+                    className={`p-2.5 rounded-md border text-xs space-y-1.5 transition-all ${
+                      workingQuestion.correctAnswer === opt.key
+                        ? 'bg-emerald-50/70 border-emerald-400'
+                        : 'bg-slate-50 border-slate-200'
                     }`}
                   >
-                    <span>📌 Question Body</span>
-                  </button>
-                  {['A', 'B', 'C', 'D'].map((opt) => (
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center space-x-2 font-bold text-[#111827] cursor-pointer">
+                        <input
+                          type="radio"
+                          name="working_correct_answer"
+                          checked={workingQuestion.correctAnswer === opt.key}
+                          onChange={() =>
+                            setWorkingQuestion((prev) => ({ ...prev, correctAnswer: opt.key }))
+                          }
+                          className="text-emerald-700 focus:ring-emerald-700 h-3.5 w-3.5 cursor-pointer"
+                        />
+                        <span>Option ({opt.key})</span>
+                        {workingQuestion.correctAnswer === opt.key && (
+                          <span className="text-[10px] text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded font-bold">
+                            Correct Choice
+                          </span>
+                        )}
+                      </label>
+                      {opt.imageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOptionImage(opt.key)}
+                          className="text-[10px] text-red-600 hover:underline flex items-center space-x-0.5 cursor-pointer"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" />
+                          <span>Remove Image</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <input
+                      type="text"
+                      value={opt.text}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setWorkingQuestion((prev) => ({
+                          ...prev,
+                          options: prev.options.map((o) =>
+                            o.key === opt.key ? { ...o, text: val } : o
+                          ),
+                        }));
+                      }}
+                      placeholder={`Option (${opt.key}) text or LaTeX...`}
+                      className="w-full text-xs font-mono px-2.5 py-1.5 rounded border border-[#D1D5DB] bg-white focus:ring-1 focus:ring-blue-700"
+                    />
+
+                    {opt.imageUrl && (
+                      <div className="pt-1">
+                        <img
+                          src={opt.imageUrl}
+                          alt={`Option ${opt.key}`}
+                          className="max-h-16 rounded border border-slate-200 bg-white p-0.5 object-contain"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Folder Selector for Bank */}
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-[#111827]">
+                Question Bank Destination Folder:
+              </label>
+              <select
+                value={selectedFolderId}
+                onChange={(e) => setSelectedFolderId(e.target.value)}
+                className="w-full bg-white border border-[#D1D5DB] text-xs font-semibold rounded-md px-3 py-2 text-[#111827] focus:outline-none focus:ring-2 focus:ring-blue-700"
+              >
+                <option value="">Universal / Root Folder</option>
+                {flatFolders.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.displayName} ({f.type})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Action Buttons: Save to Question & Add to Question Bank */}
+            <div className="space-y-2 pt-3 border-t border-[#E5E7EB]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleSaveToQuestion}
+                  loading={savingToDoc}
+                  className="w-full justify-center font-bold text-xs shadow-xs"
+                  icon={<Save className="w-4 h-4 text-[#0B1F3A]" />}
+                >
+                  Save to Question
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={handleAddToQuestionBank}
+                  loading={savingToBank}
+                  className="w-full justify-center font-bold text-xs bg-emerald-700 hover:bg-emerald-800 text-white border-emerald-800 shadow-xs"
+                  icon={<FolderPlus className="w-4 h-4" />}
+                >
+                  Add to Question Bank
+                </Button>
+              </div>
+            </div>
+
+            {/* Saved Questions On This Page Chips */}
+            {savedQuestionsOnPage.length > 0 && (
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-md space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-[#111827]">
+                  <span>Saved on Page {pageNum} ({savedQuestionsOnPage.length}):</span>
+                  {docId && (
                     <button
-                      key={opt}
                       type="button"
-                      onClick={() => setSnipDestination(opt)}
-                      className={`px-3 py-2 rounded-md text-xs font-bold border transition-all text-left flex items-center space-x-1.5 ${
-                        snipDestination === opt
-                          ? 'bg-emerald-800 border-emerald-800 text-white shadow-xs'
-                          : 'bg-white border-[#D1D5DB] text-[#111827] hover:bg-slate-100'
-                      }`}
+                      onClick={() => navigate(`/review?docId=${docId}`)}
+                      className="text-[11px] text-blue-700 hover:underline flex items-center space-x-1 cursor-pointer"
                     >
-                      <span>Option ({opt})</span>
+                      <span>Review Document</span>
+                      <ArrowRight className="w-3 h-3" />
                     </button>
-                  ))}
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {savedQuestionsOnPage.map((q: any, qIdx: number) => {
+                    const num = q.questionNumber || q.question_number || String(qIdx + 1);
+                    const isCurrent = String(workingQuestion.questionNumber) === String(num);
+                    return (
+                      <div
+                        key={q.id || qIdx}
+                        className={`inline-flex items-center rounded-md border text-xs px-2 py-0.5 space-x-1 font-bold ${
+                          isCurrent
+                            ? 'bg-blue-100 border-blue-400 text-blue-900'
+                            : 'bg-white border-slate-300 text-slate-800 hover:bg-slate-100'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleLoadSavedQuestion(q)}
+                          className="hover:underline cursor-pointer"
+                          title="Click to load into editor"
+                        >
+                          Q.{num}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSavedQuestion(num)}
+                          className="text-slate-400 hover:text-red-600 pl-1 cursor-pointer"
+                          title="Delete question"
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
-
-            <Button
-              variant="primary"
-              onClick={handleCreateQuestionFromSnip}
-              disabled={!snipResult}
-              className="w-full"
-              icon={<FolderPlus className="w-4 h-4" />}
-            >
-              Create New Question in Bank
-            </Button>
           </div>
         </Card>
       </div>
