@@ -179,9 +179,9 @@ export const FormulaEditorModal: React.FC<FormulaEditorModalProps> = ({
                   </span>
                 </div>
               </div>
-              <div className="flex items-center justify-center min-h-[90px] bg-slate-900/50 rounded-lg p-2 border border-slate-800/60 text-center">
-                <div className="text-lg text-white font-medium">
-                  <MathRenderer content={latex || 'x = 0'} />
+              <div className="flex items-center justify-center min-h-[100px] bg-white rounded-lg p-3 border-2 border-slate-300 shadow-inner text-center overflow-x-auto">
+                <div className="text-xl text-[#0B1F3A] font-semibold select-all w-full">
+                  <MathRenderer content={latex || 'x = 0'} className="text-[#0B1F3A]" />
                 </div>
               </div>
             </div>
@@ -229,7 +229,7 @@ export const FormulaEditorModal: React.FC<FormulaEditorModalProps> = ({
                   key={tmpl.label}
                   type="button"
                   onClick={() => setLatex(tmpl.val)}
-                  className="px-2 py-0.5 rounded bg-slate-900 hover:bg-violet-900/40 text-slate-300 hover:text-violet-300 border border-slate-800 text-[10px] font-mono transition-all"
+                  className="px-2.5 py-1 rounded bg-slate-100 hover:bg-violet-700 hover:text-white text-slate-800 border border-slate-300 text-[11px] font-mono font-bold transition-all"
                 >
                   {tmpl.label}
                 </button>
@@ -358,7 +358,7 @@ export const FormulaEditorModal: React.FC<FormulaEditorModalProps> = ({
                   type="button"
                   onClick={() => handleReprocessWithMode(m)}
                   disabled={validating}
-                  className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all active:scale-95"
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-slate-800 hover:text-white text-slate-800 border border-slate-300 transition-all active:scale-95"
                 >
                   {m}
                 </button>

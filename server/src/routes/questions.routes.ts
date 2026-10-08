@@ -826,6 +826,120 @@ router.all("/questions/export/json", async (req: AuthRequest, res: Response) => 
   }
 });
 
+// Helper: Formats LaTeX mathematical formulas into clean, readable typography for Word & PDF exports
+function formatMathForExport(text: string): string {
+  if (!text) return "";
+
+  const SUPERSCRIPTS: Record<string, string> = {
+    "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
+    "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
+    "+": "⁺", "-": "⁻", "=": "⁼", "(": "⁽", ")": "⁾",
+    "n": "ⁿ", "i": "ⁱ", "x": "ˣ", "y": "ʸ"
+  };
+
+  const SUBSCRIPTS: Record<string, string> = {
+    "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄",
+    "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉",
+    "+": "₊", "-": "₋", "=": "₌", "(": "₍", ")": "₎",
+    "a": "ₐ", "e": "ₑ", "o": "ₒ", "x": "ₓ", "u": "ᵤ", "v": "ᵥ"
+  };
+
+  let out = text;
+  const mathDelim = /(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$|\\\[[\s\S]*?\\\]|\\\([^\)]+?\\\))/g;
+
+  out = out.replace(mathDelim, (delimited) => {
+    let m = delimited;
+    if (m.startsWith("$$") && m.endsWith("$$")) m = m.slice(2, -2).trim();
+    else if (m.startsWith("$") && m.endsWith("$")) m = m.slice(1, -1).trim();
+    else if (m.startsWith("\\[") && m.endsWith("\\]")) m = m.slice(2, -2).trim();
+    else if (m.startsWith("\\(") && m.endsWith("\\)")) m = m.slice(2, -2).trim();
+
+    // Standard fractions
+    m = m.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, (_, num, den) => {
+      const cleanNum = num.trim();
+      const cleanDen = den.trim();
+      if (cleanNum === "1" && cleanDen === "2") return "½";
+      if (cleanNum === "1" && cleanDen === "3") return "⅓";
+      if (cleanNum === "2" && cleanDen === "3") return "⅔";
+      if (cleanNum === "1" && cleanDen === "4") return "¼";
+      if (cleanNum === "3" && cleanDen === "4") return "¾";
+      if (cleanNum === "4" && cleanDen === "3") return "⁴⁄₃";
+      if (cleanNum === "4\\pi" && cleanDen === "3") return "⁴⁄₃π";
+      if (cleanNum === "4 \\pi" && cleanDen === "3") return "⁴⁄₃π";
+      return `(${cleanNum}/${cleanDen})`;
+    });
+
+    // Radicals
+    m = m.replace(/\\sqrt\[3\]\{([^}]+)\}/g, "∛$1");
+    m = m.replace(/\\sqrt\[4\]\{([^}]+)\}/g, "∜$1");
+    m = m.replace(/\\sqrt\{([^}]+)\}/g, "√$1");
+
+    // Superscripts
+    m = m.replace(/([a-zA-Z0-9\)])\^\{([^}]+)\}/g, (_, base, exp) => {
+      const sup = exp.split("").map((c: string) => SUPERSCRIPTS[c] || c).join("");
+      return `${base}${sup}`;
+    });
+    m = m.replace(/([a-zA-Z0-9\)])\^([0-9a-zA-Z])/g, (_, base, exp) => {
+      return `${base}${SUPERSCRIPTS[exp] || `^${exp}`}`;
+    });
+
+    // Subscripts
+    m = m.replace(/([a-zA-Z0-9\)])\_\{([^}]+)\}/g, (_, base, sub) => {
+      const s = sub.split("").map((c: string) => SUBSCRIPTS[c] || c).join("");
+      return `${base}${s}`;
+    });
+    m = m.replace(/([a-zA-Z0-9\)])\_([0-9a-zA-Z])/g, (_, base, sub) => {
+      return `${base}${SUBSCRIPTS[sub] || `_${sub}`}`;
+    });
+
+    // Greek letters
+    m = m.replace(/\\pi\b/g, "π")
+         .replace(/\\theta\b/g, "θ")
+         .replace(/\\Theta\b/g, "Θ")
+         .replace(/\\alpha\b/g, "α")
+         .replace(/\\beta\b/g, "β")
+         .replace(/\\gamma\b/g, "γ")
+         .replace(/\\delta\b/g, "δ")
+         .replace(/\\lambda\b/g, "λ")
+         .replace(/\\mu\b/g, "μ")
+         .replace(/\\sigma\b/g, "σ")
+         .replace(/\\omega\b/g, "ω")
+         .replace(/\\Delta\b/g, "Δ")
+         .replace(/\\Omega\b/g, "Ω");
+
+    // Operators
+    m = m.replace(/\\times\b/g, "×")
+         .replace(/\\pm\b/g, "±")
+         .replace(/\\mp\b/g, "∓")
+         .replace(/\\div\b/g, "÷")
+         .replace(/\\cdot\b/g, "·")
+         .replace(/\\le\b|\\leq\b/g, "≤")
+         .replace(/\\ge\b|\\geq\b/g, "≥")
+         .replace(/\\neq\b/g, "≠")
+         .replace(/\\approx\b/g, "≈")
+         .replace(/\\infty\b/g, "∞")
+         .replace(/\\circ\b/g, "°");
+
+    // Clean formatting
+    m = m.replace(/\\mathrm\{([^}]+)\}/g, "$1")
+         .replace(/\\mathbf\{([^}]+)\}/g, "$1")
+         .replace(/\\text\{([^}]+)\}/g, "$1")
+         .replace(/\\left\(/g, "(").replace(/\\right\)/g, ")")
+         .replace(/\\left\[/g, "[").replace(/\\right\]/g, "]")
+         .replace(/\\left\\\{/g, "{").replace(/\\right\\\}/g, "}")
+         .replace(/\\,/g, " ").replace(/\\;/g, " ").replace(/\\!/g, "");
+
+    return m;
+  });
+
+  out = out.replace(/\bcm\^\{?2\}?/g, "cm²")
+           .replace(/\bcm\^\{?3\}?/g, "cm³")
+           .replace(/\bm\^\{?2\}?/g, "m²")
+           .replace(/\bm\^\{?3\}?/g, "m³");
+
+  return out;
+}
+
 // Export Questions & Answers to Microsoft Word (.doc) with complete Solutions & Option diagrams
 router.all("/questions/export/word", async (req: AuthRequest, res: Response) => {
   try {
@@ -896,7 +1010,7 @@ router.all("/questions/export/word", async (req: AuthRequest, res: Response) => 
               <div class="question-block">
                 <div class="q-stem">
                   <span class="q-marks">[${q.marks || 1} Mark${(q.marks || 1) > 1 ? 's' : ''}]</span>
-                  <strong>Q${idx + 1}.</strong> ${q.questionText || ''}
+                  <strong>Q${idx + 1}.</strong> ${formatMathForExport(q.questionText || '')}
                 </div>
 
                 ${diagrams.length > 0 ? `
@@ -915,7 +1029,7 @@ router.all("/questions/export/word", async (req: AuthRequest, res: Response) => 
                       const optB64 = resolveImageToBase64(opt.imageUrl);
                       return `
                         <span class="opt-item">
-                          <strong>(${opt.key})</strong> ${opt.text || ''}
+                          <strong>(${opt.key})</strong> ${formatMathForExport(opt.text || '')}
                           ${optB64 ? `<br/><img src="${optB64}" class="opt-img" alt="Option Image" />` : ''}
                         </span>
                       `;
@@ -984,10 +1098,13 @@ router.all("/questions/export/pdf", async (req: AuthRequest, res: Response) => {
 
     const formatted = questions.map((q) => ({
       questionNumber: q.questionNumber,
-      questionText: q.questionText,
-      options: JSON.parse(q.optionsJson || "[]"),
+      questionText: formatMathForExport(q.questionText),
+      options: JSON.parse(q.optionsJson || "[]").map((opt: any) => ({
+        ...opt,
+        text: formatMathForExport(opt.text || ""),
+      })),
       correctAnswer: q.correctAnswer,
-      explanation: q.explanation,
+      explanation: formatMathForExport(q.explanation || ""),
       marks: q.marks,
       difficulty: q.difficulty,
     }));

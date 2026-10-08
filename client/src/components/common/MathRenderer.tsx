@@ -135,6 +135,13 @@ function normalizeMathString(str: string): string {
        .replace(/\\frac\{d([A-Za-z])\s*\/\s*d([A-Za-z])\}/g, '\\frac{d$1}{d$2}')
        .replace(/\\frac\{([a-zA-Z0-9]+)\s*\/\s*([a-zA-Z0-9]+)\}/g, '\\frac{$1}{$2}');
 
+  // Auto-escape set notation curly braces: e.g. {1, 4, (2, 5)} or {(1, 4), ...} -> \{1, 4, (2, 5)\}
+  // In LaTeX, raw '{' and '}' are grouping delimiters and are rendered invisible. Sets need '\{' and '\}'.
+  s = s.replace(/(^|[\s\=\:\,\(\[])\{([^\}]+)\}(?![\^_\}])/g, (match, prefix, inner) => {
+    if (prefix.endsWith('\\')) return match;
+    return `${prefix}\\{${inner}\\}`;
+  });
+
   return s;
 }
 
@@ -338,7 +345,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({ content, className =
           const html = katex.renderToString(math, { displayMode: true, throwOnError: false, output: 'html' });
           return <span key={idx} dangerouslySetInnerHTML={{ __html: html }} className="block my-1.5 overflow-x-auto" />;
         } catch {
-          return <span key={idx} className="text-amber-400 font-mono text-sm block my-1">{part}</span>;
+          return <span key={idx} className="text-[#0B1F3A] font-mono text-sm block my-1 bg-slate-100 px-1 py-0.5 rounded border border-slate-300">{part}</span>;
         }
       }
 
@@ -352,7 +359,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({ content, className =
           const html = katex.renderToString(math, { displayMode: false, throwOnError: false, output: 'html' });
           return <span key={idx} dangerouslySetInnerHTML={{ __html: html }} className="inline-block mx-0.5 align-baseline" />;
         } catch {
-          return <span key={idx} className="text-amber-400 font-mono text-sm">{part}</span>;
+          return <span key={idx} className="text-[#0B1F3A] font-mono text-sm bg-slate-100 px-1 py-0.5 rounded border border-slate-300">{part}</span>;
         }
       }
 

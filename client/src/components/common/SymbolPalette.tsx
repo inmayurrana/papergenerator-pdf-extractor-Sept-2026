@@ -120,7 +120,7 @@ export const SymbolPalette: React.FC<SymbolPaletteProps> = ({ onSelectSymbol, cl
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search symbols (e.g. sqrt, theta, ohm, integral)..."
-          className="bg-transparent text-xs text-slate-200 placeholder-slate-500 focus:outline-none w-full font-mono"
+          className="bg-transparent text-xs text-slate-900 placeholder-slate-400 focus:outline-none w-full font-mono"
         />
         {searchQuery && (
           <button
@@ -139,10 +139,10 @@ export const SymbolPalette: React.FC<SymbolPaletteProps> = ({ onSelectSymbol, cl
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-all ${
+              className={`px-2.5 py-1 rounded-lg font-bold whitespace-nowrap transition-all ${
                 activeCategory === cat.id
-                  ? 'bg-violet-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-violet-700 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
               }`}
             >
               {cat.name}
@@ -162,7 +162,7 @@ export const SymbolPalette: React.FC<SymbolPaletteProps> = ({ onSelectSymbol, cl
           filteredCategories.length > 0 ? (
             filteredCategories.map((cat) => (
               <div key={cat.id} className="space-y-1">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1">
                   {cat.name}
                 </span>
                 <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5">
@@ -172,9 +172,9 @@ export const SymbolPalette: React.FC<SymbolPaletteProps> = ({ onSelectSymbol, cl
                       type="button"
                       onClick={() => onSelectSymbol(sym.latex)}
                       title={`${sym.label} (${sym.latex})`}
-                      className="p-1.5 bg-slate-800/80 hover:bg-violet-600 hover:text-white rounded-lg border border-slate-700/60 text-center font-mono text-xs text-slate-200 transition-all flex flex-col items-center justify-center shadow-sm active:scale-95"
+                      className="p-1.5 bg-slate-100 hover:bg-violet-700 hover:!text-white rounded-lg border border-slate-300 text-center font-mono text-xs font-bold text-slate-800 transition-all flex flex-col items-center justify-center shadow-xs active:scale-95"
                     >
-                      <span>{sym.label}</span>
+                      <span className="text-inherit">{sym.label}</span>
                     </button>
                   ))}
                 </div>
@@ -194,9 +194,9 @@ export const SymbolPalette: React.FC<SymbolPaletteProps> = ({ onSelectSymbol, cl
                   type="button"
                   onClick={() => onSelectSymbol(sym.latex)}
                   title={`${sym.label} (${sym.latex})`}
-                  className="p-1.5 bg-slate-800/80 hover:bg-violet-600 hover:text-white rounded-lg border border-slate-700/60 text-center font-mono text-xs text-slate-200 transition-all flex flex-col items-center justify-center shadow-sm active:scale-95"
+                  className="p-1.5 bg-slate-100 hover:bg-violet-700 hover:!text-white rounded-lg border border-slate-300 text-center font-mono text-xs font-bold text-slate-800 transition-all flex flex-col items-center justify-center shadow-xs active:scale-95"
                 >
-                  <span>{sym.label}</span>
+                  <span className="text-inherit">{sym.label}</span>
                 </button>
               ))}
             </div>
