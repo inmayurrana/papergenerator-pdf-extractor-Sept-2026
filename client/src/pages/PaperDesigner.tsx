@@ -281,6 +281,7 @@ export const PaperDesigner: React.FC = () => {
   const [customPageHeader, setCustomPageHeader] = useState('');
   const [customPageFooter, setCustomPageFooter] = useState('{SCHOOL} | {EXAM} | Page {PAGE}');
   const [isHeaderFooterModalOpen, setIsHeaderFooterModalOpen] = useState(false);
+  const [isWatermarkModalOpen, setIsWatermarkModalOpen] = useState(false);
   const [showCandidateBox, setShowCandidateBox] = useState(true);
 
   // Roll Number Style & Logo Customization
@@ -368,8 +369,8 @@ export const PaperDesigner: React.FC = () => {
   const [showQuestionMarks, setShowQuestionMarks] = useState(true);
   const [hideAllOptions, setHideAllOptions] = useState(false);
   const [hideAllSections, setHideAllSections] = useState(false);
-  const [showSidebarBank, setShowSidebarBank] = useState(true);
-  const [showExamConfigPanel, setShowExamConfigPanel] = useState(true);
+  const [showSidebarBank, setShowSidebarBank] = useState(false);
+  const [showExamConfigPanel, setShowExamConfigPanel] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
   // Dynamic Font Sizing & Typography Controls
@@ -3733,9 +3734,26 @@ export const PaperDesigner: React.FC = () => {
                     <span>Custom</span>
                   </button>
                 </div>
+
+                {/* Watermark Setup Button in Layout */}
+                <div className="flex items-center space-x-0.5 bg-classic-surface-muted p-0.5 h-6 rounded-classic border border-classic-border">
+                  <button
+                    type="button"
+                    onClick={() => setIsWatermarkModalOpen(true)}
+                    className={`px-2 py-0.2 rounded-classic text-xs font-bold transition-all flex items-center space-x-1 ${
+                      showWatermark
+                        ? 'bg-indigo-50 text-indigo-900 border border-indigo-200'
+                        : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                    title="Configure custom watermark, set transparency level, or remove watermark"
+                  >
+                    <Stamp className="w-2.5 h-2.5 text-indigo-700" />
+                    <span>Watermark {showWatermark ? `(${Math.round(watermarkOpacity * 100)}%)` : '(Off)'}</span>
+                  </button>
+                </div>
               </div>
               <span className="text-xs uppercase tracking-wider text-classic-text-muted font-semibold block text-center select-none pt-0.5">
-                Page Layout & Margins
+                Page Layout &amp; Margins
               </span>
             </div>
           )}
@@ -3849,9 +3867,26 @@ export const PaperDesigner: React.FC = () => {
                     Clear
                   </button>
                 </div>
+
+                {/* Watermark in INSERT group */}
+                <div className="flex items-center space-x-0.5 bg-classic-surface-muted p-0.5 h-6 rounded-classic border border-classic-border">
+                  <button
+                    type="button"
+                    onClick={() => setIsWatermarkModalOpen(true)}
+                    className={`px-2 py-0.2 rounded-classic text-xs font-bold transition-all flex items-center space-x-1 ${
+                      showWatermark
+                        ? 'bg-indigo-50 text-indigo-900 border border-indigo-200 shadow-2xs'
+                        : 'text-classic-text-secondary hover:text-classic-text-primary'
+                    }`}
+                    title="Insert or configure page watermark"
+                  >
+                    <Stamp className="w-2.5 h-2.5 text-indigo-700" />
+                    <span>Watermark</span>
+                  </button>
+                </div>
               </div>
               <span className="text-xs uppercase tracking-wider text-classic-text-muted font-semibold block text-center select-none pt-0.5">
-                Insert & Elements
+                Insert &amp; Elements
               </span>
             </div>
           )}
@@ -4861,25 +4896,37 @@ export const PaperDesigner: React.FC = () => {
                 )}
               </button>
 
-              {/* Watermark Quick Toggle */}
-              <button
-                type="button"
-                onClick={() => {
-                  const next = !showWatermark;
-                  setShowWatermark(next);
-                  savePaperLayout(selectedPaperQuestions, { showWatermark: next });
-                  showToast(next ? '✓ Watermark Enabled' : 'Watermark Disabled');
-                }}
-                className={`px-2.5 py-1 rounded-classic text-xs font-semibold flex items-center space-x-1.5 transition-all border ${
-                  showWatermark
-                    ? 'bg-blue-50 text-classic-navy border-blue-300'
-                    : 'classic-button-secondary'
-                }`}
-                title="Toggle watermark on canvas and output print/exports"
-              >
-                <Stamp className="w-3.5 h-3.5 text-classic-navy" />
-                <span>Watermark: {showWatermark ? 'On' : 'Off'}</span>
-              </button>
+              {/* Watermark Setup & Quick Remove Toggle */}
+              <div className="flex items-center rounded-classic border border-classic-border bg-white shadow-xs overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setIsWatermarkModalOpen(true)}
+                  className={`px-2.5 py-1 text-xs font-semibold flex items-center space-x-1.5 transition-all ${
+                    showWatermark
+                      ? 'bg-indigo-50/80 text-indigo-950 font-bold'
+                      : 'text-classic-text-secondary hover:text-classic-text-primary hover:bg-slate-50'
+                  }`}
+                  title="Configure custom watermark text/image, set transparency level, or remove watermark"
+                >
+                  <Stamp className="w-3.5 h-3.5 text-indigo-700" />
+                  <span>Watermark: {showWatermark ? `On (${Math.round(watermarkOpacity * 100)}%)` : 'Off'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !showWatermark;
+                    setShowWatermark(next);
+                    savePaperLayout(selectedPaperQuestions, { showWatermark: next });
+                    showToast(next ? '✓ Watermark Enabled' : '✓ Watermark Removed / Disabled');
+                  }}
+                  className={`px-1.5 py-1 text-xs border-l border-classic-border hover:bg-slate-100 transition-colors ${
+                    showWatermark ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
+                  }`}
+                  title={showWatermark ? 'Remove / disable watermark' : 'Activate watermark'}
+                >
+                  {showWatermark ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+                </button>
+              </div>
 
               {/* Header & Footer Modal Trigger */}
               <button
@@ -7554,21 +7601,46 @@ export const PaperDesigner: React.FC = () => {
                   <label className="text-xs font-bold text-classic-text-primary uppercase tracking-wide">
                     Page Watermark
                   </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsWatermarkModalOpen(true)}
+                    className="text-[10px] text-indigo-700 hover:text-indigo-900 font-bold underline ml-1 cursor-pointer"
+                    title="Open full watermark configuration dialog"
+                  >
+                    Options
+                  </button>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showWatermark}
-                    onChange={(e) => {
-                      const next = e.target.checked;
-                      setShowWatermark(next);
-                      savePaperLayout(selectedPaperQuestions, { showWatermark: next });
-                      showToast(next ? '✓ Watermark Enabled' : 'Watermark Disabled');
-                    }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-8 h-4 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-classic-navy"></div>
-                </label>
+                <div className="flex items-center space-x-2">
+                  {showWatermark && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowWatermark(false);
+                        savePaperLayout(selectedPaperQuestions, { showWatermark: false });
+                        showToast('✓ Watermark removed');
+                      }}
+                      className="text-[10px] text-rose-600 hover:text-rose-800 font-bold hover:underline flex items-center space-x-0.5"
+                      title="Remove watermark immediately"
+                    >
+                      <Trash2 className="w-3 h-3 text-rose-500" />
+                      <span>Remove</span>
+                    </button>
+                  )}
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showWatermark}
+                      onChange={(e) => {
+                        const next = e.target.checked;
+                        setShowWatermark(next);
+                        savePaperLayout(selectedPaperQuestions, { showWatermark: next });
+                        showToast(next ? '✓ Watermark Enabled' : '✓ Watermark Removed / Disabled');
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-8 h-4 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-classic-navy"></div>
+                  </label>
+                </div>
               </div>
 
               {showWatermark ? (
@@ -7800,7 +7872,7 @@ export const PaperDesigner: React.FC = () => {
                       <input
                         type="range"
                         min={2}
-                        max={40}
+                        max={60}
                         step={1}
                         value={Math.round(watermarkOpacity * 100)}
                         onChange={(e) => {
@@ -7817,7 +7889,8 @@ export const PaperDesigner: React.FC = () => {
                         { label: 'Subtle', val: 0.04 },
                         { label: 'Normal', val: 0.06 },
                         { label: 'Medium', val: 0.12 },
-                        { label: 'Prominent', val: 0.22 },
+                        { label: 'Prominent', val: 0.20 },
+                        { label: 'Bold', val: 0.35 },
                       ].map((p) => (
                         <button
                           key={p.label}
@@ -7827,7 +7900,7 @@ export const PaperDesigner: React.FC = () => {
                             savePaperLayout(selectedPaperQuestions, { watermarkOpacity: p.val });
                           }}
                           className={`hover:text-classic-navy underline decoration-dotted ${
-                            Math.abs(watermarkOpacity - p.val) < 0.01 ? 'font-bold text-classic-navy' : ''
+                            Math.abs(watermarkOpacity - p.val) < 0.015 ? 'font-bold text-classic-navy' : ''
                           }`}
                         >
                           {p.label} ({Math.round(p.val * 100)}%)
@@ -7868,10 +7941,61 @@ export const PaperDesigner: React.FC = () => {
                       ))}
                     </div>
                   </div>
+
+                  {/* Quick Action Footer in Card: Open Detailed Dialog or Remove */}
+                  <div className="pt-2 border-t border-classic-border/60 flex items-center justify-between text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setIsWatermarkModalOpen(true)}
+                      className="text-indigo-700 hover:text-indigo-900 font-bold flex items-center space-x-1"
+                    >
+                      <Sliders className="w-3 h-3" />
+                      <span>Advanced Setup Modal</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowWatermark(false);
+                        savePaperLayout(selectedPaperQuestions, { showWatermark: false });
+                        showToast('✓ Watermark removed');
+                      }}
+                      className="text-rose-600 hover:text-rose-800 font-bold flex items-center space-x-1"
+                    >
+                      <Trash2 className="w-3 h-3 text-rose-500" />
+                      <span>Remove Watermark</span>
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div className="p-2.5 bg-classic-surface-muted rounded-classic border border-classic-border text-center text-xs text-classic-text-muted">
-                  Watermark is currently disabled. Toggle switch to activate.
+                <div className="p-3 bg-classic-surface-muted rounded-classic border border-classic-border text-center space-y-2">
+                  <div className="text-xs text-classic-text-muted">
+                    Watermark is currently removed / disabled.
+                  </div>
+                  <div className="flex items-center justify-center space-x-2 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowWatermark(true);
+                        savePaperLayout(selectedPaperQuestions, { showWatermark: true });
+                        showToast('✓ Watermark Enabled');
+                      }}
+                      className="px-2.5 py-1 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-classic flex items-center space-x-1 transition-colors"
+                    >
+                      <Check className="w-3 h-3" />
+                      <span>Add Watermark</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowWatermark(true);
+                        setIsWatermarkModalOpen(true);
+                      }}
+                      className="px-2.5 py-1 text-xs font-bold text-indigo-700 bg-white hover:bg-indigo-50 border border-indigo-200 rounded-classic flex items-center space-x-1 transition-colors"
+                    >
+                      <Stamp className="w-3 h-3" />
+                      <span>Custom Watermark...</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -9406,6 +9530,530 @@ export const PaperDesigner: React.FC = () => {
                 <Check className="w-4 h-4" />
                 <span>Save &amp; Apply</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* DEDICATED DOCUMENT WATERMARK MODAL                                        */}
+      {/* ========================================================================= */}
+      {isWatermarkModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 no-print animate-fade-in">
+          <div className="bg-white border border-classic-border rounded-classic w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-scale-up">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-classic-border bg-classic-surface-muted shrink-0">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-classic bg-indigo-50 text-indigo-900 flex items-center justify-center border border-indigo-200 shadow-xs">
+                  <Stamp className="w-5 h-5 text-indigo-700" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h2 className="text-base font-bold text-classic-navy">
+                      Document Watermark Setup
+                    </h2>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                      showWatermark ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'
+                    }`}>
+                      {showWatermark ? `ACTIVE (${Math.round(watermarkOpacity * 100)}%)` : 'REMOVED / OFF'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-classic-text-muted">
+                    Configure custom text or logo watermark, set transparency level, or remove watermark
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsWatermarkModalOpen(false)}
+                className="text-classic-text-muted hover:text-classic-navy text-lg font-bold p-1 rounded-classic hover:bg-slate-200/60 transition-colors"
+                title="Close dialog"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-5 flex-1">
+              {/* Master Control Bar: Status + Remove Watermark button + Toggle */}
+              <div className="flex items-center justify-between p-3.5 rounded-classic bg-slate-50 border border-classic-border">
+                <div className="flex items-center space-x-2.5">
+                  <span className="text-xs font-bold text-classic-navy uppercase tracking-wide">
+                    Watermark Status:
+                  </span>
+                  <span className={`text-xs font-semibold ${showWatermark ? 'text-emerald-700 font-bold' : 'text-slate-500'}`}>
+                    {showWatermark ? '✓ Enabled on Canvas & Print / PDF' : '✕ Disabled / Removed'}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {showWatermark && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowWatermark(false);
+                        savePaperLayout(selectedPaperQuestions, { showWatermark: false });
+                        showToast('✓ Watermark removed from document');
+                      }}
+                      className="px-2.5 py-1 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-classic flex items-center space-x-1 transition-all"
+                      title="Remove watermark immediately"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Remove Watermark</span>
+                    </button>
+                  )}
+                  <label className="relative inline-flex items-center cursor-pointer ml-1">
+                    <input
+                      type="checkbox"
+                      checked={showWatermark}
+                      onChange={(e) => {
+                        const next = e.target.checked;
+                        setShowWatermark(next);
+                        savePaperLayout(selectedPaperQuestions, { showWatermark: next });
+                        showToast(next ? '✓ Watermark Enabled' : '✓ Watermark Removed / Disabled');
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2.5px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-classic-navy"></div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Live Preview Box with Exam Lines Simulation */}
+              <div className="p-3 bg-slate-50 border border-classic-border rounded-classic space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-classic-navy">
+                  <span className="flex items-center space-x-1.5">
+                    <Eye className="w-3.5 h-3.5 text-classic-navy" />
+                    <span>Live Watermark Preview</span>
+                  </span>
+                  <span className="text-[11px] font-mono text-slate-500">
+                    Transparency: {Math.round(watermarkOpacity * 100)}% | Angle: {watermarkRotation}°
+                  </span>
+                </div>
+                <div className="relative w-full h-32 bg-white rounded border border-slate-200 shadow-inner overflow-hidden flex items-center justify-center select-none">
+                  {/* Simulated Question Lines in Background */}
+                  <div className="absolute inset-0 p-3 space-y-2 opacity-35 pointer-events-none">
+                    <div className="h-2 bg-slate-300 rounded w-3/4"></div>
+                    <div className="h-2 bg-slate-200 rounded w-full"></div>
+                    <div className="h-2 bg-slate-200 rounded w-5/6"></div>
+                    <div className="flex space-x-4 pt-1">
+                      <div className="h-2 bg-slate-200 rounded w-1/4"></div>
+                      <div className="h-2 bg-slate-200 rounded w-1/4"></div>
+                      <div className="h-2 bg-slate-200 rounded w-1/4"></div>
+                    </div>
+                    <div className="h-2 bg-slate-300 rounded w-2/3 pt-1"></div>
+                    <div className="h-2 bg-slate-200 rounded w-4/5"></div>
+                  </div>
+
+                  {/* Render Watermark Overlay in Preview */}
+                  {showWatermark ? (
+                    <div
+                      className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                      style={{
+                        transform: `rotate(${watermarkRotation}deg)`,
+                        opacity: watermarkOpacity,
+                      }}
+                    >
+                      {watermarkType === 'image' && watermarkImageUrl ? (
+                        <img
+                          src={watermarkImageUrl}
+                          alt="Watermark preview"
+                          className="max-h-24 max-w-full object-contain filter grayscale"
+                          style={{ maxHeight: Math.min(100, Math.max(30, watermarkSize / 3)) }}
+                        />
+                      ) : (
+                        <span
+                          className="font-serif font-black uppercase text-center tracking-widest text-slate-900 border-2 border-dashed border-slate-900/30 px-3 py-1 rounded line-clamp-1"
+                          style={{
+                            fontSize: `${Math.min(24, Math.max(12, watermarkSize / 3))}px`,
+                          }}
+                        >
+                          {watermarkType === 'custom_text'
+                            ? (watermarkText || 'CONFIDENTIAL')
+                            : (schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI')}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center text-xs font-semibold text-slate-400 z-10">
+                      Watermark is removed / disabled. Toggle switch above or select an option to activate.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Watermark Type Selector */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-classic-navy uppercase tracking-wide block">
+                  1. Select Watermark Source / Type
+                </label>
+                <div className="grid grid-cols-3 gap-2 bg-classic-surface-muted p-1.5 rounded-classic border border-classic-border">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWatermarkType('custom_text');
+                      if (!showWatermark) setShowWatermark(true);
+                    }}
+                    className={`py-2 px-2 text-xs font-bold rounded-classic flex items-center justify-center space-x-1.5 transition-all ${
+                      watermarkType === 'custom_text'
+                        ? 'bg-classic-navy text-white shadow-sm'
+                        : 'text-classic-text-secondary hover:text-classic-navy hover:bg-white'
+                    }`}
+                  >
+                    <Type className="w-4 h-4" />
+                    <span>Custom Text</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWatermarkType('school');
+                      if (!showWatermark) setShowWatermark(true);
+                    }}
+                    className={`py-2 px-2 text-xs font-bold rounded-classic flex items-center justify-center space-x-1.5 transition-all ${
+                      watermarkType === 'school'
+                        ? 'bg-classic-navy text-white shadow-sm'
+                        : 'text-classic-text-secondary hover:text-classic-navy hover:bg-white'
+                    }`}
+                  >
+                    <School className="w-4 h-4" />
+                    <span>School Name</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWatermarkType('image');
+                      if (watermarkSize < 80) setWatermarkSize(280);
+                      if (!showWatermark) setShowWatermark(true);
+                    }}
+                    className={`py-2 px-2 text-xs font-bold rounded-classic flex items-center justify-center space-x-1.5 transition-all ${
+                      watermarkType === 'image'
+                        ? 'bg-classic-navy text-white shadow-sm'
+                        : 'text-classic-text-secondary hover:text-classic-navy hover:bg-white'
+                    }`}
+                  >
+                    <Image className="w-4 h-4" />
+                    <span>Logo / Image</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Custom Text Configuration */}
+              {watermarkType === 'custom_text' && (
+                <div className="p-4 bg-classic-surface-muted rounded-classic border border-classic-border space-y-3">
+                  <div className="flex items-center justify-between text-xs font-semibold text-classic-text-secondary">
+                    <span>Enter Custom Watermark Text:</span>
+                    <button
+                      type="button"
+                      onClick={() => setWatermarkText(schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI')}
+                      className="text-xs text-classic-navy hover:underline font-bold"
+                    >
+                      Use School Name
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={watermarkText}
+                    onChange={(e) => {
+                      setWatermarkText(e.target.value);
+                      if (!showWatermark) setShowWatermark(true);
+                    }}
+                    placeholder="e.g. CONFIDENTIAL, SAMPLE PAPER, PRE-BOARD 2026"
+                    className="w-full bg-white border border-classic-border text-classic-text text-sm rounded-classic px-3.5 py-2.5 font-bold focus:outline-none focus:border-classic-navy shadow-inner"
+                  />
+                  <div>
+                    <span className="text-[11px] font-bold text-classic-text-muted uppercase tracking-wider block mb-1.5">
+                      Quick Preset Text Chips:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        'CONFIDENTIAL',
+                        'SAMPLE PAPER',
+                        'PRE-BOARD 2026',
+                        'DO NOT COPY',
+                        'INTERNAL ASSESSMENT',
+                        'DRAFT',
+                        'PRACTICE TEST',
+                      ].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => {
+                            setWatermarkText(preset);
+                            if (!showWatermark) setShowWatermark(true);
+                          }}
+                          className={`text-xs px-2.5 py-1 rounded-classic font-mono font-semibold transition-all border ${
+                            watermarkText === preset
+                              ? 'bg-classic-navy text-white border-classic-navy shadow-xs'
+                              : 'bg-white text-classic-text-secondary hover:text-classic-navy border-classic-border hover:bg-slate-100'
+                          }`}
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* School Name Mode */}
+              {watermarkType === 'school' && (
+                <div className="p-4 bg-blue-50/80 border border-blue-200 rounded-classic text-xs text-classic-navy space-y-2">
+                  <div className="flex items-center space-x-1.5 font-bold text-sm">
+                    <Check className="w-4 h-4 text-emerald-600" />
+                    <span>Dynamic School Name Watermark</span>
+                  </div>
+                  <p className="text-xs font-mono font-bold bg-white p-2.5 rounded border border-blue-200 text-slate-800">
+                    "{schoolName || 'CAMBRIDGE INTERNATIONAL SCHOOL MANDI'}"
+                  </p>
+                  <p className="text-xs text-slate-600">
+                    This watermark automatically stays synchronized with whatever institution name is typed in the exam header at the top of the canvas.
+                  </p>
+                </div>
+              )}
+
+              {/* Image / Logo Upload Mode */}
+              {watermarkType === 'image' && (
+                <div className="p-4 bg-classic-surface-muted rounded-classic border border-classic-border space-y-3">
+                  <input
+                    type="file"
+                    ref={watermarkFileInputRef}
+                    accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                    onChange={handleWatermarkImageUpload}
+                    className="hidden"
+                  />
+                  {watermarkImageUrl ? (
+                    <div className="flex items-center space-x-3.5 bg-white p-3 rounded-classic border border-classic-border">
+                      <div className="w-16 h-16 rounded border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                        <img
+                          src={watermarkImageUrl}
+                          alt="Watermark preview"
+                          className="max-w-full max-h-full object-contain"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-bold text-classic-navy block">Custom Watermark Graphic</span>
+                        <span className="text-[11px] text-emerald-600 font-semibold block">✓ Image loaded &amp; active</span>
+                        <div className="flex items-center space-x-3 mt-2">
+                          <button
+                            type="button"
+                            onClick={() => watermarkFileInputRef.current?.click()}
+                            className="text-xs text-classic-navy hover:underline font-bold"
+                          >
+                            Change Image
+                          </button>
+                          <span className="text-slate-300">|</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setWatermarkImageUrl(null);
+                              setWatermarkType('school');
+                            }}
+                            className="text-xs text-rose-600 hover:underline font-bold"
+                          >
+                            Remove Image
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => watermarkFileInputRef.current?.click()}
+                      className="w-full py-4 px-3 bg-white hover:bg-blue-50/70 text-classic-navy border-2 border-dashed border-classic-navy/40 hover:border-classic-navy rounded-classic text-xs font-bold flex flex-col items-center justify-center space-y-1.5 transition-all shadow-sm"
+                    >
+                      <Upload className="w-5 h-5 text-classic-navy" />
+                      <span>Upload Watermark Image / Logo (PNG, SVG, JPG)</span>
+                      <span className="text-[11px] text-slate-500 font-normal">Transparent PNG or SVG recommended</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Transparency / Opacity Level Slider & Presets */}
+              <div className="p-4 bg-classic-surface-muted rounded-classic border border-classic-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-xs font-bold text-classic-navy uppercase tracking-wide block">
+                      2. Transparency / Opacity Level
+                    </label>
+                    <span className="text-[11px] text-classic-text-muted">
+                      Control how faint or prominent the watermark appears behind exam questions
+                    </span>
+                  </div>
+                  <div className="px-2.5 py-1 bg-white border border-classic-border rounded-classic text-xs font-mono font-bold text-classic-navy shadow-2xs">
+                    {Math.round(watermarkOpacity * 100)}% Opacity
+                  </div>
+                </div>
+
+                {/* Slider */}
+                <div className="space-y-1">
+                  <input
+                    type="range"
+                    min={2}
+                    max={60}
+                    step={1}
+                    value={Math.round(watermarkOpacity * 100)}
+                    onChange={(e) => {
+                      const val = (parseInt(e.target.value, 10) || 6) / 100;
+                      setWatermarkOpacity(val);
+                      if (!showWatermark) setShowWatermark(true);
+                    }}
+                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-classic-navy"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                    <span>2% (Faintest)</span>
+                    <span>10%</span>
+                    <span>20%</span>
+                    <span>35%</span>
+                    <span>60% (Darkest)</span>
+                  </div>
+                </div>
+
+                {/* Quick Opacity Preset Buttons */}
+                <div>
+                  <span className="text-[11px] font-bold text-classic-text-muted uppercase tracking-wider block mb-1">
+                    Quick Transparency Presets:
+                  </span>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {[
+                      { label: 'Subtle', val: 0.04 },
+                      { label: 'Normal', val: 0.06 },
+                      { label: 'Medium', val: 0.12 },
+                      { label: 'Prominent', val: 0.20 },
+                      { label: 'Bold', val: 0.35 },
+                    ].map((p) => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => {
+                          setWatermarkOpacity(p.val);
+                          if (!showWatermark) setShowWatermark(true);
+                        }}
+                        className={`py-1 px-1 text-[11px] rounded font-semibold text-center transition-all border ${
+                          Math.abs(watermarkOpacity - p.val) < 0.015
+                            ? 'bg-classic-navy text-white border-classic-navy shadow-xs font-bold'
+                            : 'bg-white text-classic-text-secondary hover:text-classic-navy border-classic-border hover:bg-slate-100'
+                        }`}
+                      >
+                        {p.label} ({Math.round(p.val * 100)}%)
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Watermark Size & Angle */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-classic-surface-muted rounded-classic border border-classic-border">
+                {/* Size Control */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-classic-navy">
+                    <span>3. Watermark Size:</span>
+                    <span className="font-mono text-classic-navy">{watermarkSize}px</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const min = watermarkType === 'image' ? 80 : 28;
+                        setWatermarkSize(Math.max(min, watermarkSize - (watermarkType === 'image' ? 20 : 6)));
+                      }}
+                      className="w-7 h-7 bg-white hover:bg-slate-100 text-classic-navy border border-classic-border rounded text-xs font-bold flex items-center justify-center shrink-0"
+                    >-</button>
+                    <input
+                      type="range"
+                      min={watermarkType === 'image' ? 80 : 28}
+                      max={watermarkType === 'image' ? 600 : 140}
+                      step={watermarkType === 'image' ? 10 : 2}
+                      value={watermarkSize}
+                      onChange={(e) => setWatermarkSize(parseInt(e.target.value, 10))}
+                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-classic-navy"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const max = watermarkType === 'image' ? 600 : 140;
+                        setWatermarkSize(Math.min(max, watermarkSize + (watermarkType === 'image' ? 20 : 6)));
+                      }}
+                      className="w-7 h-7 bg-white hover:bg-slate-100 text-classic-navy border border-classic-border rounded text-xs font-bold flex items-center justify-center shrink-0"
+                    >+</button>
+                  </div>
+                </div>
+
+                {/* Angle Control */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-classic-navy">
+                    <span>4. Orientation / Angle:</span>
+                    <span className="font-mono text-classic-navy">{watermarkRotation}°</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1">
+                    {[
+                      { label: '-30° Diagonal', angle: -30 },
+                      { label: '-45° Steep', angle: -45 },
+                      { label: '0° Flat', angle: 0 },
+                      { label: '-90° Vertical', angle: -90 },
+                    ].map((item) => (
+                      <button
+                        key={item.angle}
+                        type="button"
+                        onClick={() => setWatermarkRotation(item.angle)}
+                        className={`py-1 text-[11px] font-bold rounded border transition-all ${
+                          watermarkRotation === item.angle
+                            ? 'bg-classic-navy text-white border-classic-navy shadow-xs font-bold'
+                            : 'bg-white text-classic-text-secondary border-classic-border hover:bg-slate-50'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Action Buttons Footer */}
+            <div className="flex items-center justify-between px-6 py-3.5 border-t border-classic-border bg-slate-50 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowWatermark(false);
+                  savePaperLayout(selectedPaperQuestions, { showWatermark: false });
+                  setIsWatermarkModalOpen(false);
+                  showToast('✓ Watermark removed from paper');
+                }}
+                className="px-3 py-2 text-xs font-bold text-rose-700 bg-white hover:bg-rose-50 border border-rose-300 rounded-classic flex items-center space-x-1.5 transition-colors shadow-2xs cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                <span>Remove Watermark</span>
+              </button>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsWatermarkModalOpen(false)}
+                  className="classic-button-secondary rounded-classic px-4 py-2 text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    savePaperLayout(selectedPaperQuestions, {
+                      showWatermark,
+                      watermarkType,
+                      watermarkText,
+                      watermarkImageUrl,
+                      watermarkSize,
+                      watermarkOpacity,
+                      watermarkRotation,
+                    });
+                    setIsWatermarkModalOpen(false);
+                    showToast('✓ Watermark preferences saved and applied!');
+                  }}
+                  className="classic-button-primary rounded-classic px-5 py-2 text-xs font-bold shadow-classic flex items-center space-x-1.5 transition-all cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Apply &amp; Save Watermark</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
