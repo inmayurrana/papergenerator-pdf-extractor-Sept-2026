@@ -12,6 +12,7 @@ const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const config_1 = require("../config");
+const mathExport_service_1 = require("../services/mathExport.service");
 const router = (0, express_1.Router)();
 const imageStorage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
@@ -793,10 +794,11 @@ router.all("/questions/export/word", async (req, res) => {
         const htmlContent = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
       <head>
-        <meta charset="utf-8">
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-16">
         <title>${folderTitle} - Questions & Answers</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css">
         <style>
-          body { font-family: 'Calibri', 'Times New Roman', 'Arial', sans-serif; font-size: 11pt; line-height: 1.35; color: #000; margin: 0.8in; }
+          body { font-family: 'Calibri', 'Times New Roman', Arial, sans-serif; font-size: 11pt; line-height: 1.35; color: #000; margin: 0.8in; }
           .main-title { font-size: 18pt; font-weight: bold; text-align: center; text-transform: uppercase; margin-bottom: 4pt; color: #1a365d; }
           .sub-title { font-size: 12pt; text-align: center; font-weight: bold; color: #4a5568; margin-bottom: 8pt; }
           .meta-box { border: 1pt solid #cbd5e0; background: #f7fafc; padding: 6pt 10pt; font-size: 9.5pt; margin-bottom: 14pt; }
@@ -834,7 +836,7 @@ router.all("/questions/export/word", async (req, res) => {
               <div class="question-block">
                 <div class="q-stem">
                   <span class="q-marks">[${q.marks || 1} Mark${(q.marks || 1) > 1 ? 's' : ''}]</span>
-                  <strong>Q${idx + 1}.</strong> ${q.questionText || ''}
+                  <strong>Q${idx + 1}.</strong> ${(0, mathExport_service_1.formatMathForWordDoc)(q.questionText || '')}
                 </div>
 
                 ${diagrams.length > 0 ? `
@@ -853,7 +855,7 @@ router.all("/questions/export/word", async (req, res) => {
                 const optB64 = resolveImageToBase64(opt.imageUrl);
                 return `
                         <span class="opt-item">
-                          <strong>(${opt.key})</strong> ${opt.text || ''}
+                          <strong>(${opt.key})</strong> ${(0, mathExport_service_1.formatMathForWordDoc)(opt.text || '')}
                           ${optB64 ? `<br/><img src="${optB64}" class="opt-img" alt="Option Image" />` : ''}
                         </span>
                       `;
@@ -880,7 +882,7 @@ router.all("/questions/export/word", async (req, res) => {
         ${questions.map((q, idx) => `
           <div class="sol-block">
             <div class="sol-header">Q${idx + 1}. Correct Answer: (${q.correctAnswer || 'Not Specified'}) &bull; [${q.marks} Mark${q.marks > 1 ? 's' : ''}]</div>
-            <div class="sol-text">${q.explanation ? q.explanation.replace(/\n/g, '<br/>') : 'Full marks awarded for correct answer choice.'}</div>
+            <div class="sol-text">${q.explanation ? (0, mathExport_service_1.formatMathForWordDoc)(q.explanation).replace(/\n/g, '<br/>') : 'Full marks awarded for correct answer choice.'}</div>
           </div>
         `).join('')}
       </body>
@@ -888,8 +890,8 @@ router.all("/questions/export/word", async (req, res) => {
     `;
         const safeTitle = (folder?.name || "Question_Bank").replace(/[^a-zA-Z0-9_-]/g, "_");
         res.setHeader("Content-Disposition", `attachment; filename="${safeTitle}_Questions_and_Answers.doc"`);
-        res.setHeader("Content-Type", "application/msword; charset=utf-8");
-        res.send(htmlContent);
+        res.setHeader("Content-Type", "application/msword; charset=utf-16");
+        res.send((0, mathExport_service_1.wrapWordDocumentBuffer)(htmlContent));
     }
     catch (err) {
         res.status(500).json({ error: err.message });
@@ -920,10 +922,13 @@ router.all("/questions/export/pdf", async (req, res) => {
         });
         const formatted = questions.map((q) => ({
             questionNumber: q.questionNumber,
-            questionText: q.questionText,
-            options: JSON.parse(q.optionsJson || "[]"),
+            questionText: (0, mathExport_service_1.formatMathForUnicodeText)(q.questionText),
+            options: JSON.parse(q.optionsJson || "[]").map((opt) => ({
+                ...opt,
+                text: (0, mathExport_service_1.formatMathForUnicodeText)(opt.text || ""),
+            })),
             correctAnswer: q.correctAnswer,
-            explanation: q.explanation,
+            explanation: (0, mathExport_service_1.formatMathForUnicodeText)(q.explanation || ""),
             marks: q.marks,
             difficulty: q.difficulty,
         }));

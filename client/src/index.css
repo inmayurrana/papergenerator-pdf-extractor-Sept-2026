@@ -2279,4 +2279,54 @@ button.disabled svg,
   }
 }
 
+/* =========================================================
+   EXACT PRINT & BROWSER PDF EXPORT STYLES
+   Ensures 100% mathematical fidelity when printing or saving as PDF
+   ========================================================= */
+@media print {
+  /* When printing exact bank preview, hide non-print elements */
+  body.printing-exact-bank {
+    background: #ffffff !important;
+    color: #111827 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.printing-exact-bank .no-print,
+  body.printing-exact-bank header,
+  body.printing-exact-bank aside,
+  body.printing-exact-bank nav {
+    display: none !important;
+  }
+
+  .exact-print-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .exact-print-question-item {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border-bottom: 1px solid #d1d5db !important;
+    padding-bottom: 14px !important;
+    margin-bottom: 14px !important;
+  }
+
+  /* Force sharp vector rendering of KaTeX math fonts in browser PDF */
+  .katex {
+    text-rendering: geometricPrecision !important;
+    font-size: 1.05em !important;
+  }
+
+  .katex-display {
+    margin: 0.5em 0 !important;
+  }
+}
+
 

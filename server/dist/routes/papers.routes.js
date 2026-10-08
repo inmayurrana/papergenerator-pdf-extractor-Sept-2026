@@ -12,6 +12,7 @@ const config_1 = require("../config");
 const auth_1 = require("../middleware/auth");
 const audit_1 = require("../middleware/audit");
 const storageSync_service_1 = require("../services/storageSync.service");
+const mathExport_service_1 = require("../services/mathExport.service");
 const router = (0, express_1.Router)();
 router.use(auth_1.authenticateJwt);
 // List question papers
@@ -499,8 +500,9 @@ router.get("/:id/export/word", async (req, res) => {
         const htmlContent = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
       <head>
-        <meta charset="utf-8">
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-16">
         <title>${paper.title}</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css">
         <!--[if gte mso 9]>
         <xml>
           <w:WordDocument>
@@ -650,7 +652,7 @@ router.get("/:id/export/word", async (req, res) => {
                 <div class="question-block" ${q.customFontSize ? `style="font-size: ${q.customFontSize}pt;"` : ''}>
                   <div class="q-stem">
                     ${showMarks ? `<span class="q-marks">[${q.marks || 1} Mark${(q.marks || 1) > 1 ? 's' : ''}]</span>` : ''}
-                    <strong>Q${currentQNum}.</strong> ${q.questionText || q.question_text || ''}
+                    <strong>Q${currentQNum}.</strong> ${(0, mathExport_service_1.formatMathForWordDoc)(q.questionText || q.question_text || '')}
                   </div>
 
                   ${diagrams.length > 0 ? `
@@ -669,7 +671,7 @@ router.get("/:id/export/word", async (req, res) => {
                     const optB64 = resolveImageToBase64(opt.imageUrl);
                     return `
                           <span class="opt-item">
-                            <strong>(${opt.key})</strong> ${opt.text || ''}
+                            <strong>(${opt.key})</strong> ${(0, mathExport_service_1.formatMathForWordDoc)(opt.text || '')}
                             ${optB64 ? `<br/><img src="${optB64}" class="opt-img" alt="Option Image" />` : ''}
                           </span>
                         `;
@@ -726,7 +728,7 @@ router.get("/:id/export/word", async (req, res) => {
               Q${idx + 1}. Correct Answer: (${q.correctAnswer || 'Not Specified'}) &bull; [${q.marks || 1} Mark${(q.marks || 1) > 1 ? 's' : ''}]
             </div>
             <div style="font-size: 9.5pt; color: #2d3748;">
-              ${q.explanation ? q.explanation.replace(/\n/g, '<br/>') : 'Full marks awarded for correct response.'}
+              ${q.explanation ? (0, mathExport_service_1.formatMathForWordDoc)(q.explanation).replace(/\n/g, '<br/>') : 'Full marks awarded for correct response.'}
             </div>
           </div>
         `).join('')}
@@ -741,8 +743,8 @@ router.get("/:id/export/word", async (req, res) => {
     `;
         const safeTitle = paper.title.replace(/[^a-zA-Z0-9_-]/g, "_");
         res.setHeader("Content-Disposition", `attachment; filename="${safeTitle}.doc"`);
-        res.setHeader("Content-Type", "application/msword; charset=utf-8");
-        res.send(htmlContent);
+        res.setHeader("Content-Type", "application/msword; charset=utf-16");
+        res.send((0, mathExport_service_1.wrapWordDocumentBuffer)(htmlContent));
     }
     catch (err) {
         res.status(500).json({ error: err.message });

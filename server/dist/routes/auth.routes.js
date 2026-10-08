@@ -13,6 +13,7 @@ const securitySettings_service_1 = require("../services/securitySettings.service
 const session_service_1 = require("../services/session.service");
 const googleAuth_service_1 = require("../services/googleAuth.service");
 const rbac_service_1 = require("../services/rbac.service");
+const config_1 = require("../config");
 const router = (0, express_1.Router)();
 // Store temporary OAuth states in memory (TTL 10 min)
 const oauthStateCache = new Map();
@@ -385,18 +386,31 @@ router.get("/google/url", (req, res) => {
     }
 });
 /**
- * POST /api/auth/google/callback
- * Exchanges authorization code, validates ID token with Google OIDC, creates session
+ * ALL /api/auth/google/callback
+ * Handles Google OAuth2 redirect:
+ * - GET: Browser redirect from Google Accounts. Communicates with popup via window.opener.postMessage,
+ *   or redirects to frontend /login?sso_token=... seamlessly.
+ * - POST: Direct API exchange for mobile / programmatic clients, returning JSON.
  */
-router.post("/google/callback", async (req, res) => {
+router.all("/google/callback", async (req, res) => {
     try {
-        const { code, state } = req.body;
+        const code = (req.query.code || (req.body && req.body.code));
+        const state = (req.query.state || (req.body && req.body.state));
+        const frontendBase = config_1.config.FRONTEND_URL || "http://localhost:3010";
         if (!code || !state) {
+            if (req.method === "GET") {
+                res.redirect(`${frontendBase}/login?error=${encodeURIComponent("Missing authorization code or state from Google.")}`);
+                return;
+            }
             res.status(400).json({ error: "Missing authorization code or state" });
             return;
         }
         const cached = oauthStateCache.get(state);
         if (!cached || Date.now() > cached.expiresAt) {
+            if (req.method === "GET") {
+                res.redirect(`${frontendBase}/login?error=${encodeURIComponent("Authentication state expired or invalid. Please try logging in again.")}`);
+                return;
+            }
             res.status(400).json({ error: "Authentication state expired or invalid." });
             return;
         }
@@ -404,21 +418,102 @@ router.post("/google/callback", async (req, res) => {
         const user = await googleAuth_service_1.GoogleAuthService.handleCallback(code, state, cached.state, cached.nonce, cached.codeVerifier, req);
         const sessionResult = await session_service_1.SessionService.createSession(user, req);
         const permissions = await rbac_service_1.RbacService.getPermissionsForRole(user.role);
-        res.json({
+        const sanitizedUser = {
+            id: user.id,
+            email: user.email,
+            fullName: user.fullName,
+            role: user.role,
+        };
+        const authPayload = {
             token: sessionResult.accessToken,
             refreshToken: sessionResult.refreshToken,
             sessionId: sessionResult.sessionId,
             expiresInMinutes: sessionResult.expiresInMinutes,
             permissions,
-            user: {
-                id: user.id,
-                email: user.email,
-                fullName: user.fullName,
-                role: user.role,
-            },
-        });
+            user: sanitizedUser,
+        };
+        // If request came from browser navigation (GET), return interactive handover HTML
+        if (req.method === "GET") {
+            const redirectUrl = `${frontendBase}/login?sso_token=${encodeURIComponent(authPayload.token)}&sso_refresh=${encodeURIComponent(authPayload.refreshToken)}&sso_session=${encodeURIComponent(authPayload.sessionId)}`;
+            const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Google Single Sign-On Success</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background: #0B1F3A;
+      color: #ffffff;
+    }
+    .box {
+      text-align: center;
+      padding: 32px 28px;
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 16px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      max-width: 420px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+    }
+    .spinner {
+      border: 3.5px solid rgba(255, 255, 255, 0.2);
+      border-top-color: #38BDF8;
+      border-radius: 50%;
+      width: 42px;
+      height: 42px;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 18px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="spinner"></div>
+    <h3 style="margin: 0 0 8px; font-size: 19px; font-weight: 700;">Authentication Successful</h3>
+    <p style="font-size: 14px; opacity: 0.85; margin: 0;">Signing into PaperGenerator, please wait...</p>
+  </div>
+  <script>
+    (function() {
+      const authData = ${JSON.stringify(authPayload)};
+      // 1. Notify opener if opened as a popup
+      if (window.opener && !window.opener.closed) {
+        try {
+          window.opener.postMessage({ type: 'GOOGLE_SSO_SUCCESS', payload: authData }, '*');
+          setTimeout(function() { window.close(); }, 350);
+          return;
+        } catch (e) {
+          console.error("Popup message error:", e);
+        }
+      }
+      // 2. Fallback to direct frontend redirection
+      window.location.href = ${JSON.stringify(redirectUrl)};
+    })();
+  </script>
+</body>
+</html>`;
+            res.setHeader("Content-Type", "text/html; charset=utf-8");
+            res.send(html);
+            return;
+        }
+        // For POST API requests, return JSON payload
+        res.json(authPayload);
     }
     catch (err) {
+        if (req.method === "GET") {
+            const frontendBase = config_1.config.FRONTEND_URL || "http://localhost:3010";
+            const errorMsg = encodeURIComponent(err.message || "Google authentication failed");
+            res.redirect(`${frontendBase}/login?error=${errorMsg}`);
+            return;
+        }
         res.status(401).json({ error: err.message || "Google authentication failed" });
     }
 });

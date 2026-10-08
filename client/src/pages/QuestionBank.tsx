@@ -33,6 +33,7 @@ import {
   CheckCircle2,
   Image as ImageIcon,
   Loader2,
+  Printer,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { triggerFileDownload, extractErrorMessage } from '../lib/downloadHelper';
@@ -270,6 +271,13 @@ export const QuestionBank: React.FC = () => {
   const [jsonRawInput, setJsonRawInput] = useState('');
   const [importErrorMsg, setImportErrorMsg] = useState('');
 
+  // Exact App Math Print & PDF Export State
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printIncludeAnswers, setPrintIncludeAnswers] = useState(true);
+  const [printIncludeExplanations, setPrintIncludeExplanations] = useState(true);
+  const [printQuestionsList, setPrintQuestionsList] = useState<any[]>([]);
+  const [printScopeTitle, setPrintScopeTitle] = useState('Question Bank');
+
   const imageInputRef = useRef<HTMLInputElement>(null);
   const docFileInputRef = useRef<HTMLInputElement>(null);
   const pdfFileInputRef = useRef<HTMLInputElement>(null);
@@ -397,6 +405,50 @@ export const QuestionBank: React.FC = () => {
     } finally {
       setExportingFormat(null);
     }
+  };
+
+  const handleOpenPrintModal = async (overrideFolderId?: string) => {
+    let list: any[] = [];
+    let title = 'Question Bank';
+    if (selectedBankQIds.size > 0) {
+      list = questions.filter((q) => selectedBankQIds.has(q.id));
+      title = `${selectedBankQIds.size} Selected Questions`;
+    } else {
+      const targetFolder = overrideFolderId !== undefined ? overrideFolderId : selectedFolderId;
+      if (targetFolder && targetFolder !== selectedFolderId) {
+        try {
+          showToast('Loading folder questions for preview...');
+          const res = await api.get('/questions', { params: { folderId: targetFolder } });
+          list = res.data || [];
+        } catch (e) {
+          list = questions;
+        }
+      } else {
+        list = questions;
+      }
+      if (targetFolder) {
+        const folderName = flatFolders.find((f) => f.id === targetFolder)?.name || 'Folder';
+        title = `${folderName} (${list.length} Questions)`;
+      } else {
+        title = `All Questions (${list.length})`;
+      }
+    }
+    setPrintQuestionsList(list);
+    setPrintScopeTitle(title);
+    setShowPrintModal(true);
+  };
+
+  const handleTriggerDirectPrint = () => {
+    document.body.classList.add('printing-exact-bank');
+    const cleanup = () => {
+      document.body.classList.remove('printing-exact-bank');
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    setTimeout(() => {
+      window.print();
+      setTimeout(cleanup, 2000);
+    }, 150);
   };
 
   const handleParseDocOrPdfFile = async (file: File) => {
@@ -1188,6 +1240,21 @@ export const QuestionBank: React.FC = () => {
                     type="button"
                     onClick={() => {
                       setIsExportDropdownOpen(false);
+                      handleOpenPrintModal();
+                    }}
+                    className="w-full text-left px-3 py-2 rounded hover:bg-indigo-50 flex items-center space-x-2.5 transition-colors font-medium text-classic-text-primary"
+                  >
+                    <Printer className="w-4 h-4 text-indigo-700 shrink-0" />
+                    <div>
+                      <div className="font-bold text-indigo-950">Print / Save PDF (Exact App)</div>
+                      <div className="text-[10px] text-classic-text-muted">Exact visual parity with formulas &amp; symbols</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsExportDropdownOpen(false);
                       handleExportWord();
                     }}
                     disabled={exportingFormat !== null}
@@ -1356,6 +1423,19 @@ export const QuestionBank: React.FC = () => {
               </select>
 
               {/* Complete Multi-Format Export Suite */}
+              <button
+                type="button"
+                onClick={() => handleOpenPrintModal()}
+                className="classic-button-secondary rounded-classic text-xs font-semibold px-3 py-2 flex items-center space-x-1.5 text-indigo-700 hover:bg-indigo-50 border-indigo-200"
+                title={`Print or Save PDF with exact web application math rendering for ${getExportScopeLabel()}`}
+              >
+                <Printer className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Print / PDF (Exact)</span>
+                {selectedBankQIds.size > 0 && (
+                  <span className="text-[10px] font-bold text-indigo-800">({selectedBankQIds.size})</span>
+                )}
+              </button>
+
               <button
                 type="button"
                 onClick={() => handleExportWord()}
@@ -2526,8 +2606,35 @@ export const QuestionBank: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 4 Multi-Format Cards */}
+                {/* Multi-Format Export Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                  {/* Exact App Math Print & PDF Render */}
+                  <div className="p-4 border border-indigo-200 bg-indigo-50/30 rounded-classic space-y-3 flex flex-col justify-between hover:border-indigo-400 transition-all shadow-classic-sm col-span-1 md:col-span-2">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Printer className="w-5 h-5 text-indigo-700" />
+                          <h4 className="font-bold text-sm text-indigo-950">Print / Save PDF (Exact App Math Render)</h4>
+                        </div>
+                        <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-[10px] rounded font-bold">100% Visual Parity</span>
+                      </div>
+                      <p className="text-xs text-classic-text-muted leading-relaxed">
+                        Directly generates questions with exact application typography: KaTeX math formulas, fractions, radicals, powers, Greek letters, and full option diagrams.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsPasteModalOpen(false);
+                        handleOpenPrintModal(pasteModalTargetFolder);
+                      }}
+                      className="bg-indigo-700 hover:bg-indigo-800 text-white rounded-classic py-2.5 px-4 text-xs font-bold flex items-center justify-center space-x-2 w-full transition-all shadow-xs"
+                    >
+                      <Printer className="w-4 h-4" />
+                      <span>Open Print &amp; PDF Preview</span>
+                    </button>
+                  </div>
+
                   {/* Word */}
                   <div className="p-4 border border-blue-200 bg-blue-50/20 rounded-classic space-y-3 flex flex-col justify-between hover:border-blue-400 transition-all shadow-classic-sm">
                     <div className="space-y-1.5">
@@ -3342,6 +3449,214 @@ export const QuestionBank: React.FC = () => {
                 <Upload className="w-3.5 h-3.5" />
                 <span>{isSubmittingImageModal ? 'Uploading...' : `Attach to ${attachImageModal.destination === 'BODY' ? 'Question Body' : `Option (${attachImageModal.destination})`}`}</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exact App Math Print & PDF Preview Modal */}
+      {showPrintModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 animate-fade-in exact-print-portal">
+          <div className="bg-white rounded-classic shadow-2xl border border-classic-border w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden">
+            {/* Modal Header (no-print) */}
+            <div className="p-4 border-b border-classic-border bg-classic-surface-muted flex flex-wrap items-center justify-between gap-3 no-print">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-classic bg-indigo-100 flex items-center justify-center text-indigo-700">
+                  <Printer className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-classic-text-primary flex items-center space-x-2">
+                    <span>Print / Save PDF (Exact Math Render)</span>
+                    <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      {printQuestionsList.length} Question{printQuestionsList.length !== 1 ? 's' : ''}
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-classic-text-muted">
+                    Exact visual parity with web app • Vector KaTeX formulas, symbols, and diagrams
+                  </p>
+                </div>
+              </div>
+
+              {/* Controls */}
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="flex items-center space-x-1.5 text-xs font-medium text-classic-text-secondary cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={printIncludeAnswers}
+                    onChange={(e) => setPrintIncludeAnswers(e.target.checked)}
+                    className="w-4 h-4 rounded text-classic-navy focus:ring-classic-navy"
+                  />
+                  <span>Answers</span>
+                </label>
+                <label className="flex items-center space-x-1.5 text-xs font-medium text-classic-text-secondary cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={printIncludeExplanations}
+                    onChange={(e) => setPrintIncludeExplanations(e.target.checked)}
+                    className="w-4 h-4 rounded text-classic-navy focus:ring-classic-navy"
+                  />
+                  <span>Explanations</span>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={handleTriggerDirectPrint}
+                  className="classic-button-primary rounded-classic px-3.5 py-1.5 text-xs font-bold flex items-center space-x-1.5 bg-indigo-700 hover:bg-indigo-800 text-white shadow-xs cursor-pointer"
+                  title="Open browser print dialog to print or Save as PDF"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Print / Save PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleExportWord()}
+                  disabled={exportingFormat !== null}
+                  className="classic-button-secondary rounded-classic px-3 py-1.5 text-xs font-semibold flex items-center space-x-1.5"
+                  title="Download editable Microsoft Word document (.doc) with MathML"
+                >
+                  <FileText className="w-3.5 h-3.5 text-blue-700" />
+                  <span>Word (.doc)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPrintModal(false)}
+                  className="p-1.5 text-classic-text-muted hover:text-classic-text-primary hover:bg-classic-border-light rounded-classic transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Printable Sheet Viewport */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-100/70 print:p-0 print:bg-white print:overflow-visible">
+              <div className="exact-print-sheet max-w-4xl mx-auto bg-white p-6 sm:p-10 shadow-lg border border-classic-border rounded print:border-none print:shadow-none print:p-0 print:max-w-none">
+                {/* Exam / Bank Header */}
+                <div className="border-b-2 border-slate-900 pb-4 mb-6 text-center">
+                  <h1 className="text-xl font-bold text-slate-950 uppercase tracking-wide">
+                    {printScopeTitle}
+                  </h1>
+                  <div className="flex items-center justify-between text-xs text-slate-600 mt-2 font-medium">
+                    <span>Date: {new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                    <span>Total Questions: {printQuestionsList.length}</span>
+                    <span>
+                      Total Marks: {printQuestionsList.reduce((acc, q) => acc + (q.marks || 1), 0)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Questions List */}
+                <div className="space-y-6">
+                  {printQuestionsList.map((q, idx) => {
+                    const options = typeof q.optionsJson === 'string' ? JSON.parse(q.optionsJson) : q.options || [];
+                    const diagrams = typeof q.diagramsJson === 'string' ? JSON.parse(q.diagramsJson) : q.diagrams || [];
+
+                    return (
+                      <div key={q.id || idx} className="exact-print-question-item space-y-2.5">
+                        {/* Question Stem Header & Text */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="text-sm font-semibold text-slate-950 flex-1 leading-relaxed">
+                            <span className="font-bold mr-1.5">Q{idx + 1}.</span>
+                            <MathRenderer content={q.questionText} />
+                          </div>
+                          <div className="text-xs text-slate-500 font-mono shrink-0 font-medium">
+                            [{q.marks || 1} M]
+                          </div>
+                        </div>
+
+                        {/* Question Image if present */}
+                        {q.imageUrl && (
+                          <div className="my-2">
+                            <img
+                              src={q.imageUrl}
+                              alt={`Q${idx + 1} Diagram`}
+                              className="max-h-48 max-w-full object-contain border border-slate-200 rounded p-1"
+                            />
+                          </div>
+                        )}
+
+                        {/* Additional Diagrams if present */}
+                        {diagrams.length > 0 && (
+                          <div className="flex flex-wrap gap-2 my-2">
+                            {diagrams.map((d: any, dIdx: number) => (
+                              <img
+                                key={dIdx}
+                                src={d.url || d}
+                                alt={`Diagram ${dIdx + 1}`}
+                                className="max-h-40 max-w-full object-contain border border-slate-200 rounded p-1"
+                              />
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Options Grid (MCQ) */}
+                        {options.length > 0 && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 pt-1">
+                            {options.map((opt: any, optIdx: number) => {
+                              const isCorrect = printIncludeAnswers && q.correctAnswer === opt.key;
+                              return (
+                                <div
+                                  key={optIdx}
+                                  className={`p-2 rounded text-xs flex items-start space-x-2 border ${
+                                    isCorrect
+                                      ? 'border-emerald-600 bg-emerald-50/60 font-semibold text-emerald-950 print:border-emerald-800'
+                                      : 'border-slate-200 bg-slate-50/50 text-slate-800'
+                                  }`}
+                                >
+                                  <span className={`font-mono font-bold shrink-0 ${isCorrect ? 'text-emerald-700' : 'text-slate-900'}`}>
+                                    ({opt.key})
+                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <MathRenderer content={opt.text || ''} />
+                                    {opt.imageUrl && (
+                                      <div className="mt-1">
+                                        <img
+                                          src={opt.imageUrl}
+                                          alt={`Option ${opt.key}`}
+                                          className="max-h-24 object-contain border border-slate-200 rounded p-0.5"
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                  {isCorrect && (
+                                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-1 py-0.2 rounded shrink-0">
+                                      ✓ Correct
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Answer and Explanation Box */}
+                        {printIncludeAnswers && (
+                          <div className="mt-2 pt-2 border-t border-dashed border-slate-200 text-xs space-y-1">
+                            {q.correctAnswer && (
+                              <div className="font-semibold text-emerald-800 flex items-center space-x-1.5">
+                                <span>Answer:</span>
+                                <span className="font-bold underline">Option ({q.correctAnswer})</span>
+                              </div>
+                            )}
+                            {printIncludeExplanations && q.explanation && (
+                              <div className="text-slate-700 bg-slate-50 p-2 rounded border border-slate-200 leading-relaxed">
+                                <span className="font-bold text-slate-900 mr-1">Explanation / Solution:</span>
+                                <MathRenderer content={q.explanation} />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Print Footer */}
+                <div className="mt-8 pt-4 border-t border-slate-300 text-center text-xs text-slate-500">
+                  <p>Question Bank Document &bull; Generated by Paper Generator</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

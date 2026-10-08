@@ -53,6 +53,57 @@ class ExportEngine:
         )
         return page
 
+    @staticmethod
+    def sanitize_latex_for_pdf(text: str) -> str:
+        """Converts raw LaTeX math expressions into clean Unicode typography for PyMuPDF rendering."""
+        if not text:
+            return ""
+        s = text
+        greek = {
+            r"\pi": "π", r"\theta": "θ", r"\Theta": "Θ", r"\alpha": "α", r"\beta": "β",
+            r"\gamma": "γ", r"\delta": "δ", r"\lambda": "λ", r"\mu": "μ", r"\sigma": "σ",
+            r"\omega": "ω", r"\Delta": "Δ", r"\Omega": "Ω", r"\times": "×", r"\pm": "±",
+            r"\mp": "∓", r"\div": "÷", r"\cdot": "·", r"\le": "≤", r"\leq": "≤",
+            r"\ge": "≥", r"\geq": "≥", r"\neq": "≠", r"\approx": "≈", r"\infty": "∞",
+            r"\circ": "°",
+        }
+        for k, v in greek.items():
+            s = re.sub(re.escape(k) + r"\b", v, s)
+
+        # Common fractions
+        s = re.sub(r"\\frac\{1\}\{2\}", "½", s)
+        s = re.sub(r"\\frac\{1\}\{3\}", "⅓", s)
+        s = re.sub(r"\\frac\{2\}\{3\}", "⅔", s)
+        s = re.sub(r"\\frac\{1\}\{4\}", "¼", s)
+        s = re.sub(r"\\frac\{3\}\{4\}", "¾", s)
+        s = re.sub(r"\\frac\{4\}\{3\}", "⁴⁄₃", s)
+        s = re.sub(r"\\frac\{4\s*\\?pi\}\{3\}", "⁴⁄₃π", s)
+        s = re.sub(r"\\frac\{([^}]+)\}\{([^}]+)\}", r"(\1/\2)", s)
+
+        # Radicals
+        s = re.sub(r"\\sqrt\[3\]\{([^}]+)\}", r"∛\1", s)
+        s = re.sub(r"\\sqrt\[4\]\{([^}]+)\}", r"∜\1", s)
+        s = re.sub(r"\\sqrt\{([^}]+)\}", r"√\1", s)
+
+        # Superscripts
+        sups = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','+':'⁺','-':'⁻','=':'⁼','(':'⁽',')':'⁾','n':'ⁿ','i':'ⁱ','x':'ˣ','y':'ʸ','t':'ᵗ'}
+        s = re.sub(r"([a-zA-Z0-9\)])\^\{([^}]+)\}", lambda m: m.group(1) + "".join(sups.get(c, c) for c in m.group(2)), s)
+        s = re.sub(r"([a-zA-Z0-9\)])\^([0-9a-zA-Z])", lambda m: m.group(1) + sups.get(m.group(2), f"^{m.group(2)}"), s)
+
+        # Units
+        s = re.sub(r"\bcm\^\{?2\}?", "cm²", s)
+        s = re.sub(r"\bcm\^\{?3\}?", "cm³", s)
+        s = re.sub(r"\bm\^\{?2\}?", "m²", s)
+        s = re.sub(r"\bm\^\{?3\}?", "m³", s)
+
+        # Clean formatting and dollar signs
+        s = re.sub(r"\\mathrm\{([^}]+)\}", r"\1", s)
+        s = re.sub(r"\\mathbf\{([^}]+)\}", r"\1", s)
+        s = re.sub(r"\\text\{([^}]+)\}", r"\1", s)
+        s = re.sub(r"\$\$|\$", "", s)
+        s = s.replace(r"\,", " ").replace(r"\;", " ").replace(r"\!", "")
+        return s.strip()
+
     @classmethod
     def generate_questions_pdf(
         cls,
@@ -67,17 +118,20 @@ class ExportEngine:
         page = cls._create_page(doc, title, page_num)
         y = cls.MARGIN_TOP
 
+        font_args_bold = get_unicode_font_args(is_bold=True)
+        font_args_reg = get_unicode_font_args(is_bold=False)
+
         # Title Header
-        page.insert_text((cls.MARGIN_LEFT, y + 16), title.upper(), fontsize=15, fontname="hebo", color=(0.1, 0.15, 0.35))
+        page.insert_text((cls.MARGIN_LEFT, y + 16), title.upper(), fontsize=15, color=(0.1, 0.15, 0.35), **font_args_bold)
         y += 24
         meta_str = f"Taxonomy Folder: {folder_name}  |  Total Questions: {len(questions)}  |  Exported with Solutions"
-        page.insert_text((cls.MARGIN_LEFT, y + 10), meta_str, fontsize=9, fontname="helv", color=(0.3, 0.3, 0.3))
+        page.insert_text((cls.MARGIN_LEFT, y + 10), meta_str, fontsize=9, color=(0.3, 0.3, 0.3), **font_args_reg)
         y += 18
         page.draw_line((cls.MARGIN_LEFT, y), (cls.MARGIN_RIGHT, y), color=(0.2, 0.3, 0.6), width=1.5)
         y += 15
 
         # Section 1: Questions & Options
-        page.insert_text((cls.MARGIN_LEFT, y + 10), "PART I: EXAMINATION QUESTIONS", fontsize=11, fontname="hebo", color=(0.1, 0.1, 0.2))
+        page.insert_text((cls.MARGIN_LEFT, y + 10), "PART I: EXAMINATION QUESTIONS", fontsize=11, color=(0.1, 0.1, 0.2), **font_args_bold)
         y += 18
 
         for idx, q in enumerate(questions):
@@ -89,7 +143,9 @@ class ExportEngine:
 
             q_num = q.get("questionNumber") or str(idx + 1)
             marks = q.get("marks", 1)
-            q_text = q.get("questionText") or ""
+            raw_q_text = q.get("questionText") or ""
+            q_text = cls.sanitize_latex_for_pdf(raw_q_text)
+
             opts = q.get("options") or []
             if isinstance(opts, str):
                 try:
@@ -100,17 +156,16 @@ class ExportEngine:
 
             # Question stem header with marks
             marks_str = f"[{marks} Mark{'s' if marks > 1 else ''}]"
-            marks_w = pymupdf.get_text_length(marks_str, fontname="hebo", fontsize=9)
-            page.insert_text((cls.MARGIN_RIGHT - marks_w, y + 10), marks_str, fontsize=9, fontname="hebo", color=(0.2, 0.4, 0.2))
+            marks_w = pymupdf.get_text_length(marks_str, fontname=font_args_bold.get("fontname", "hebo"), fontsize=9)
+            page.insert_text((cls.MARGIN_RIGHT - marks_w, y + 10), marks_str, fontsize=9, color=(0.2, 0.4, 0.2), **font_args_bold)
             
             # Question stem
             stem_prefix = f"Q{q_num}. "
-            prefix_w = pymupdf.get_text_length(stem_prefix, fontname="hebo", fontsize=10)
-            page.insert_text((cls.MARGIN_LEFT, y + 10), stem_prefix, fontsize=10, fontname="hebo", color=(0.1, 0.1, 0.1))
+            prefix_w = pymupdf.get_text_length(stem_prefix, fontname=font_args_bold.get("fontname", "hebo"), fontsize=10)
+            page.insert_text((cls.MARGIN_LEFT, y + 10), stem_prefix, fontsize=10, color=(0.1, 0.1, 0.1), **font_args_bold)
 
             rect = pymupdf.Rect(cls.MARGIN_LEFT + prefix_w, y, cls.MARGIN_RIGHT - marks_w - 10, y + 120)
-            rc = page.insert_textbox(rect, q_text, fontsize=10, fontname="helv", color=(0.1, 0.1, 0.1))
-            # Rough line estimate
+            page.insert_textbox(rect, q_text, fontsize=10, color=(0.1, 0.1, 0.1), **font_args_reg)
             lines_est = max(1, len(q_text) // 75 + q_text.count("\n"))
             y += max(18, lines_est * 13 + 6)
 
@@ -123,9 +178,9 @@ class ExportEngine:
                         y = cls.MARGIN_TOP
 
                     opt_key = opt.get("key", "")
-                    opt_val = opt.get("text", "")
+                    opt_val = cls.sanitize_latex_for_pdf(opt.get("text", ""))
                     opt_str = f"({opt_key})  {opt_val}"
-                    page.insert_text((cls.MARGIN_LEFT + 20, y + 10), opt_str, fontsize=9.5, fontname="helv", color=(0.2, 0.2, 0.2))
+                    page.insert_text((cls.MARGIN_LEFT + 20, y + 10), opt_str, fontsize=9.5, color=(0.2, 0.2, 0.2), **font_args_reg)
                     y += 14
                 y += 6
 
@@ -138,13 +193,13 @@ class ExportEngine:
             page = cls._create_page(doc, title, page_num)
             y = cls.MARGIN_TOP
 
-            page.insert_text((cls.MARGIN_LEFT, y + 14), "PART II: ANSWER KEY & DETAILED SOLUTIONS", fontsize=13, fontname="hebo", color=(0.1, 0.4, 0.2))
+            page.insert_text((cls.MARGIN_LEFT, y + 14), "PART II: ANSWER KEY & DETAILED SOLUTIONS", fontsize=13, color=(0.1, 0.4, 0.2), **font_args_bold)
             y += 22
             page.draw_line((cls.MARGIN_LEFT, y), (cls.MARGIN_RIGHT, y), color=(0.1, 0.5, 0.25), width=1.5)
             y += 16
 
             # Quick Answer Grid Table
-            page.insert_text((cls.MARGIN_LEFT, y + 10), "Quick Reference Key:", fontsize=10, fontname="hebo", color=(0.2, 0.2, 0.2))
+            page.insert_text((cls.MARGIN_LEFT, y + 10), "Quick Reference Key:", fontsize=10, color=(0.2, 0.2, 0.2), **font_args_bold)
             y += 16
 
             grid_cols = 5
@@ -164,7 +219,7 @@ class ExportEngine:
                 ans = q.get("correctAnswer") or "-"
                 cell_text = f"Q{q_num}: {ans}"
                 cell_x = cls.MARGIN_LEFT + col_idx * col_width
-                page.insert_text((cell_x, item_y + 10), cell_text, fontsize=9, fontname="hebo", color=(0.1, 0.3, 0.1))
+                page.insert_text((cell_x, item_y + 10), cell_text, fontsize=9, color=(0.1, 0.3, 0.1), **font_args_bold)
                 y = max(y, item_y + 18)
 
             y += 16
@@ -172,7 +227,7 @@ class ExportEngine:
             y += 14
 
             # Detailed Explanations
-            page.insert_text((cls.MARGIN_LEFT, y + 10), "Detailed Solutions & Explanations:", fontsize=10, fontname="hebo", color=(0.2, 0.2, 0.2))
+            page.insert_text((cls.MARGIN_LEFT, y + 10), "Detailed Solutions & Explanations:", fontsize=10, color=(0.2, 0.2, 0.2), **font_args_bold)
             y += 16
 
             for idx, q in enumerate(questions):
@@ -183,15 +238,15 @@ class ExportEngine:
 
                 q_num = q.get("questionNumber") or str(idx + 1)
                 ans = q.get("correctAnswer") or "Not Specified"
-                expl = q.get("explanation") or "No explanation provided."
+                expl = cls.sanitize_latex_for_pdf(q.get("explanation") or "No explanation provided.")
 
                 ans_header = f"Q{q_num}. Correct Answer: ({ans})" if len(ans) == 1 else f"Q{q_num}. Correct Answer: {ans}"
-                page.insert_text((cls.MARGIN_LEFT, y + 10), ans_header, fontsize=9.5, fontname="hebo", color=(0.05, 0.35, 0.15))
+                page.insert_text((cls.MARGIN_LEFT, y + 10), ans_header, fontsize=9.5, color=(0.05, 0.35, 0.15), **font_args_bold)
                 y += 15
 
                 # Explanation text block
                 rect = pymupdf.Rect(cls.MARGIN_LEFT + 15, y, cls.MARGIN_RIGHT, y + 100)
-                page.insert_textbox(rect, expl, fontsize=9, fontname="helv", color=(0.25, 0.25, 0.25))
+                page.insert_textbox(rect, expl, fontsize=9, color=(0.25, 0.25, 0.25), **font_args_reg)
                 lines_est = max(1, len(expl) // 80 + expl.count("\n"))
                 y += max(16, lines_est * 12 + 8)
 
