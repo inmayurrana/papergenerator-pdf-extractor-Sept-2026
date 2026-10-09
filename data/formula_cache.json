@@ -839,5 +839,54 @@
         }
       }
     }
+  },
+  "b5c02ebd14b72db719483ff14ed5dee4249ce4ddb6cbc0a86295259954a03f93": {
+    "hash": "b5c02ebd14b72db719483ff14ed5dee4249ce4ddb6cbc0a86295259954a03f93",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "",
+      "formula_component": "",
+      "unit": null,
+      "latex": "$$",
+      "raw_latex": "",
+      "mathml": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mrow></mrow></math>",
+      "structured_ast": {
+        "type": "ROOT",
+        "value": "",
+        "attributes": {},
+        "confidence": 1.0,
+        "children": []
+      },
+      "spatial_meta": {
+        "has_subscript": false,
+        "has_superscript": false,
+        "has_fraction": false,
+        "has_integral": false,
+        "has_matrix": false,
+        "has_vector": false,
+        "has_root": false
+      },
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.7,
+        "visual_similarity": 0.5,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.745,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": true,
+          "confidence": 1.0,
+          "errors": [],
+          "warnings": [],
+          "tokens_count": 0,
+          "ast": null
+        }
+      }
+    }
   }
 }

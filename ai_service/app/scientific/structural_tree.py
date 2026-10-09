@@ -597,6 +597,16 @@ class FormulaNode:
         if nt == NodeType.SUBTRACT:
             return " - ".join(c.to_plain_text() for c in self.children)
 
+        if nt in (NodeType.MULTIPLY, NodeType.IMPLICIT_MULTIPLY):
+            is_implicit = self.attributes.get("implicit", False) or nt == NodeType.IMPLICIT_MULTIPLY
+            if is_implicit:
+                return " ".join(c.to_plain_text() for c in self.children)
+            sep = " · " if self.attributes.get("dot", False) else " × "
+            return sep.join(c.to_plain_text() for c in self.children)
+
+        if nt == NodeType.DIVIDE:
+            return " / ".join(c.to_plain_text() for c in self.children)
+
         if nt == NodeType.MATRIX:
             rows = []
             for r in self.children:
