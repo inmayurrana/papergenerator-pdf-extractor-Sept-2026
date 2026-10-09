@@ -45,7 +45,15 @@ import { FormulaEditorModal } from '../components/common/FormulaEditorModal';
 export const ComparisonReview: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const docId = searchParams.get('docId');
+  const urlDocId = searchParams.get('docId');
+  const [activeDocId, setActiveDocId] = useState<string | null>(urlDocId);
+  const docId = activeDocId || urlDocId;
+
+  useEffect(() => {
+    if (urlDocId && urlDocId !== activeDocId) {
+      setActiveDocId(urlDocId);
+    }
+  }, [urlDocId]);
 
   const [document, setDocument] = useState<any | null>(null);
   const [currentPageNum, setCurrentPageNum] = useState(1);
@@ -312,7 +320,7 @@ export const ComparisonReview: React.FC = () => {
 
   useEffect(() => {
     const fetchDoc = async () => {
-      let targetDocId = docId;
+      let targetDocId = urlDocId || activeDocId;
       if (!targetDocId) {
         try {
           const savedId = localStorage.getItem('pg_active_doc_id');
@@ -327,6 +335,10 @@ export const ComparisonReview: React.FC = () => {
         } catch {}
       }
       if (!targetDocId) return;
+      setActiveDocId(targetDocId);
+      if (!urlDocId) {
+        navigate(`/review?docId=${targetDocId}`, { replace: true });
+      }
       setLoading(true);
       try {
         try { localStorage.setItem('pg_active_doc_id', targetDocId); } catch {}
@@ -334,7 +346,7 @@ export const ComparisonReview: React.FC = () => {
         const doc = res.data.document;
         setDocument(doc);
         const p1 = doc?.pages?.find((p: any) => p.pageNumber === 1) || doc?.pages?.[0];
-        loadPage(1, p1);
+        loadPage(1, p1, targetDocId);
       } catch (err) {
         console.error(err);
       } finally {
@@ -344,7 +356,7 @@ export const ComparisonReview: React.FC = () => {
 
     fetchDoc();
     fetchFolders();
-  }, [docId]);
+  }, [urlDocId]);
 
   // Auto-fit to width whenever page number or panel layout changes
   useEffect(() => {
@@ -358,8 +370,9 @@ export const ComparisonReview: React.FC = () => {
     }
   }, [pageData?.page_number, panelLayout]);
 
-  const loadPage = async (pageNum: number, initialPageDoc?: any) => {
-    if (!docId) return;
+  const loadPage = async (pageNum: number, initialPageDoc?: any, explicitDocId?: string) => {
+    const currentDocId = explicitDocId || activeDocId || urlDocId || document?.id || (typeof window !== 'undefined' ? localStorage.getItem('pg_active_doc_id') : null);
+    if (!currentDocId) return;
     setLoading(true);
     setCurrentPageNum(pageNum);
     setPan({ x: 0, y: 0 });
@@ -380,7 +393,7 @@ export const ComparisonReview: React.FC = () => {
     const fallbackPage = initialPageDoc || document?.pages?.find((p: any) => p.pageNumber === pageNum);
     let initialLocalQuestions: any[] = [];
     try {
-      const localSavedStr = localStorage.getItem(`pg_doc_${docId}_p${pageNum}_questions`);
+      const localSavedStr = localStorage.getItem(`pg_doc_${currentDocId}_p${pageNum}_questions`);
       if (localSavedStr) {
         initialLocalQuestions = JSON.parse(localSavedStr) || [];
       }
@@ -413,7 +426,7 @@ export const ComparisonReview: React.FC = () => {
     }
 
     try {
-      const res = await api.post(`/documents/${docId}/process-page/${pageNum}`);
+      const res = await api.post(`/documents/${currentDocId}/process-page/${pageNum}`);
       const rawExtracted = res.data.extracted;
       // Auto sanitize any math font artifacts in extracted questions
       if (rawExtracted?.questions) {
@@ -429,7 +442,7 @@ export const ComparisonReview: React.FC = () => {
       if (rawExtracted) {
         rawExtracted.imageUrl = rawExtracted.page_image;
         try {
-          const localSavedKey = `pg_doc_${docId}_p${pageNum}_questions`;
+          const localSavedKey = `pg_doc_${currentDocId}_p${pageNum}_questions`;
           const localSavedStr = localStorage.getItem(localSavedKey);
           if (localSavedStr) {
             const localSavedQuestions = JSON.parse(localSavedStr);
@@ -443,6 +456,9 @@ export const ComparisonReview: React.FC = () => {
               );
               rawExtracted.questions = [...currentList, ...toAdd];
             }
+          }
+          if (rawExtracted.questions && rawExtracted.questions.length > 0) {
+            localStorage.setItem(localSavedKey, JSON.stringify(rawExtracted.questions));
           }
         } catch (e) {
           console.warn('Error merging local saved questions:', e);
@@ -458,11 +474,15 @@ export const ComparisonReview: React.FC = () => {
   };
 
   const handleRunDeepOcr = async () => {
-    if (!docId) return;
+    const currentDocId = activeDocId || urlDocId || document?.id || (typeof window !== 'undefined' ? localStorage.getItem('pg_active_doc_id') : null);
+    if (!currentDocId) {
+      showToast('No active document loaded.');
+      return;
+    }
     try {
       setOcrLoading(true);
       showToast(`Running Deep AI OCR extraction on page ${currentPageNum}...`);
-      const res = await api.post(`/documents/${docId}/process-page/${currentPageNum}`, {
+      const res = await api.post(`/documents/${currentDocId}/process-page/${currentPageNum}`, {
         force_ocr: true,
         profile: 'HIGH_ACCURACY',
       });
@@ -481,6 +501,16 @@ export const ComparisonReview: React.FC = () => {
         rawExtracted.imageUrl = rawExtracted.page_image;
         setPageData(rawExtracted);
         const count = rawExtracted.questions?.length || 0;
+        try {
+          if (count > 0) {
+            localStorage.setItem(
+              `pg_doc_${currentDocId}_p${currentPageNum}_questions`,
+              JSON.stringify(rawExtracted.questions)
+            );
+          }
+        } catch (storageErr) {
+          console.warn('Error caching OCR questions to localStorage:', storageErr);
+        }
         showToast(
           count > 0
             ? `OCR completed! Successfully extracted ${count} question(s).`
@@ -1974,7 +2004,7 @@ export const ComparisonReview: React.FC = () => {
     }
   };
 
-  if (!docId) {
+  if (!docId && !document && !loading) {
     return (
       <div className="text-center py-20 bg-white border border-[#D1D5DB] rounded-xl shadow-sm max-w-xl mx-auto space-y-4">
         <SplitSquareVertical className="w-12 h-12 text-[#0B1F3A] mx-auto" />

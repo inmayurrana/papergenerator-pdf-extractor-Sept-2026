@@ -1,5 +1,5 @@
-# Script to forcibly kill any processes on ports 8010, 5010, and 3010
-$targetPorts = @(8010, 5010, 3010)
+# Script to forcibly kill any processes on ports 8010, 5010, 3010, and 4173
+$targetPorts = @(8010, 5010, 3010, 4173)
 
 Write-Host "Checking if ports $($targetPorts -join ', ') are in use..." -ForegroundColor Cyan
 
