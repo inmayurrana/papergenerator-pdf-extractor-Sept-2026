@@ -254,6 +254,10 @@ export const Ingestion: React.FC = () => {
 
   const handleUpload = async () => {
     if (!file) return;
+    if (file.size > 500 * 1024 * 1024) {
+      alert(`The selected file is too large (${Math.round(file.size / (1024 * 1024))}MB). The maximum supported limit is 500MB. Please compress the PDF before uploading.`);
+      return;
+    }
     setUploading(true);
     setProgressMsg('Hashing file and checking for duplicates...');
     setDuplicateWarning(null);

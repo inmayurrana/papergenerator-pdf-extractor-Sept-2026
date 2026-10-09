@@ -8,6 +8,7 @@ const cors_1 = __importDefault(require("cors"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const uuid_1 = require("uuid");
+const multer_1 = __importDefault(require("multer"));
 const config_1 = require("./config");
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const users_routes_1 = __importDefault(require("./routes/users.routes"));
@@ -48,8 +49,8 @@ app.use((req, res, next) => {
     next();
 });
 app.use((0, cors_1.default)({ origin: true, credentials: true }));
-app.use(express_1.default.json({ limit: "50mb" }));
-app.use(express_1.default.urlencoded({ extended: true, limit: "50mb" }));
+app.use(express_1.default.json({ limit: "500mb" }));
+app.use(express_1.default.urlencoded({ extended: true, limit: "500mb" }));
 // 3. Layered Progressive Rate Limiter (Section 8)
 const authAttempts = new Map();
 const layeredRateLimiter = (maxReqs = 30, windowMs = 5 * 60 * 1000) => {
@@ -129,6 +130,26 @@ app.get("/health", (req, res) => {
 });
 // 6. Global Error Handler (Section 33: Safe errors without leaking internal secrets/stack traces)
 app.use((err, req, res, next) => {
+    // Handle Multer upload errors gracefully
+    if (err instanceof multer_1.default.MulterError || err?.name === "MulterError") {
+        console.warn(`[Multer Error] ${err.code}: ${err.message} (field: ${err.field})`);
+        if (err.code === "LIMIT_FILE_SIZE") {
+            const maxMb = Math.round(config_1.config.MAX_UPLOAD_SIZE_BYTES / (1024 * 1024));
+            res.status(413).json({
+                error: `Uploaded file exceeds the maximum allowed limit of ${maxMb}MB. Please compress the document or upload a smaller file.`,
+                code: "LIMIT_FILE_SIZE",
+                maxSizeMb: maxMb,
+                field: err.field,
+            });
+            return;
+        }
+        res.status(400).json({
+            error: `File upload failed: ${err.message}`,
+            code: err.code,
+            field: err.field,
+        });
+        return;
+    }
     console.error("Unhandled Server Error:", err);
     const safeMessage = process.env.NODE_ENV === "production"
         ? "An unexpected system error occurred. Please try again."

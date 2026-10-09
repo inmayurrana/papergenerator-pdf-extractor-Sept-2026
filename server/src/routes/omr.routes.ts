@@ -23,7 +23,10 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: config.MAX_IMAGE_SIZE_BYTES },
+});
 
 router.use(authenticateJwt);
 

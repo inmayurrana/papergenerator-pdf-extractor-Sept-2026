@@ -26,7 +26,10 @@ const storage = multer_1.default.diskStorage({
         cb(null, `omr_scan_${uniqueSuffix}${ext}`);
     },
 });
-const upload = (0, multer_1.default)({ storage });
+const upload = (0, multer_1.default)({
+    storage,
+    limits: { fileSize: config_1.config.MAX_IMAGE_SIZE_BYTES },
+});
 router.use(auth_1.authenticateJwt);
 // List all generated OMR templates
 router.get("/templates", async (req, res) => {

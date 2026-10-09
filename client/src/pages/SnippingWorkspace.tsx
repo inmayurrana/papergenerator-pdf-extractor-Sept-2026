@@ -199,6 +199,10 @@ export const SnippingWorkspace: React.FC = () => {
   // Direct upload of a document or page image
   const handleUploadFile = async (file: File) => {
     if (!file) return;
+    if (file.size > 500 * 1024 * 1024) {
+      alert(`The selected file is too large (${Math.round(file.size / (1024 * 1024))}MB). The maximum supported limit is 500MB. Please compress the PDF before uploading.`);
+      return;
+    }
     setUploadingFile(true);
     setUploadProgress(`Uploading ${file.name}...`);
     try {

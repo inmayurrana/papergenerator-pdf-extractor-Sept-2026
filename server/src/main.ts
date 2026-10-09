@@ -3,6 +3,7 @@ import cors from "cors";
 import path from "path";
 import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
+import multer from "multer";
 import { config } from "./config";
 import authRoutes from "./routes/auth.routes";
 import usersRoutes from "./routes/users.routes";
@@ -52,8 +53,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+app.use(express.json({ limit: "500mb" }));
+app.use(express.urlencoded({ extended: true, limit: "500mb" }));
 
 // 3. Layered Progressive Rate Limiter (Section 8)
 const authAttempts = new Map<string, { count: number; resetAt: number }>();
@@ -143,6 +144,27 @@ app.get("/health", (req: Request, res: Response) => {
 
 // 6. Global Error Handler (Section 33: Safe errors without leaking internal secrets/stack traces)
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  // Handle Multer upload errors gracefully
+  if (err instanceof multer.MulterError || err?.name === "MulterError") {
+    console.warn(`[Multer Error] ${err.code}: ${err.message} (field: ${err.field})`);
+    if (err.code === "LIMIT_FILE_SIZE") {
+      const maxMb = Math.round(config.MAX_UPLOAD_SIZE_BYTES / (1024 * 1024));
+      res.status(413).json({
+        error: `Uploaded file exceeds the maximum allowed limit of ${maxMb}MB. Please compress the document or upload a smaller file.`,
+        code: "LIMIT_FILE_SIZE",
+        maxSizeMb: maxMb,
+        field: err.field,
+      });
+      return;
+    }
+    res.status(400).json({
+      error: `File upload failed: ${err.message}`,
+      code: err.code,
+      field: err.field,
+    });
+    return;
+  }
+
   console.error("Unhandled Server Error:", err);
   const safeMessage = process.env.NODE_ENV === "production"
     ? "An unexpected system error occurred. Please try again."

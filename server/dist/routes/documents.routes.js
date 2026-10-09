@@ -49,7 +49,7 @@ const storage = multer_1.default.diskStorage({
 });
 const upload = (0, multer_1.default)({
     storage,
-    limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB max
+    limits: { fileSize: config_1.config.MAX_UPLOAD_SIZE_BYTES }, // Configurable, default 500 MB max
 });
 router.use(auth_1.authenticateJwt);
 // Upload document & compute SHA-256 duplicate detection

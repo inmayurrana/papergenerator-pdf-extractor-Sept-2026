@@ -27,7 +27,7 @@ const imageStorage = multer.diskStorage({
 
 const uploadImage = multer({
   storage: imageStorage,
-  limits: { fileSize: 20 * 1024 * 1024 },
+  limits: { fileSize: config.MAX_IMAGE_SIZE_BYTES }, // 50 MB
 });
 
 const docUploadStorage = multer.diskStorage({
@@ -45,7 +45,7 @@ const docUploadStorage = multer.diskStorage({
 
 const uploadDoc = multer({
   storage: docUploadStorage,
-  limits: { fileSize: 50 * 1024 * 1024 },
+  limits: { fileSize: config.MAX_UPLOAD_SIZE_BYTES }, // 500 MB
 });
 
 // Helper to convert any image path or URL to offline Base64 Data URI for Word Embedding

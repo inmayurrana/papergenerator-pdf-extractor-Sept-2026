@@ -46,7 +46,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB max
+  limits: { fileSize: config.MAX_UPLOAD_SIZE_BYTES }, // Configurable, default 500 MB max
 });
 
 router.use(authenticateJwt);

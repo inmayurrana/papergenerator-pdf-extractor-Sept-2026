@@ -29,7 +29,7 @@ const imageStorage = multer_1.default.diskStorage({
 });
 const uploadImage = (0, multer_1.default)({
     storage: imageStorage,
-    limits: { fileSize: 20 * 1024 * 1024 },
+    limits: { fileSize: config_1.config.MAX_IMAGE_SIZE_BYTES }, // 50 MB
 });
 const docUploadStorage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
@@ -46,7 +46,7 @@ const docUploadStorage = multer_1.default.diskStorage({
 });
 const uploadDoc = (0, multer_1.default)({
     storage: docUploadStorage,
-    limits: { fileSize: 50 * 1024 * 1024 },
+    limits: { fileSize: config_1.config.MAX_UPLOAD_SIZE_BYTES }, // 500 MB
 });
 // Helper to convert any image path or URL to offline Base64 Data URI for Word Embedding
 function resolveImageToBase64(imgUrl) {

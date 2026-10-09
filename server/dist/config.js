@@ -31,4 +31,6 @@ exports.config = {
     AI_SERVICE_URL: process.env.AI_SERVICE_URL || "http://127.0.0.1:8010",
     DATA_DIR: resolveDataDir(),
     FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:3010",
+    MAX_UPLOAD_SIZE_BYTES: Number(process.env.MAX_UPLOAD_SIZE_BYTES) || 500 * 1024 * 1024, // 500 MB default
+    MAX_IMAGE_SIZE_BYTES: Number(process.env.MAX_IMAGE_SIZE_BYTES) || 50 * 1024 * 1024, // 50 MB default
 };
