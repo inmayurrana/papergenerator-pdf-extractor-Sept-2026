@@ -10,7 +10,7 @@ class RegionDetector:
         r"^\s*(?:[A-Z]{1,3}\d{2,6}[A-Z0-9_\-]*\s*\n\s*)?(?:"
         r"Q(?:uestion)?\s*[.\-]?\s*([1-9]\d{0,2})\s*[.)\]:\-]?"   # Q1, Q.1, Q1., Q.1), Q.1:, Question 1
         r"|([1-9]\d{0,2})\s*(?:\.(?!\d)|[)\]])"                 # 1. 1) 1] (prevents decimal like 0.25)
-        r")(?:\s+|$)",
+        r")(?:\s+|(?=[A-Za-z\u00C0-\u024F])|$)",
         re.IGNORECASE
     )
 
@@ -94,6 +94,10 @@ class RegionDetector:
         clean_text = text.strip()
         y = bbox[1]
 
+        # Normalize missing space after question numbers in OCR text (e.g. "4.How" -> "4. How", "Q.7Thenumber" -> "Q.7 The number")
+        clean_text = re.sub(r"^([1-9]\d{0,2})\.([A-Za-z])", r"\1. \2", clean_text)
+        clean_text = re.sub(r"^(Q(?:uestion)?\s*[.\-]?\s*\d{1,3})\.?([A-Za-z])", r"\1 \2", clean_text, flags=re.IGNORECASE)
+
         # 0. Check section instruction directives (e.g. Q.1 to Q.9 has four choices, [SINGLE CORRECT CHOICE TYPE])
         if RegionDetector.HEADER_INSTRUCTION_PATTERN.search(clean_text):
             return {"type": "HEADER", "confidence": 0.96}
@@ -111,19 +115,10 @@ class RegionDetector:
         if clean_text.lower() in ["ans.", "ans", "answer:", "answer"]:
             return {"type": "ANSWER", "confidence": 0.92}
 
-        # 3. Check Section Titles & Banners
-        if re.search(r"^(?:DPP\b|DAILY\s*PRACTICE|EVERYDAY\s*MATHEMATICS|ACHIEVERS\s*SECTION|SECTION\s*[-–:]|PART\s*[-–:]|MATHEMATICS|PHYSICS|CHEMISTRY|BIOLOGY|LOGICAL\s*REASONING|SCIENCE|GRADE\s*\d+|CLASS\s*\d+|MOCK\s*TEST|SAMPLE\s*PAPER|QUESTION\s*PAPER|EXAMINATION\b|CHAPTER\b|UNIT\b|ASSIGNMENT\b)", clean_text, re.IGNORECASE):
-            return {"type": "HEADER", "confidence": 0.95}
-
-        # 4. Check Header by vertical position near top margin (< 5.5% of page)
-        header_limit = max(80, int(page_height * 0.055))
-        if y < header_limit and len(clean_text) < 150:
-            return {"type": "HEADER", "confidence": 0.95}
-
-        # 5. Check Option (excluding sentence endings like '(B) is :-')
-        # First: check for MULTI-OPTION inline block (2-column MCQ style: "(1) x (2) y" or "(A) x (B) y")
+        # 3. Check Option (MUST be evaluated before positional header check so top options are never headers!)
+        # Check for MULTI-OPTION inline block (e.g. "(1) x (2) y", "(A) x (B) y", or OCR combined "3(b)1956(c)16(d)64")
         multi_opt_pattern = re.compile(
-            r"(?:^|\s)\(([A-Da-d1-4])\)\s*.+?\s+\(([A-Da-d1-4])\)\s*",
+            r"(?:^|\s|\d|[.,:;])\(([A-Da-d1-4])\)\s*.+?\s*(?:\(([A-Da-d1-4])\)|(?<=\s)[A-Da-d1-4][\.\)])\s*",
             re.IGNORECASE
         )
         multi_match = multi_opt_pattern.search(clean_text)
@@ -132,12 +127,23 @@ class RegionDetector:
             mapping = {"1": "A", "2": "B", "3": "C", "4": "D"}
             return {"type": "OPTION", "option_label": mapping.get(first_lbl, first_lbl.upper()), "confidence": 0.95}
 
-        # Second: single option at start of block
+        # Single option at start of block
         opt_match = RegionDetector.OPTION_PATTERN.match(clean_text)
         if opt_match and not re.search(r"\b(?:is|are|will\s*be|was|were)\s*[:=\-]", clean_text, re.IGNORECASE):
             opt_label = opt_match.group(1) or opt_match.group(2)
             mapping = {"1": "A", "2": "B", "3": "C", "4": "D"}
             return {"type": "OPTION", "option_label": mapping.get(opt_label, opt_label.upper()), "confidence": 0.95}
+
+        # 4. Check Section Titles & Banners
+        if re.search(r"^(?:DPP\b|DAILY\s*PRACTICE|EVERYDAY\s*MATHEMATICS|ACHIEVERS\s*SECTION|SECTION\s*[-–:]|PART\s*[-–:]|MATHEMATICS|PHYSICS|CHEMISTRY|BIOLOGY|LOGICAL\s*REASONING|SCIENCE|GRADE\s*\d+|CLASS\s*\d+|MOCK\s*TEST|SAMPLE\s*PAPER|QUESTION\s*PAPER|EXAMINATION\b|CHAPTER\b|UNIT\b|ASSIGNMENT\b)", clean_text, re.IGNORECASE):
+            return {"type": "HEADER", "confidence": 0.95}
+
+        # 5. Check Header by vertical position near top margin (< 5.5% of page) - NEVER classify questions, options, or math as headers
+        header_limit = max(80, int(page_height * 0.055))
+        if y < header_limit and len(clean_text) < 150:
+            is_question_like = bool(re.search(r"^(?:calculate|find|what|which|prove|show|if|then|how\s+many|number\s+of)\b", clean_text, re.IGNORECASE))
+            if not is_question_like and not re.search(r"[=><+\-×÷√∫∑]", clean_text):
+                return {"type": "HEADER", "confidence": 0.95}
 
         # 6. Check Subquestion
         sub_match = RegionDetector.SUBQUESTION_PATTERN.match(clean_text)

@@ -14,8 +14,8 @@ class OCRExtractor:
         if self._engine is None:
             try:
                 from rapidocr_onnxruntime import RapidOCR  # type: ignore
-                self._engine = RapidOCR()
-                logger.info("RapidOCR engine initialized successfully.")
+                self._engine = RapidOCR(use_cls=False)
+                logger.info("RapidOCR engine initialized successfully (use_cls=False).")
             except Exception as e:
                 logger.error(f"Failed to load RapidOCR: {e}")
         return self._engine

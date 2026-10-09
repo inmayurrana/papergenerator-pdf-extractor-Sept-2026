@@ -3,7 +3,7 @@ import { useAuthStore } from './authStore';
 
 export const api = axios.create({
   baseURL: '/api',
-  timeout: 60000, // 60s timeout for heavy AI jobs
+  timeout: 120000, // 120s timeout for heavy AI jobs
 });
 
 api.interceptors.request.use((config) => {

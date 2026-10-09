@@ -178,12 +178,12 @@ class QuestionParser:
                 ).strip()
 
                 # Check if inline options are embedded inside the question text
-                # e.g. "If V = 4/3 \pi r^3 ... ?(a) \pi (b) 4\pi (c) 40\pi (d) 4\pi/3"
+                # e.g. "If V = 4/3 \pi r^3 ... ?(a) \pi (b) 4\pi (c) 40\pi (d) 4\pi/3" or trailing "...is (a) 420"
                 test_inline = QuestionParser.parse_options_from_text(clean_body)
                 inline_options = []
-                if len(test_inline) >= 2:
-                    first_m = QuestionParser.OPTION_SPLIT_REGEX.search(clean_body)
-                    if first_m:
+                first_m = QuestionParser.OPTION_SPLIT_REGEX.search(clean_body)
+                if first_m:
+                    if len(test_inline) >= 2 or (len(test_inline) == 1 and test_inline[0]["key"] == "A" and first_m.start() > 10):
                         inline_options = test_inline
                         clean_body = clean_body[:first_m.start()].strip()
 
@@ -291,6 +291,16 @@ class QuestionParser:
                 # Detect inline options on paragraph/math blocks across rows (e.g. row 1 A-B, row 2 C-D)
                 parsed_opts = QuestionParser.parse_options_from_text(text)
                 if parsed_opts and len(parsed_opts) >= 1:
+                    first_m = QuestionParser.OPTION_SPLIT_REGEX.search(text)
+                    if first_m and first_m.start() > 0 and not current_q.get("options"):
+                        stem_prefix = text[:first_m.start()].strip()
+                        if stem_prefix:
+                            norm_prefix = specialized_math.convert_embedded_math(stem_prefix)
+                            if current_q["question_text"]:
+                                current_q["question_text"] += " " + norm_prefix
+                            else:
+                                current_q["question_text"] = norm_prefix
+
                     existing_keys = {o["key"] for o in current_q["options"]}
                     added = False
                     for opt in parsed_opts:
@@ -308,6 +318,10 @@ class QuestionParser:
                     if added:
                         current_q["raw_regions"].append(r)
                         # Skip further processing — this block was option content
+                elif current_q.get("options") and current_q["options"][-1].get("text", "").strip() == "" and text.strip():
+                    # Handle split option where label e.g. "(c)" and body e.g. "400" are in consecutive regions
+                    current_q["options"][-1]["text"] = specialized_math.convert_embedded_math(text.strip())
+                    current_q["raw_regions"].append(r)
 
                 elif re.match(r"^[A-Z]{1,4}\d{2,6}[A-Z0-9_\-]*$", text.strip()):
                     # Coaching book / exercise question code (e.g. NL0084, NL0085)

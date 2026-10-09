@@ -1284,6 +1284,7 @@ class ProcessPageV2Request(BaseModel):
     page_number: int
     profile: str = "BALANCED"
     watermark_action: str = "KEEP_ORIGINAL"
+    force_ocr: bool = False
 
 class ExportHighFidelityRequest(BaseModel):
     pages_data: List[Dict[str, Any]]
@@ -1383,6 +1384,7 @@ async def process_page_v2_endpoint(req: ProcessPageV2Request):
                 page_number=req.page_number,
                 profile=req.profile,
                 watermark_action=req.watermark_action,
+                force_ocr=req.force_ocr,
             )
             return res
         finally:
