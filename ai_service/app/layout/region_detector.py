@@ -4,13 +4,38 @@ import cv2  # type: ignore
 import numpy as np  # type: ignore
 
 class RegionDetector:
-    # Regex patterns for educational structure (limit Q# to 1-3 digits with optional whitespace)
-    # Optional prefix: exercise-code marker like NL0117, NL0118 that some PDFs print before the Q number
+    # Regex patterns for educational structure (limit Q# to 1-3 digits with optional whitespace or end of string)
+    # Allows isolated OCR tokens like 'Q.1', 'Q.2', '1.' without requiring trailing whitespace
     QUESTION_PATTERN = re.compile(
         r"^\s*(?:[A-Z]{1,3}\d{2,6}[A-Z0-9_\-]*\s*\n\s*)?(?:"
         r"Q(?:uestion)?\s*[.\-]?\s*([1-9]\d{0,2})\s*[.)\]:\-]?"   # Q1, Q.1, Q1., Q.1), Q.1:, Question 1
         r"|([1-9]\d{0,2})\s*(?:\.(?!\d)|[)\]])"                 # 1. 1) 1] (prevents decimal like 0.25)
-        r")\s+",
+        r")(?:\s+|$)",
+        re.IGNORECASE
+    )
+
+    # Multi-question range instructions and section directives should be treated as HEADERS, not questions
+    HEADER_INSTRUCTION_PATTERN = re.compile(
+        r"^\s*(?:\[\s*)?(?:"
+        r"Q(?:uestion)?\s*[.\-]?\s*\d+\s*(?:to|-|–)\s*Q?(?:uestion)?\s*[.\-]?\s*\d+"
+        r"|SINGLE\s+CORRECT"
+        r"|MULTIPLE\s+CORRECT"
+        r"|ONE\s+OR\s+MORE\s+THAN\s+ONE"
+        r"|MATCH\s+THE\s+COLUMN"
+        r"|MATRIX\s+MATCH"
+        r"|COMPREHENSION"
+        r"|NUMERICAL\s+VALUE"
+        r"|INTEGER\s+TYPE"
+        r"|ASSERTION"
+        r"|SECTION\s*[-–:]"
+        r"|PART\s*[-–:]"
+        r"|DIRECTIONS?"
+        r")\b",
+        re.IGNORECASE
+    )
+
+    ANSWER_PATTERN = re.compile(
+        r"\b(?:Ans(?:wer)?|Sol(?:ution)?|Correct\s*Option)\s*[.:=\-]?\s*\(?([A-Da-d1-4])\)?",
         re.IGNORECASE
     )
     SUBQUESTION_PATTERN = re.compile(r"^\(([a-zA-Z]|\d+|[ivxIVX]+)\)\s*")
@@ -69,24 +94,33 @@ class RegionDetector:
         clean_text = text.strip()
         y = bbox[1]
 
-        # 1. Question pattern evaluated FIRST so questions near page top are never misclassified as headers
+        # 0. Check section instruction directives (e.g. Q.1 to Q.9 has four choices, [SINGLE CORRECT CHOICE TYPE])
+        if RegionDetector.HEADER_INSTRUCTION_PATTERN.search(clean_text):
+            return {"type": "HEADER", "confidence": 0.96}
+
+        # 1. Question pattern evaluated EARLY so questions near page top are never misclassified as headers
         q_match = RegionDetector.QUESTION_PATTERN.match(clean_text)
         if q_match:
             q_num = q_match.group(1) or q_match.group(2)
             return {"type": "QUESTION", "question_number": q_num, "confidence": 0.96}
 
-        # 2. Check Section Titles & Banners
+        # 2. Check Answer keys (e.g. "Ans. (A)", "Ans: B", "Answer: C")
+        ans_match = RegionDetector.ANSWER_PATTERN.search(clean_text)
+        if ans_match:
+            return {"type": "ANSWER", "answer_key": ans_match.group(1).upper(), "confidence": 0.96}
+        if clean_text.lower() in ["ans.", "ans", "answer:", "answer"]:
+            return {"type": "ANSWER", "confidence": 0.92}
+
+        # 3. Check Section Titles & Banners
         if re.search(r"^(?:DPP\b|DAILY\s*PRACTICE|EVERYDAY\s*MATHEMATICS|ACHIEVERS\s*SECTION|SECTION\s*[-–:]|PART\s*[-–:]|MATHEMATICS|PHYSICS|CHEMISTRY|BIOLOGY|LOGICAL\s*REASONING|SCIENCE|GRADE\s*\d+|CLASS\s*\d+|MOCK\s*TEST|SAMPLE\s*PAPER|QUESTION\s*PAPER|EXAMINATION\b|CHAPTER\b|UNIT\b|ASSIGNMENT\b)", clean_text, re.IGNORECASE):
             return {"type": "HEADER", "confidence": 0.95}
 
-        # 3. Check Header / Footer by vertical position (scale-adaptive)
+        # 4. Check Header by vertical position near top margin (< 5.5% of page)
         header_limit = max(80, int(page_height * 0.055))
         if y < header_limit and len(clean_text) < 150:
             return {"type": "HEADER", "confidence": 0.95}
-        if y > (page_height - 90) and len(clean_text) < 100:
-            return {"type": "FOOTER", "confidence": 0.95}
 
-        # 4. Check Option (excluding sentence endings like '(B) is :-')
+        # 5. Check Option (excluding sentence endings like '(B) is :-')
         # First: check for MULTI-OPTION inline block (2-column MCQ style: "(1) x (2) y" or "(A) x (B) y")
         multi_opt_pattern = re.compile(
             r"(?:^|\s)\(([A-Da-d1-4])\)\s*.+?\s+\(([A-Da-d1-4])\)\s*",
@@ -105,11 +139,17 @@ class RegionDetector:
             mapping = {"1": "A", "2": "B", "3": "C", "4": "D"}
             return {"type": "OPTION", "option_label": mapping.get(opt_label, opt_label.upper()), "confidence": 0.95}
 
-        # 5. Check Subquestion
+        # 6. Check Subquestion
         sub_match = RegionDetector.SUBQUESTION_PATTERN.match(clean_text)
         if sub_match:
             sub_label = sub_match.group(1)
             return {"type": "SUBQUESTION", "sub_label": sub_label, "confidence": 0.92}
+
+        # 7. Check Footer only at the extreme bottom edge (> 96% of page height) and only if short
+        footer_limit = int(page_height * 0.96)
+        if y > footer_limit and len(clean_text) < 60:
+            return {"type": "FOOTER", "confidence": 0.95}
+
 
         # Check Biology
         from ..scientific.biology_engine import biology_engine

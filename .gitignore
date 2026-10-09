@@ -20,3 +20,15 @@ Thumbs.db
 graphify-out/
 .tempmediaStorage/
 *.log
+
+# Runtime data & temp directories
+data/crops/
+data/diagrams/
+data/documents/
+data/exports/
+data/formulas/extracted/
+data/omr/
+data/pages/
+data/snips/
+data/uploads/
+data/*.db

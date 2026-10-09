@@ -7,7 +7,7 @@ class QuestionParser:
         r"(?:\[|\()\s*(\d+)\s*(?:marks?|mark|pts?)?\s*(?:\]|\))|\bmarks?\s*[:=]\s*(\d+)\b|\[(\d+)\]",
         re.IGNORECASE
     )
-    ANSWER_REGEX = re.compile(r"\b(?:Ans(?:wer)?|Sol(?:ution)?|Correct Option)\s*[:=\-]\s*([A-Da-d1-4]|\w+)", re.IGNORECASE)
+    ANSWER_REGEX = re.compile(r"\b(?:Ans(?:wer)?|Sol(?:ution)?|Correct\s*Option)\s*[.:=\-]?\s*\(?([A-Da-d1-4]|\w+)\)?", re.IGNORECASE)
     NOUN_EXCLUSIONS = r"(?<!\bblock\s)(?<!\bbody\s)(?<!\bparticle\s)(?<!\bmass\s)(?<!\bwire\s)(?<!\bpulley\s)(?<!\bsphere\s)(?<!\bcylinder\s)(?<!\brod\s)(?<!\bcar\s)(?<!\btrain\s)(?<!\bdisc\s)(?<!\bplate\s)(?<!\bobject\s)(?<!\bbetween\s)(?<!\band\s)(?<!\bfor\s)(?<!\bwith\s)(?<!\bto\s)"
 
     # Unified option-label detector with a single named capture group 'lbl'
@@ -245,6 +245,16 @@ class QuestionParser:
                         seq = ["A", "B", "C", "D"]
                         used = {o["key"] for o in current_q["options"]}
                         opt_lbl = next((k for k in seq if k not in used), "A")
+                    # If no options exist yet, options MUST start with A or 1
+                    if not current_q.get("options") and opt_lbl not in ["A", "1"]:
+                        norm_add = specialized_math.convert_embedded_math(text)
+                        if current_q["question_text"]:
+                            current_q["question_text"] += "\n" + norm_add
+                        else:
+                            current_q["question_text"] = norm_add
+                        current_q["raw_regions"].append(r)
+                        continue
+
                     # Strip leading option label from text body
                     opt_body = re.sub(r"^(?:\([A-Da-d1-4]\)|[A-Da-d1-4][\.\)])\s*", "", text).strip()
                     if opt_lbl not in {o["key"] for o in current_q["options"]}:
@@ -260,6 +270,12 @@ class QuestionParser:
                             "mathml": opt_spec.get("mathml"),
                             "formula_objects": r.get("formula_objects", []),
                         })
+                current_q["raw_regions"].append(r)
+
+            elif rtype == "ANSWER" and current_q:
+                ans_k = r.get("answer_key") or QuestionParser.extract_answer(text)
+                if ans_k:
+                    current_q["correct_answer"] = ans_k
                 current_q["raw_regions"].append(r)
 
             elif rtype == "SUBQUESTION" and current_q:
@@ -306,10 +322,17 @@ class QuestionParser:
                 elif not current_q.get("options"):
                     # Only append to question stem if options have not yet started
                     norm_add = specialized_math.convert_embedded_math(text)
-                    current_q["question_text"] += "\n" + norm_add
+                    if current_q["question_text"]:
+                        current_q["question_text"] += "\n" + norm_add
+                    else:
+                        current_q["question_text"] = norm_add
                     current_q["raw_regions"].append(r)
                 else:
                     # Non-option trailing text after options already collected
+                    # Check if it contains answer key like "Ans. (A)"
+                    ans_chk = QuestionParser.extract_answer(text)
+                    if ans_chk and not current_q.get("correct_answer"):
+                        current_q["correct_answer"] = ans_chk
                     current_q["raw_regions"].append(r)
 
                 if rtype in ["MATH", "MATHEMATICS"]:
@@ -323,7 +346,7 @@ class QuestionParser:
 
             else:
                 # If content appears before first Question tag, ensure it is not a header or banner
-                is_header = bool(re.search(r"^(?:DPP|DAILY|CHAPTER|UNIT|GRADE|CLASS|TEST|EXAM|QUESTION\s*PAPER|ASSIGNMENT|MATHEMATICS|PHYSICS|CHEMISTRY|BIOLOGY)", text, re.IGNORECASE))
+                is_header = bool(re.search(r"^(?:\[\s*)?(?:DPP|DAILY|CHAPTER|UNIT|GRADE|CLASS|TEST|EXAM|QUESTION\s*PAPER|ASSIGNMENT|MATHEMATICS|PHYSICS|CHEMISTRY|BIOLOGY|SINGLE|MULTIPLE|MATCH|SECTION|PART)", text, re.IGNORECASE))
                 if not current_q and text and not is_header:
                     current_q = {
                         "id": f"q_1",
@@ -406,10 +429,17 @@ class QuestionParser:
             dedup_opts.sort(key=lambda o: key_order.get(o.get("key", "").upper(), 99))
             q["options"] = dedup_opts
 
-        # Extract answer if found in text
-        ans = QuestionParser.extract_answer(q["question_text"])
-        if ans:
-            q["correct_answer"] = ans
+        # Extract answer if found in text or raw regions
+        if not q.get("correct_answer"):
+            ans = QuestionParser.extract_answer(q["question_text"])
+            if ans:
+                q["correct_answer"] = ans
+            else:
+                for r in q.get("raw_regions", []):
+                    ans_r = r.get("answer_key") or QuestionParser.extract_answer(r.get("text", ""))
+                    if ans_r:
+                        q["correct_answer"] = ans_r
+                        break
 
         # Calculate bounding box encompassing all question regions
         all_bboxes = [r.get("bbox", [0, 0, 0, 0]) for r in q.get("raw_regions", [])]

@@ -103,6 +103,7 @@ class ProcessPageRequest(BaseModel):
     doc_id: str
     page_number: int  # 1-indexed
     profile: str = "BALANCED"  # FAST, BALANCED, HIGH_ACCURACY, MAXIMUM_ACCURACY
+    force_ocr: bool = False
 
 class SnipRequest(BaseModel):
     page_image_path: str
@@ -441,68 +442,8 @@ async def process_page_sequentially(req: ProcessPageRequest):
                 if converted_p.exists():
                     pdf_path_for_vector = converted_p
 
-            if pdf_path_for_vector and pdf_path_for_vector.exists() and not spans:
-                # Fast direct vector extraction for digital PDFs preserving exact math and formulas
-                spans = digital_extractor.extract_page_text_spans(pdf_path_for_vector, req.page_number, img_w, img_h)
-
-            # If not a PDF or if PDF has no digital vector text (scanned PDF / image):
-            if not spans:
-                # High-Accuracy Offline OCR directly on page image
-                spans = ocr_extractor.extract_page_text_spans(page_img_path, img_w, img_h)
-
             page_bgr = cv2.imread(str(page_img_path))
             from ..engines.geometric_math_detector import geometric_math_detector
-
-            for s in spans:
-                classification = region_detector.classify_text_region(s["text"], s["bbox"], img_h)
-                rtype = classification["type"]
-
-                # Extract original high-resolution pixels for any formula, option, or math-heavy region
-                crop_img = None
-                crop_url = ""
-                try:
-                    if page_bgr is not None and (rtype in ["MATH", "MATHEMATICS", "OPTION", "MIXED"] or any(c in s["text"] for c in "πθαβγδεθ√∫∑∏±×÷≠≤≥∞^/")):
-                        crop_info = geometric_math_detector.crop_formula_pixels(
-                            page_bgr, s["bbox"], pad_x=12, pad_y=12, save_to_disk=True, filename_prefix=f"doc_{req.doc_id}_p{req.page_number}"
-                        )
-                        crop_img = crop_info["crop"]
-                        crop_url = crop_info["crop_url"]
-                except Exception as crop_err:
-                    logger.warning("Formula pixel crop failed, falling back to text: %s", crop_err)
-                    crop_img = None
-                    crop_url = ""
-
-                try:
-                    routed = ocr_router.route_and_process_region(
-                        s["text"], rtype, req.profile, crop_img=crop_img, crop_url=crop_url
-                    )
-                except Exception as route_err:
-                    logger.warning("Region routing failed for %r: %s", s.get("text", "")[:30], route_err)
-                    routed = {
-                        "processed_text": s["text"],
-                        "confidence": 0.85,
-                        "validation_status": "NEEDS_REVIEW",
-                        "needs_review": True,
-                        "specialized_data": {},
-                    }
-
-                regions.append({
-                    "id": s["id"],
-                    "type": rtype,
-                    "text": routed["processed_text"],
-                    "raw_text": s["text"],
-                    "bbox": s["bbox"],
-                    "confidence": routed["confidence"],
-                    "validation_status": routed.get("validation_status", "VALIDATED"),
-                    "needs_review": routed.get("needs_review", False),
-                    "crop_url": crop_url,
-                    "source": s["source"],
-                    "formula_objects": s.get("formula_objects", []),
-                    "specialized_data": routed.get("specialized_data", {}),
-                    "question_number": classification.get("question_number"),
-                    "option_label": classification.get("option_label"),
-                    "sub_label": classification.get("sub_label"),
-                })
 
             # 3. Detect visual diagrams via OpenCV contours
             diagram_regions = region_detector.detect_diagram_regions_from_image(page_img_path)
@@ -513,11 +454,92 @@ async def process_page_sequentially(req: ProcessPageRequest):
                 )
                 saved_diagrams.append(diag_crop_res)
 
-            # 4. Sort reading order (supports 1-column and 2-column)
-            sorted_regions = reading_order_sorter.sort_regions(regions, img_w)
+            def _process_spans_into_questions(input_spans):
+                nonlocal page_bgr, saved_diagrams
+                proc_regions = []
+                for s in input_spans:
+                    classification = region_detector.classify_text_region(s["text"], s["bbox"], img_h)
+                    rtype = classification["type"]
 
-            # 5. Build structured questions
-            structured_questions = question_parser.build_structured_questions(sorted_regions, saved_diagrams)
+                    crop_img = None
+                    crop_url = ""
+                    try:
+                        if page_bgr is not None and (rtype in ["MATH", "MATHEMATICS", "OPTION", "MIXED"] or any(c in s["text"] for c in "πθαβγδεθ√∫∑∏±×÷≠≤≥∞^/")):
+                            crop_info = geometric_math_detector.crop_formula_pixels(
+                                page_bgr, s["bbox"], pad_x=12, pad_y=12, save_to_disk=True, filename_prefix=f"doc_{req.doc_id}_p{req.page_number}"
+                            )
+                            crop_img = crop_info["crop"]
+                            crop_url = crop_info["crop_url"]
+                    except Exception as crop_err:
+                        logger.warning("Formula pixel crop failed, falling back to text: %s", crop_err)
+                        crop_img = None
+                        crop_url = ""
+
+                    try:
+                        routed = ocr_router.route_and_process_region(
+                            s["text"], rtype, req.profile, crop_img=crop_img, crop_url=crop_url
+                        )
+                    except Exception as route_err:
+                        logger.warning("Region routing failed for %r: %s", s.get("text", "")[:30], route_err)
+                        routed = {
+                            "processed_text": s["text"],
+                            "confidence": 0.85,
+                            "validation_status": "NEEDS_REVIEW",
+                            "needs_review": True,
+                            "specialized_data": {},
+                        }
+
+                    proc_regions.append({
+                        "id": s["id"],
+                        "type": rtype,
+                        "text": routed["processed_text"],
+                        "raw_text": s["text"],
+                        "bbox": s["bbox"],
+                        "confidence": routed["confidence"],
+                        "validation_status": routed.get("validation_status", "VALIDATED"),
+                        "needs_review": routed.get("needs_review", False),
+                        "crop_url": crop_url,
+                        "source": s["source"],
+                        "formula_objects": s.get("formula_objects", []),
+                        "specialized_data": routed.get("specialized_data", {}),
+                        "question_number": classification.get("question_number"),
+                        "option_label": classification.get("option_label"),
+                        "sub_label": classification.get("sub_label"),
+                        "answer_key": classification.get("answer_key"),
+                    })
+
+                sorted_r = reading_order_sorter.sort_regions(proc_regions, img_w)
+                struct_q = question_parser.build_structured_questions(sorted_r, saved_diagrams)
+                return sorted_r, struct_q
+
+            # Extraction routing: force_ocr directly invokes RapidOCR on rendered page image
+            if req.force_ocr:
+                logger.info(f"Force OCR enabled for {doc_p.name} page {req.page_number}")
+                spans = ocr_extractor.extract_page_text_spans(page_img_path, img_w, img_h)
+            else:
+                if pdf_path_for_vector and pdf_path_for_vector.exists() and not spans:
+                    # Fast direct vector extraction for digital PDFs preserving exact math and formulas
+                    spans = digital_extractor.extract_page_text_spans(pdf_path_for_vector, req.page_number, img_w, img_h)
+
+                # If not a PDF or if PDF has no digital vector text (scanned PDF / image):
+                if not spans:
+                    # High-Accuracy Offline OCR directly on page image
+                    spans = ocr_extractor.extract_page_text_spans(page_img_path, img_w, img_h)
+
+            sorted_regions, structured_questions = _process_spans_into_questions(spans)
+
+            # AUTOMATIC FALLBACK FOR SCANNED PDFS / SPARSE EXTRACTIONS:
+            # If digital extraction yielded 0 structured questions and force_ocr was not already executed:
+            if len(structured_questions) == 0 and not req.force_ocr:
+                logger.info(f"0 questions extracted from digital text on {doc_p.name} page {req.page_number}. Automatically triggering High-Accuracy RapidOCR fallback.")
+                ocr_spans = ocr_extractor.extract_page_text_spans(page_img_path, img_w, img_h)
+                if ocr_spans:
+                    ocr_regions, ocr_questions = _process_spans_into_questions(ocr_spans)
+                    if len(ocr_questions) > len(structured_questions) or len(ocr_regions) > len(sorted_regions):
+                        logger.info(f"RapidOCR fallback successful: extracted {len(ocr_questions)} questions from {len(ocr_regions)} regions.")
+                        sorted_regions = ocr_regions
+                        structured_questions = ocr_questions
+
 
             # 6. Overall page confidence calculation & Strict Review Quality Control
             all_confs = [r.get("confidence", 0.95) for r in sorted_regions]

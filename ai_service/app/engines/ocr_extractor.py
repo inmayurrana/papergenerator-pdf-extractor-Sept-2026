@@ -76,7 +76,33 @@ class OCRExtractor:
                     "source": "RAPID_OCR"
                 })
 
-            return spans
+            # Merge adjacent 'Ans.' and option answer key (e.g. 'Ans.' + '(A)' -> 'Ans. (A)')
+            merged_spans = []
+            skip_next = False
+            for i in range(len(spans)):
+                if skip_next:
+                    skip_next = False
+                    continue
+                s = spans[i]
+                if s["text"].strip().lower() in ["ans.", "ans", "answer:", "answer"] and i + 1 < len(spans):
+                    nxt = spans[i + 1]
+                    y_diff = abs((s["bbox"][1] + s["bbox"][3]/2) - (nxt["bbox"][1] + nxt["bbox"][3]/2))
+                    x_gap = nxt["bbox"][0] - (s["bbox"][0] + s["bbox"][2])
+                    if y_diff < 14 and -5 <= x_gap < 80 and re.match(r"^\(?([A-Da-d1-4])\)?$", nxt["text"].strip()):
+                        merged = dict(s)
+                        merged["text"] = f"Ans. {nxt['text'].strip()}"
+                        merged["bbox"] = [
+                            s["bbox"][0],
+                            min(s["bbox"][1], nxt["bbox"][1]),
+                            (nxt["bbox"][0] + nxt["bbox"][2]) - s["bbox"][0],
+                            max(s["bbox"][3], nxt["bbox"][3])
+                        ]
+                        merged_spans.append(merged)
+                        skip_next = True
+                        continue
+                merged_spans.append(s)
+
+            return merged_spans
         except Exception as e:
             logger.error(f"OCR extraction failed for {image_path}: {e}")
             return []

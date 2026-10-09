@@ -34,6 +34,7 @@ import {
   Clipboard,
   Pin,
   PinOff,
+  Loader2,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { MathRenderer } from '../components/common/MathRenderer';
@@ -51,6 +52,7 @@ export const ComparisonReview: React.FC = () => {
   const [pageInputVal, setPageInputVal] = useState('1');
   const [pageData, setPageData] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
 
   useEffect(() => {
     setPageInputVal(String(currentPageNum));
@@ -452,6 +454,44 @@ export const ComparisonReview: React.FC = () => {
       showToast(`Error processing page ${pageNum}: ${err.response?.data?.error || err.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRunDeepOcr = async () => {
+    if (!docId) return;
+    try {
+      setOcrLoading(true);
+      showToast(`Running Deep AI OCR extraction on page ${currentPageNum}...`);
+      const res = await api.post(`/documents/${docId}/process-page/${currentPageNum}`, {
+        force_ocr: true,
+        profile: 'HIGH_ACCURACY',
+      });
+      const rawExtracted = res.data.extracted;
+      if (rawExtracted?.questions) {
+        rawExtracted.questions = rawExtracted.questions.map((q: any) => ({
+          ...q,
+          question_text: sanitizeMathAndExamText(q.question_text || q.questionText || ''),
+          options: (q.options || []).map((opt: any) => ({
+            ...opt,
+            text: sanitizeMathAndExamText(opt.text || ''),
+          })),
+        }));
+      }
+      if (rawExtracted) {
+        rawExtracted.imageUrl = rawExtracted.page_image;
+        setPageData(rawExtracted);
+        const count = rawExtracted.questions?.length || 0;
+        showToast(
+          count > 0
+            ? `OCR completed! Successfully extracted ${count} question(s).`
+            : `Deep OCR complete. 0 questions identified on page ${currentPageNum}.`
+        );
+      }
+    } catch (err: any) {
+      console.error('Failed deep OCR:', err);
+      showToast(`OCR scan failed: ${err.response?.data?.error || err.message}`);
+    } finally {
+      setOcrLoading(false);
     }
   };
 
@@ -2864,6 +2904,21 @@ export const ComparisonReview: React.FC = () => {
             <div className="flex items-center space-x-2">
               <button
                 type="button"
+                onClick={handleRunDeepOcr}
+                disabled={ocrLoading || loading}
+                className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-md text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-xs cursor-pointer disabled:opacity-50"
+                title="Force deep OCR re-scan for scanned or image pages"
+              >
+                {ocrLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                )}
+                <span>{ocrLoading ? 'Scanning...' : 'Deep OCR Scan'}</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => {
                   const nextQNum = String((pageData?.questions?.length || 0) + 1);
                   const newQ = {
@@ -3061,8 +3116,59 @@ export const ComparisonReview: React.FC = () => {
 
           <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-[700px] max-h-[1150px] xl:max-h-none">
             {pageData?.questions?.length === 0 ? (
-              <div className="text-center py-20 text-xs text-slate-400">
-                No questions identified on this page. Click "+ Add Question" or snip from the left.
+              <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 my-6 text-center">
+                <div className="w-12 h-12 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-3">
+                  <Sparkles className="w-6 h-6 text-indigo-600" />
+                </div>
+                <h4 className="text-sm font-bold text-slate-800 mb-1">
+                  No Questions Detected on Page {currentPageNum}
+                </h4>
+                <p className="text-xs text-slate-500 max-w-sm mb-4 leading-relaxed">
+                  This page may be a scanned document or image with no embedded digital text layer. Run Deep AI OCR to read questions, formulas, and options directly from the page image.
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleRunDeepOcr}
+                    disabled={ocrLoading || loading}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center space-x-2 transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                  >
+                    {ocrLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 text-white" />
+                    )}
+                    <span>{ocrLoading ? 'Running Deep AI OCR...' : 'Run Deep AI OCR Extraction'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextQNum = String((pageData?.questions?.length || 0) + 1);
+                      const newQ = {
+                        question_number: nextQNum,
+                        question_text: '',
+                        marks: 1,
+                        options: [
+                          { key: '1', text: '' },
+                          { key: '2', text: '' },
+                          { key: '3', text: '' },
+                          { key: '4', text: '' },
+                        ],
+                        diagrams: [],
+                      };
+                      setPageData({
+                        ...pageData,
+                        questions: [...(pageData?.questions || []), newQ],
+                      });
+                      handleStartInlineEdit(newQ);
+                    }}
+                    className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-sm cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-slate-600" />
+                    <span>+ Manual Question</span>
+                  </button>
+                </div>
               </div>
             ) : (
               pageData?.questions?.map((q: any, idx: number) => {

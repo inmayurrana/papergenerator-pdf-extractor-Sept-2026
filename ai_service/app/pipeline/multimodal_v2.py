@@ -158,6 +158,7 @@ class MultimodalDocumentIntelligenceV2:
         profile: str = "BALANCED",
         deterministic: bool = True,
         watermark_action: str = "KEEP_ORIGINAL",
+        force_ocr: bool = False,
     ) -> Dict[str, Any]:
         """
         Executes the full 16-pass Multimodal Document Intelligence pipeline on a page.
@@ -181,12 +182,15 @@ class MultimodalDocumentIntelligenceV2:
 
         # Pass 3: Layout & Spans Extraction
         spans: List[Dict[str, Any]] = []
-        is_pdf = doc_path.suffix.lower() == ".pdf"
-        if is_pdf:
-            spans = digital_extractor.extract_page_text_spans(doc_path, page_number, img_w, img_h)
-
-        if not spans:
+        if force_ocr:
             spans = ocr_extractor.extract_page_text_spans(page_img_path, img_w, img_h)
+        else:
+            is_pdf = doc_path.suffix.lower() == ".pdf"
+            if is_pdf:
+                spans = digital_extractor.extract_page_text_spans(doc_path, page_number, img_w, img_h)
+
+            if not spans:
+                spans = ocr_extractor.extract_page_text_spans(page_img_path, img_w, img_h)
 
         # Pass 4 & 5: Region & Scientific Classification
         page_bgr = cv2.imread(str(page_img_path))
@@ -290,6 +294,39 @@ class MultimodalDocumentIntelligenceV2:
 
         # Pass 11 (cont): Question Bank Semantic Reconstruction
         structured_questions = question_parser.build_structured_questions(sorted_regions, saved_diagrams)
+
+        # Fallback to OCR if digital extraction yielded 0 structured questions
+        if len(structured_questions) == 0 and not force_ocr:
+            logger.info("Pass 11 yielded 0 questions from digital vector spans. Automatically falling back to RapidOCR.")
+            ocr_spans = ocr_extractor.extract_page_text_spans(page_img_path, img_w, img_h)
+            if ocr_spans:
+                ocr_proc_regions = []
+                for s in ocr_spans:
+                    classification = region_detector.classify_text_region(s["text"], s["bbox"], img_h)
+                    rtype = classification["type"]
+                    routed = ocr_router.route_and_process_region(s["text"], rtype, profile)
+                    ocr_proc_regions.append({
+                        "id": s["id"],
+                        "type": rtype,
+                        "text": routed.get("processed_text", s["text"]),
+                        "raw_text": s["text"],
+                        "bbox": s["bbox"],
+                        "confidence": routed.get("confidence", 0.95),
+                        "validation_status": routed.get("validation_status", "VALIDATED"),
+                        "needs_review": routed.get("needs_review", False),
+                        "source": "RAPID_OCR",
+                        "specialized_data": routed.get("specialized_data", {}),
+                        "question_number": classification.get("question_number"),
+                        "option_label": classification.get("option_label"),
+                        "sub_label": classification.get("sub_label"),
+                        "answer_key": classification.get("answer_key"),
+                    })
+                ocr_sorted = reading_order_sorter.sort_regions(ocr_proc_regions, img_w)
+                ocr_questions = question_parser.build_structured_questions(ocr_sorted, saved_diagrams)
+                if len(ocr_questions) > len(structured_questions) or len(ocr_sorted) > len(sorted_regions):
+                    sorted_regions = ocr_sorted
+                    structured_questions = ocr_questions
+                    processed_regions = ocr_proc_regions
 
         # Pass 15: Confidence Calculation
         confs = [r.get("confidence", 0.95) for r in sorted_regions]

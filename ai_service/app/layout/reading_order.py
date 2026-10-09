@@ -16,13 +16,18 @@ class ReadingOrderSorter:
         for it in sorted_by_y:
             y0 = it["bbox"][1]
             y1 = y0 + it["bbox"][3]
+            h = it["bbox"][3]
             placed = False
             for line in lines:
                 ly0 = min(x["bbox"][1] for x in line)
                 ly1 = max(x["bbox"][1] + x["bbox"][3] for x in line)
+                lh = max(1, min(x["bbox"][3] for x in line))
                 overlap = min(y1, ly1) - max(y0, ly0)
-                min_h = min(y1 - y0, ly1 - ly0)
-                if overlap > 0.25 * min_h or abs((y0 + y1) / 2.0 - (ly0 + ly1) / 2.0) < 14.0:
+                min_h = min(h, lh)
+                # Adaptive vertical grouping: lines only group together if vertical overlap is significant
+                # or centers are within 35% of line height (prevents separate lines from collapsing)
+                y_center_diff = abs((y0 + y1) / 2.0 - (ly0 + ly1) / 2.0)
+                if overlap > 0.35 * min_h or y_center_diff < max(3.5, 0.35 * min_h):
                     line.append(it)
                     placed = True
                     break
@@ -64,8 +69,14 @@ class ReadingOrderSorter:
             else:
                 right_col.append(r)
 
-        # If most regions fit into 2 columns, sort column by column
-        is_two_column = len(left_col) >= 2 and len(right_col) >= 2
+        # Check if page has true two distinct vertical columns:
+        # Require questions in both columns, or multiple wide paragraphs in both columns
+        left_q = [r for r in left_col if r.get("type") == "QUESTION"]
+        right_q = [r for r in right_col if r.get("type") == "QUESTION"]
+        left_wide = [r for r in left_col if r["bbox"][2] > page_width * 0.28]
+        right_wide = [r for r in right_col if r["bbox"][2] > page_width * 0.28]
+
+        is_two_column = (len(left_q) >= 1 and len(right_q) >= 1) or (len(left_wide) >= 3 and len(right_wide) >= 3)
 
         if is_two_column:
             banners_sorted = sorted(spanning, key=lambda item: item["bbox"][1])

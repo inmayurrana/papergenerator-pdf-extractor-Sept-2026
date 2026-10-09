@@ -321,12 +321,14 @@ router.post("/:id/process-page/:pageNum", async (req, res) => {
         const endpoint = useV2
             ? `${config_1.config.AI_SERVICE_URL}/api/v2/documents/process-page`
             : `${config_1.config.AI_SERVICE_URL}/api/documents/process-page`;
+        const forceOcr = req.body?.force_ocr === true || req.query.force_ocr === "true" || req.body?.forceOcr === true;
         const aiRes = await axios_1.default.post(endpoint, {
             doc_path: actualDocPath,
             doc_id: doc.id,
             page_number: pageNumber,
-            profile: doc.profile || "BALANCED",
+            profile: req.body?.profile || doc.profile || "BALANCED",
             watermark_action: req.body?.watermark_action || "KEEP_ORIGINAL",
+            force_ocr: forceOcr,
         });
         const pageData = aiRes.data;
         // Persist DocumentPage in DB
