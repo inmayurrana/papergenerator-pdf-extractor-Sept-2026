@@ -48,6 +48,7 @@ from ..scientific.spatial_math_engine import SpatialMathEngine
 from ..scientific.structural_tree import FormulaNode, NodeType
 from ..scientific.visual_formula_verifier import visual_formula_verifier
 from ..document.date_extractor import date_extractor
+from .sfme_engine import sfme_engine
 
 logger = logging.getLogger("multimodal_v2")
 
@@ -175,13 +176,25 @@ class MultimodalDocumentIntelligenceV2:
         # Pass 1: Source Analysis
         source_report = self.pass1_source_analysis(doc_path)
 
-        # Pass 2: Page Rendering (Adaptive DPI)
-        render_res = self.pass2_render_page(doc_path, page_number, source_report.get("formula_density", "MEDIUM"))
-        page_img_path = Path(render_res["image_path"])
-        img_w = render_res["width"]
-        img_h = render_res["height"]
-
-        # Pass 3: Layout & Spans Extraction
+        # Delegate to SFME Engine (Source-Faithful Multi-Path Extraction)
+        sfme_res = sfme_engine.process_page_sfme(
+            doc_path=doc_path,
+            page_number=page_number,
+            profile=profile,
+            force_ocr=force_ocr,
+            mode="SOURCE_PRESERVING"
+        )
+        sfme_res["source_analysis"] = source_report
+        sfme_res["pipeline_version"] = self.PIPELINE_VERSION
+        sfme_res["processing_signature"] = proc_signature
+        sfme_res["accuracy_metrics"] = {
+            "formula_accuracy": self.stats["formula_accuracy"],
+            "symbol_accuracy": self.stats["symbol_accuracy"],
+            "ast_accuracy": self.stats["ast_accuracy"],
+            "false_verification_rate": self.stats["false_verification_rate"],
+        }
+        self.stats["total_pages_processed"] += 1
+        return sfme_res
         spans: List[Dict[str, Any]] = []
         if force_ocr:
             spans = ocr_extractor.extract_page_text_spans(page_img_path, img_w, img_h)

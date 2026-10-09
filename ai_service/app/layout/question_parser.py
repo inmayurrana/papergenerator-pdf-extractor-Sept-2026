@@ -82,6 +82,7 @@ class QuestionParser:
             val = re.sub(r"\s+", " ", val)
             raw_options.append({
                 "key": label,
+                "label": label,
                 "text": specialized_math.convert_embedded_math(val)
             })
 
@@ -260,6 +261,7 @@ class QuestionParser:
                     if opt_lbl not in {o["key"] for o in current_q["options"]}:
                         current_q["options"].append({
                             "key": opt_lbl,
+                            "label": opt_lbl,
                             "text": specialized_math.convert_embedded_math(opt_body) if opt_body else specialized_math.convert_embedded_math(text),
                             "bbox": r.get("bbox", []),
                             "crop_url": r.get("crop_url", ""),

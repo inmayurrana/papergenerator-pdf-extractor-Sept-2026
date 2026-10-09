@@ -34,7 +34,11 @@ class WatermarkDetector:
         """
         candidates: List[Dict[str, Any]] = []
 
-        if not page_images:
+        if page_images is None:
+            return candidates
+        if isinstance(page_images, np.ndarray):
+            page_images = [page_images]
+        elif len(page_images) == 0:
             return candidates
 
         first_img = page_images[0]

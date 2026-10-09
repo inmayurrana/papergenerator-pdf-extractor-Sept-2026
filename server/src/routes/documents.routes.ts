@@ -343,6 +343,7 @@ router.post("/:id/process-page/:pageNum", async (req: AuthRequest, res: Response
       : `${config.AI_SERVICE_URL}/api/documents/process-page`;
 
     const forceOcr = req.body?.force_ocr === true || req.query.force_ocr === "true" || req.body?.forceOcr === true;
+    const mode = req.body?.mode || (req.query.mode as string) || "SOURCE_PRESERVING";
     const aiRes = await axios.post(endpoint, {
       doc_path: actualDocPath,
       doc_id: doc.id,
@@ -350,6 +351,7 @@ router.post("/:id/process-page/:pageNum", async (req: AuthRequest, res: Response
       profile: req.body?.profile || doc.profile || "BALANCED",
       watermark_action: req.body?.watermark_action || "KEEP_ORIGINAL",
       force_ocr: forceOcr,
+      mode: mode,
     });
 
     const pageData = aiRes.data;

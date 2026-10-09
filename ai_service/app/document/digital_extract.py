@@ -1015,5 +1015,88 @@ class DigitalTextExtractor:
         logger.info(f"DOCX direct extraction: {len(spans)} spans from page {page_number} of {docx_path.name}")
         return spans
 
+    @classmethod
+    def check_font_reliability(
+        cls,
+        page: Any,
+        spans: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """
+        Assesses whether the PDF's native text layer is authoritative or corrupted.
+        Checks for:
+        - Absence of text (scanned / raster PDF)
+        - Broken ToUnicode CMap (garbled Unicode, PUA codes, unmapped glyphs)
+        - Symbol / Wingdings encoding masks
+        - Excessive unspaced character fragmentation
+        """
+        if not spans:
+            return {
+                "reliability_score": 0.0,
+                "is_authoritative": False,
+                "garbled_char_ratio": 1.0,
+                "has_symbol_fonts": False,
+                "reason": "NO_NATIVE_TEXT (Scanned or image-only page)"
+            }
+
+        all_text = "".join(s.get("text", "") for s in spans)
+        if not all_text.strip():
+            return {
+                "reliability_score": 0.0,
+                "is_authoritative": False,
+                "garbled_char_ratio": 1.0,
+                "has_symbol_fonts": False,
+                "reason": "EMPTY_TEXT_LAYER"
+            }
+
+        total_chars = len(all_text)
+        garbled_chars = 0
+        has_symbol_fonts = False
+
+        for ch in all_text:
+            code = ord(ch)
+            if code == 0xFFFD:  # replacement character
+                garbled_chars += 1
+            elif 0xE000 <= code <= 0xF8FF:  # Private Use Area (unmapped font glyphs)
+                garbled_chars += 1
+            elif code < 32 and ch not in '\n\r\t':
+                garbled_chars += 1
+
+        corrupted_fonts = 0
+        if page is not None and hasattr(page, "get_fonts"):
+            try:
+                fonts = page.get_fonts()
+                for f in fonts:
+                    fname = str(f[3] if len(f) > 3 else f[0]).lower()
+                    if any(k in fname for k in _SYMBOL_FONT_KEYWORDS):
+                        has_symbol_fonts = True
+                    if "type3" in fname or "custom" in fname:
+                        corrupted_fonts += 1
+            except Exception:
+                pass
+
+        garbled_ratio = round(garbled_chars / max(total_chars, 1), 4)
+
+        if garbled_ratio > 0.15 or corrupted_fonts >= 2:
+            score = max(0.1, 0.5 - garbled_ratio)
+            is_auth = False
+            reason = f"CORRUPTED_FONT_LAYER (Garbled ratio: {garbled_ratio:.2%})"
+        elif garbled_ratio > 0.04 or has_symbol_fonts:
+            score = max(0.5, 0.85 - garbled_ratio * 3.0)
+            is_auth = False
+            reason = "DEGRADED_SYMBOL_FONTS (Greek/Symbol remapping required)"
+        else:
+            score = min(0.99, max(0.85, 1.0 - garbled_ratio * 2.0))
+            is_auth = True
+            reason = "CLEAN_DIGITAL_TEXT_LAYER"
+
+        return {
+            "reliability_score": round(score, 3),
+            "is_authoritative": is_auth,
+            "garbled_char_ratio": garbled_ratio,
+            "has_symbol_fonts": has_symbol_fonts,
+            "reason": reason
+        }
+
 
 digital_extractor = DigitalTextExtractor()
+

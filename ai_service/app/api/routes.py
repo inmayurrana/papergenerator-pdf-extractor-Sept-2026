@@ -28,6 +28,7 @@ from ..omr.evaluator import omr_evaluator
 from ..core.translator import translation_service
 from ..document.export_engine import ExportEngine
 from ..document.date_extractor import date_extractor
+from ..pipeline.sfme_engine import sfme_engine
 
 logger = logging.getLogger("api_routes")
 router = APIRouter(prefix="/api")
@@ -103,8 +104,10 @@ class ProcessPageRequest(BaseModel):
     doc_path: str
     doc_id: str
     page_number: int  # 1-indexed
-    profile: str = "BALANCED"  # FAST, BALANCED, HIGH_ACCURACY, MAXIMUM_ACCURACY
+    profile: str = "BALANCED"  # FAST, BALANCED, HIGH_ACCURACY, MAXIMUM_ACCURACY, HIGH_FIDELITY
     force_ocr: bool = False
+    mode: Optional[str] = "SOURCE_PRESERVING"  # SOURCE_PRESERVING vs EDITABLE_RECONSTRUCTION
+    watermark_action: Optional[str] = "KEEP_ORIGINAL"
 
 class SnipRequest(BaseModel):
     page_image_path: str
@@ -411,6 +414,41 @@ async def generate_document_from_text(req: GenerateFromTextRequest):
         "file_size_bytes": len(file_bytes),
     }
 
+@router.get("/v2/sfme/stats")
+async def get_sfme_stats():
+    """Returns SFME algorithm processing and consensus accuracy statistics."""
+    return {
+        "status": "SUCCESS",
+        "algorithm": "Source-Faithful Multi-Path Extraction Engine (SFME)",
+        "version": sfme_engine.ENGINE_VERSION,
+        "stats": sfme_engine.stats,
+    }
+
+@router.post("/v2/documents/process-page")
+async def process_page_v2_endpoint(req: ProcessPageRequest):
+    """
+    SFME (Source-Faithful Multi-Path Extraction Engine) V2 Endpoint.
+    Executes Path A, Path B, Path C, Region-Level Consensus, and Source-to-Output Verification.
+    """
+    async with resource_manager.heavy_job_semaphore:
+        resource_manager.active_jobs_count += 1
+        try:
+            doc_p = resolve_file_path(req.doc_path, config.STORAGE_UPLOADS)
+            if not doc_p.exists():
+                raise HTTPException(status_code=404, detail=f"Document file not found: {doc_p.name}")
+
+            res = sfme_engine.process_page_sfme(
+                doc_path=doc_p,
+                page_number=req.page_number,
+                profile=req.profile,
+                force_ocr=req.force_ocr,
+                mode=req.mode or "SOURCE_PRESERVING"
+            )
+            gc.collect()
+            return res
+        finally:
+            resource_manager.active_jobs_count -= 1
+
 @router.post("/documents/process-page")
 async def process_page_sequentially(req: ProcessPageRequest):
     """
@@ -429,6 +467,18 @@ async def process_page_sequentially(req: ProcessPageRequest):
 
             if not doc_p.exists():
                 raise HTTPException(status_code=404, detail=f"Document file not found: {doc_p.name}")
+
+            # Route to SFME when Source-Preserving mode or High-Fidelity profile is selected
+            if req.profile in ["HIGH_FIDELITY", "SFME"] or req.mode == "SOURCE_PRESERVING":
+                sfme_res = sfme_engine.process_page_sfme(
+                    doc_path=doc_p,
+                    page_number=req.page_number,
+                    profile=req.profile,
+                    force_ocr=req.force_ocr,
+                    mode=req.mode or "SOURCE_PRESERVING"
+                )
+                gc.collect()
+                return sfme_res
 
             # 1. Render single page
             render_res = page_renderer.render_page(doc_p, req.page_number)
