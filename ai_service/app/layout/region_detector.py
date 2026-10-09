@@ -5,11 +5,12 @@ import numpy as np  # type: ignore
 
 class RegionDetector:
     # Regex patterns for educational structure (limit Q# to 1-3 digits with optional whitespace or end of string)
-    # Allows isolated OCR tokens like 'Q.1', 'Q.2', '1.' without requiring trailing whitespace
+    # Allows isolated OCR tokens like 'Q.1', 'Q.2', '1.', '(1)' without requiring trailing whitespace
     QUESTION_PATTERN = re.compile(
         r"^\s*(?:[A-Z]{1,3}\d{2,6}[A-Z0-9_\-]*\s*\n\s*)?(?:"
         r"Q(?:uestion)?\s*[.\-]?\s*([1-9]\d{0,2})\s*[.)\]:\-]?"   # Q1, Q.1, Q1., Q.1), Q.1:, Question 1
         r"|([1-9]\d{0,2})\s*(?:\.(?!\d)|[)\]])"                 # 1. 1) 1] (prevents decimal like 0.25)
+        r"|\(([1-9]\d{0,2})\)"                                  # (1) (2)
         r")(?:\s+|(?=[A-Za-z\u00C0-\u024F])|$)",
         re.IGNORECASE
     )
@@ -53,7 +54,7 @@ class RegionDetector:
         """Detects visual diagrams, graphs, and figures from page image using OpenCV contours."""
         diagrams = []
         try:
-            img = cv2.imread(image_path)
+            img = cv2.imread(str(image_path))
             if img is None:
                 return []
 
@@ -93,6 +94,7 @@ class RegionDetector:
         """Classifies a text block into educational structural category."""
         clean_text = text.strip()
         y = bbox[1]
+        x = bbox[0]
 
         # Normalize missing space after question numbers in OCR text (e.g. "4.How" -> "4. How", "Q.7Thenumber" -> "Q.7 The number")
         clean_text = re.sub(r"^([1-9]\d{0,2})\.([A-Za-z])", r"\1. \2", clean_text)
@@ -105,8 +107,12 @@ class RegionDetector:
         # 1. Question pattern evaluated EARLY so questions near page top are never misclassified as headers
         q_match = RegionDetector.QUESTION_PATTERN.match(clean_text)
         if q_match:
-            q_num = q_match.group(1) or q_match.group(2)
+            q_num = q_match.group(1) or q_match.group(2) or q_match.group(3)
             return {"type": "QUESTION", "question_number": q_num, "confidence": 0.96}
+
+        # Isolated number at extreme left margin (e.g. '1', '2', '3' without dot at x < 60)
+        if re.match(r"^[1-9]\d{0,1}$", clean_text) and x < 60:
+            return {"type": "QUESTION", "question_number": clean_text, "confidence": 0.92}
 
         # 2. Check Answer keys (e.g. "Ans. (A)", "Ans: B", "Answer: C")
         ans_match = RegionDetector.ANSWER_PATTERN.search(clean_text)
@@ -115,8 +121,8 @@ class RegionDetector:
         if clean_text.lower() in ["ans.", "ans", "answer:", "answer"]:
             return {"type": "ANSWER", "confidence": 0.92}
 
-        # 3. Check Option (MUST be evaluated before positional header check so top options are never headers!)
-        # Check for MULTI-OPTION inline block (e.g. "(1) x (2) y", "(A) x (B) y", or OCR combined "3(b)1956(c)16(d)64")
+        # 3. Check Option (MUST be evaluated before header check so top options are never headers!)
+        # Check for MULTI-OPTION inline block (e.g. "(1) x (2) y", "(A) x (B) y", "a) x b) y")
         multi_opt_pattern = re.compile(
             r"(?:^|\s|\d|[.,:;])\(([A-Da-d1-4])\)\s*.+?\s*(?:\(([A-Da-d1-4])\)|(?<=\s)[A-Da-d1-4][\.\)])\s*",
             re.IGNORECASE
@@ -134,24 +140,17 @@ class RegionDetector:
             mapping = {"1": "A", "2": "B", "3": "C", "4": "D"}
             return {"type": "OPTION", "option_label": mapping.get(opt_label, opt_label.upper()), "confidence": 0.95}
 
-        # 4. Check Section Titles & Banners
-        if re.search(r"^(?:DPP\b|DAILY\s*PRACTICE|EVERYDAY\s*MATHEMATICS|ACHIEVERS\s*SECTION|SECTION\s*[-–:]|PART\s*[-–:]|MATHEMATICS|PHYSICS|CHEMISTRY|BIOLOGY|LOGICAL\s*REASONING|SCIENCE|GRADE\s*\d+|CLASS\s*\d+|MOCK\s*TEST|SAMPLE\s*PAPER|QUESTION\s*PAPER|EXAMINATION\b|CHAPTER\b|UNIT\b|ASSIGNMENT\b)", clean_text, re.IGNORECASE):
+        # 4. Check Genuine Section Titles & Banners & Admin Headers (never question prose)
+        if re.search(r"^(?:DPP\b|DAILY\s*PRACTICE|EVERYDAY\s*MATHEMATICS|ACHIEVERS\s*SECTION|SECTION\s*[-–:]|PART\s*[-–:]|MATHEMATICS|PHYSICS|CHEMISTRY|BIOLOGY|LOGICAL\s*REASONING|SCIENCE|GRADE\s*\d+|CLASS\s*\d+|MOCK\s*TEST|SAMPLE\s*PAPER|QUESTION\s*PAPER|EXAMINATION\b|CHAPTER\b|UNIT\b|ASSIGNMENT\b|ROLL\s*NO|TIME\s*[:=]|MAX(?:IMUM)?\s*MARKS|TOTAL\s*QUESTIONS|GENERAL\s*INSTRUCTIONS)", clean_text, re.IGNORECASE):
             return {"type": "HEADER", "confidence": 0.95}
 
-        # 5. Check Header by vertical position near top margin (< 5.5% of page) - NEVER classify questions, options, or math as headers
-        header_limit = max(80, int(page_height * 0.055))
-        if y < header_limit and len(clean_text) < 150:
-            is_question_like = bool(re.search(r"^(?:calculate|find|what|which|prove|show|if|then|how\s+many|number\s+of)\b", clean_text, re.IGNORECASE))
-            if not is_question_like and not re.search(r"[=><+\-×÷√∫∑]", clean_text):
-                return {"type": "HEADER", "confidence": 0.95}
-
-        # 6. Check Subquestion
+        # 5. Check Subquestion
         sub_match = RegionDetector.SUBQUESTION_PATTERN.match(clean_text)
         if sub_match:
             sub_label = sub_match.group(1)
             return {"type": "SUBQUESTION", "sub_label": sub_label, "confidence": 0.92}
 
-        # 7. Check Footer only at the extreme bottom edge (> 96% of page height) and only if short
+        # 6. Check Footer only at the extreme bottom edge (> 96% of page height) and only if short
         footer_limit = int(page_height * 0.96)
         if y > footer_limit and len(clean_text) < 60:
             return {"type": "FOOTER", "confidence": 0.95}

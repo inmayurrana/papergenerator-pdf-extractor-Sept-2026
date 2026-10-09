@@ -27,6 +27,7 @@ from ..omr.generator import omr_generator
 from ..omr.evaluator import omr_evaluator
 from ..core.translator import translation_service
 from ..document.export_engine import ExportEngine
+from ..document.date_extractor import date_extractor
 
 logger = logging.getLogger("api_routes")
 router = APIRouter(prefix="/api")
@@ -136,6 +137,35 @@ class TranslateTextRequest(BaseModel):
     text: str
     target_lang: str
     source_lang: Optional[str] = "auto"
+
+class ExtractDatesRequest(BaseModel):
+    raw_text: Optional[str] = None
+    doc_path: Optional[str] = None
+    page_number: int = 1
+    locale_preference: str = "DMY"
+
+@router.post("/documents/extract-dates")
+async def extract_document_dates(req: ExtractDatesRequest):
+    """
+    Extracts all dates, academic sessions, and timestamps from text or document.
+    """
+    if req.raw_text:
+        dates = date_extractor.extract_dates_from_text(req.raw_text, req.page_number, req.locale_preference)
+        return {"status": "SUCCESS", "dates": dates, "count": len(dates)}
+    elif req.doc_path:
+        doc_p = resolve_file_path(req.doc_path, config.STORAGE_DOCUMENTS)
+        if not doc_p.exists():
+            raise HTTPException(status_code=404, detail="Document file not found")
+        # Extract text using digital extractor or OCR
+        spans, _ = digital_extractor.extract_text_spans(doc_p, req.page_number)
+        if not spans:
+            render_res = page_renderer.render_page_image(doc_p, req.page_number)
+            page_img = resolve_file_path(render_res["relative_url"], config.STORAGE_DOCUMENTS)
+            spans = ocr_extractor.extract_page_text_spans(page_img, render_res["width"], render_res["height"])
+        dates = date_extractor.extract_dates_from_spans(spans, req.page_number, req.locale_preference)
+        return {"status": "SUCCESS", "dates": dates, "count": len(dates)}
+    else:
+        raise HTTPException(status_code=400, detail="Either raw_text or doc_path must be provided")
 
 @router.post("/languages/detect")
 async def detect_text_language(req: DetectLanguageRequest):
@@ -547,6 +577,9 @@ async def process_page_sequentially(req: ProcessPageRequest):
             has_unverified_formulas = any(r.get("needs_review") for r in sorted_regions)
             page_needs_review = has_unverified_formulas or (page_avg_conf < config.CONFIDENCE_BALANCED_THRESHOLD)
 
+            # Extract dates from page spans / sorted regions
+            page_dates = date_extractor.extract_dates_from_spans(sorted_regions if sorted_regions else spans, req.page_number)
+
             # Immediate garbage collection to free RAM
             gc.collect()
 
@@ -561,6 +594,7 @@ async def process_page_sequentially(req: ProcessPageRequest):
                 "regions": sorted_regions,
                 "diagrams": saved_diagrams,
                 "questions": structured_questions,
+                "dates": page_dates,
             }
         finally:
             resource_manager.active_jobs_count -= 1

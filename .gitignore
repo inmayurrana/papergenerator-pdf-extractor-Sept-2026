@@ -32,3 +32,5 @@ data/pages/
 data/snips/
 data/uploads/
 data/*.db
+scratch/
+

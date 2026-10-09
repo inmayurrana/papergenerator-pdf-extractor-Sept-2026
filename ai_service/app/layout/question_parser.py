@@ -14,7 +14,7 @@ class QuestionParser:
     # Matches: (A)  (1)  A)  A.  — at start of text or after whitespace
     # Named group 'lbl' always holds the raw label character regardless of style.
     OPTION_SPLIT_REGEX = re.compile(
-        rf"(?:{NOUN_EXCLUSIONS}\((?P<lbl>[a-dA-D1-4])\)|(?:(?<=^)|(?<=\s))(?P<lbl2>[a-dA-D1-4])\.(?!\d)|(?:(?<=^)|(?<=\s))(?P<lbl3>[a-dA-D1-4])\))\s*",
+        rf"(?:{NOUN_EXCLUSIONS}\((?P<lbl>[a-dA-D1-4])\)|(?:(?<=^)|(?<=\s))(?P<lbl2>[a-dA-D1-4])\.(?!\d)(?![a-zA-Z][\.,])|(?:(?<=^)|(?<=\s))(?P<lbl3>[a-dA-D1-4])\))\s*",
         re.IGNORECASE
     )
 
@@ -183,12 +183,12 @@ class QuestionParser:
                 inline_options = []
                 first_m = QuestionParser.OPTION_SPLIT_REGEX.search(clean_body)
                 if first_m:
-                    if len(test_inline) >= 2 or (len(test_inline) == 1 and test_inline[0]["key"] == "A" and first_m.start() > 10):
+                    if len(test_inline) >= 2:
                         inline_options = test_inline
                         clean_body = clean_body[:first_m.start()].strip()
 
-                # Normalize math in question stem
-                normalized_stem = specialized_math.convert_embedded_math(clean_body if clean_body else text)
+                # Normalize math in question stem (if clean_body is empty from standalone '1.', don't set '1.')
+                normalized_stem = specialized_math.convert_embedded_math(clean_body) if clean_body else ""
 
                 current_q = {
                     "id": f"q_{len(questions)+1}",
@@ -426,6 +426,12 @@ class QuestionParser:
 
     @staticmethod
     def _finalize_question(q: Dict[str, Any], diagrams: List[Dict[str, Any]]):
+        # Clean any remaining leading question number prefix from question_text
+        q["question_text"] = re.sub(
+            r"^\s*(?:Q(?:uestion)?\s*[.\-]?\s*\d{1,3}\s*[.)\]:\-]?|\d{1,3}\s*[.)\]]|\(\d{1,3}\))\s*",
+            "", q.get("question_text", ""), flags=re.IGNORECASE
+        ).strip()
+
         # Extract options if not already structured
         if not q["options"]:
             q["options"] = QuestionParser.parse_options_from_text(q["question_text"])

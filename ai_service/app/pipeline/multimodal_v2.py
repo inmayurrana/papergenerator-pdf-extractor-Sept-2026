@@ -47,6 +47,7 @@ from ..engines.diagram_extractor import diagram_extractor
 from ..scientific.spatial_math_engine import SpatialMathEngine
 from ..scientific.structural_tree import FormulaNode, NodeType
 from ..scientific.visual_formula_verifier import visual_formula_verifier
+from ..document.date_extractor import date_extractor
 
 logger = logging.getLogger("multimodal_v2")
 
@@ -333,6 +334,9 @@ class MultimodalDocumentIntelligenceV2:
         page_avg_conf = round(sum(confs) / max(len(confs), 1), 3) if confs else 0.95
         needs_review = any(r.get("needs_review") for r in sorted_regions) or (page_avg_conf < config.CONFIDENCE_BALANCED_THRESHOLD)
 
+        # Extract dates and temporal metadata from page spans/regions
+        page_dates = date_extractor.extract_dates_from_spans(sorted_regions if sorted_regions else processed_regions, page_number)
+
         # Update stats
         self.stats["total_pages_processed"] += 1
         self.stats["total_scientific_regions"] += len(processed_regions)
@@ -362,6 +366,7 @@ class MultimodalDocumentIntelligenceV2:
             "regions": sorted_regions,
             "diagrams": saved_diagrams,
             "questions": structured_questions,
+            "dates": page_dates,
             "formula_objects": formula_objects_all,
             "accuracy_metrics": {
                 "formula_accuracy": self.stats["formula_accuracy"],

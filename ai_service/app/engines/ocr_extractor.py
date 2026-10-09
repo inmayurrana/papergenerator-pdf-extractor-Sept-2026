@@ -1,6 +1,7 @@
 import logging
 import re
 from typing import List, Dict, Any, Optional
+import cv2  # type: ignore
 import numpy as np  # type: ignore
 from PIL import Image  # type: ignore
 
@@ -14,8 +15,14 @@ class OCRExtractor:
         if self._engine is None:
             try:
                 from rapidocr_onnxruntime import RapidOCR  # type: ignore
-                self._engine = RapidOCR(use_cls=False)
-                logger.info("RapidOCR engine initialized successfully (use_cls=False).")
+                self._engine = RapidOCR(
+                    det_box_thresh=0.35,
+                    det_unclip_ratio=1.8,
+                    det_limit_side_len=1536,
+                    text_score=0.38,
+                    use_cls=False
+                )
+                logger.info("RapidOCR engine initialized successfully with enhanced resolution parameters.")
             except Exception as e:
                 logger.error(f"Failed to load RapidOCR: {e}")
         return self._engine
@@ -28,7 +35,8 @@ class OCRExtractor:
     ) -> List[Dict[str, Any]]:
         """
         Runs high-accuracy OCR on a page image (or scanned document)
-        and returns structured text spans with bounding boxes.
+        with boundary padding and resolution scaling, returning structured
+        text spans with exact bounding boxes in original image coordinates.
         """
         engine = self._get_engine()
         if engine is None:
@@ -36,7 +44,27 @@ class OCRExtractor:
             return []
 
         try:
-            result, elapse = engine(image_path)
+            img = cv2.imread(str(image_path))
+            if img is None:
+                result, elapse = engine(image_path)
+                scale = 1.0
+                pad = 0
+            else:
+                h_orig, w_orig = img.shape[:2]
+                # Scale up low-res screenshots and tightly cropped questions (w < 1100px)
+                # to render mathematical exponents, chemical notations, and fractions crisply
+                scale = 1.5 if w_orig < 1100 else 1.0
+                if scale != 1.0:
+                    resized = cv2.resize(img, (int(w_orig * scale), int(h_orig * scale)), interpolation=cv2.INTER_CUBIC)
+                else:
+                    resized = img.copy()
+
+                # Add 35px white margin padding around all borders so DBNet text detector
+                # never clips or drops question numbers and text touching the image borders
+                pad = 35
+                padded = cv2.copyMakeBorder(resized, pad, pad, pad, pad, cv2.BORDER_CONSTANT, value=[255, 255, 255])
+                result, elapse = engine(padded)
+
             if not result:
                 return []
 
@@ -58,13 +86,13 @@ class OCRExtractor:
                 clean_text = re.sub(r'\b(sin|cos|tan|cot|sec|csc)\s*(?:theta|thita|0)\b', r'\1 θ', clean_text, flags=re.IGNORECASE)
                 clean_text = re.sub(r'\bthita\b', 'θ', clean_text, flags=re.IGNORECASE)
 
-                # Calculate bounding box [x, y, w, h] from 4 corner polygon points
-                xs = [pt[0] for pt in dt_boxes]
-                ys = [pt[1] for pt in dt_boxes]
-                x_min = max(0, int(min(xs)))
-                y_min = max(0, int(min(ys)))
-                x_max = min(img_w, int(max(xs)))
-                y_max = min(img_h, int(max(ys)))
+                # Calculate bounding box [x, y, w, h] mapped back to unpadded, unscaled image space
+                xs = [(pt[0] - pad) / scale for pt in dt_boxes]
+                ys = [(pt[1] - pad) / scale for pt in dt_boxes]
+                x_min = max(0, min(img_w, int(min(xs))))
+                y_min = max(0, min(img_h, int(min(ys))))
+                x_max = max(0, min(img_w, int(max(xs))))
+                y_max = max(0, min(img_h, int(max(ys))))
                 w = max(1, x_max - x_min)
                 h = max(1, y_max - y_min)
 
@@ -76,7 +104,12 @@ class OCRExtractor:
                     "source": "RAPID_OCR"
                 })
 
-            # Merge adjacent 'Ans.' and option answer key (e.g. 'Ans.' + '(A)' -> 'Ans. (A)')
+            # Sort spans primarily by row line and secondarily by x for reliable horizontal grouping
+            spans.sort(key=lambda s: (round(s["bbox"][1] / 14) * 14, s["bbox"][0]))
+
+            # Intelligently merge horizontally adjacent tokens on the same line:
+            # 1. Q# prefix ('1.', '2.', 'Q.1', '(1)', or isolated digit at left edge) + stem text
+            # 2. 'Ans.' + option answer key (e.g. 'Ans.' + '(A)' -> 'Ans. (A)')
             merged_spans = []
             skip_next = False
             for i in range(len(spans)):
@@ -84,11 +117,35 @@ class OCRExtractor:
                     skip_next = False
                     continue
                 s = spans[i]
-                if s["text"].strip().lower() in ["ans.", "ans", "answer:", "answer"] and i + 1 < len(spans):
+                if i + 1 < len(spans):
                     nxt = spans[i + 1]
                     y_diff = abs((s["bbox"][1] + s["bbox"][3]/2) - (nxt["bbox"][1] + nxt["bbox"][3]/2))
                     x_gap = nxt["bbox"][0] - (s["bbox"][0] + s["bbox"][2])
-                    if y_diff < 14 and -5 <= x_gap < 80 and re.match(r"^\(?([A-Da-d1-4])\)?$", nxt["text"].strip()):
+
+                    # Case 1: Q-number prefix near left margin (x < 25% of width)
+                    is_q_num = bool(re.match(r"^(?:[1-9]\d{0,2}[.)\]]|Q(?:uestion)?\s*[.\-]?\s*\d{1,3}[.)\]:\-]?|\([1-9]\d{0,2}\))$", s["text"].strip(), re.IGNORECASE))
+                    if not is_q_num and re.match(r"^[1-9]\d{0,1}$", s["text"].strip()) and s["bbox"][0] < 45:
+                        if re.match(r"^[A-Za-z]", nxt["text"].strip()):
+                            is_q_num = True
+
+                    if is_q_num and s["bbox"][0] < img_w * 0.25 and y_diff < 15 and -5 <= x_gap < 55:
+                        prefix = s["text"].strip()
+                        if re.match(r"^\d+$", prefix):
+                            prefix = f"{prefix}."
+                        merged = dict(s)
+                        merged["text"] = f"{prefix} {nxt['text'].strip()}"
+                        merged["bbox"] = [
+                            s["bbox"][0],
+                            min(s["bbox"][1], nxt["bbox"][1]),
+                            (nxt["bbox"][0] + nxt["bbox"][2]) - s["bbox"][0],
+                            max(s["bbox"][3], nxt["bbox"][3])
+                        ]
+                        merged_spans.append(merged)
+                        skip_next = True
+                        continue
+
+                    # Case 2: 'Ans.' + answer key
+                    if s["text"].strip().lower() in ["ans.", "ans", "answer:", "answer"] and y_diff < 14 and -5 <= x_gap < 80 and re.match(r"^\(?([A-Da-d1-4])\)?$", nxt["text"].strip()):
                         merged = dict(s)
                         merged["text"] = f"Ans. {nxt['text'].strip()}"
                         merged["bbox"] = [
@@ -100,6 +157,7 @@ class OCRExtractor:
                         merged_spans.append(merged)
                         skip_next = True
                         continue
+
                 merged_spans.append(s)
 
             return merged_spans
@@ -108,3 +166,4 @@ class OCRExtractor:
             return []
 
 ocr_extractor = OCRExtractor()
+
