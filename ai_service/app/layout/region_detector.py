@@ -41,7 +41,10 @@ class RegionDetector:
     )
     SUBQUESTION_PATTERN = re.compile(r"^\(([a-zA-Z]|\d+|[ivxIVX]+)\)\s*")
     NOUN_EXCLUSIONS = r"(?<!\bblock\s)(?<!\bbody\s)(?<!\bparticle\s)(?<!\bmass\s)(?<!\bwire\s)(?<!\bpulley\s)(?<!\bsphere\s)(?<!\bcylinder\s)(?<!\brod\s)(?<!\bcar\s)(?<!\btrain\s)(?<!\bdisc\s)(?<!\bplate\s)(?<!\bobject\s)(?<!\bbetween\s)(?<!\band\s)(?<!\bfor\s)(?<!\bwith\s)(?<!\bto\s)"
-    OPTION_PATTERN = re.compile(rf"^(?:{NOUN_EXCLUSIONS}\(([A-Da-d1-4])\)|([A-Da-d1-4])[\.\)])\s*", re.IGNORECASE)
+    OPTION_PATTERN = re.compile(
+        r"^(?:" + NOUN_EXCLUSIONS + r"\(([A-Da-d1-4])\)|\[([A-Da-d1-4])\]|([A-Da-d1-4])[\.\)\]\}]|(?:^|\s)([A-Da-d1-4])(?=\s*\d|\s*[\+\-\*\/]|\s*[a-zA-Z]))\s*",
+        re.IGNORECASE
+    )
     MARKS_PATTERN = re.compile(r"\[?\b(\d+)\s*(?:marks?|mark|m|pts?)\b\]?|\((\d+)\s*(?:marks?|mark|m)\)", re.IGNORECASE)
     MATH_SYMBOLS_PATTERN = re.compile(
         r"[=+*^√∛∜∫∬∭∮∑∏±∓≤≥≠≈≡∞αβγδεϵζηθϑικλμνξπϖρϱστυφϕχψωΓΔΘΛΞΠΣΥΦΨΩ∂∇∈∉∋⊂⊃⊆⊇∪∩∀∃∄⊥∥∠°∝∴∵×÷·•½⅓⅔¼¾]|(?:(?<=\s)|(?<=\d)|(?<=\)))-(?=\s|\d|[a-zA-Z])|−|\b(?:sin|cos|tan|cot|sec|csc|log|ln|lim|sqrt|frac|pi|theta|alpha|beta)\b|\\(?:frac|sqrt|int|sum|prod|alpha|beta|gamma|delta|theta|lambda|mu|pi|sigma|omega|Delta|Omega|pm|times|div|le|ge|neq|approx|infty|matrix)",
@@ -96,8 +99,9 @@ class RegionDetector:
         y = bbox[1]
         x = bbox[0]
 
-        # Normalize missing space after question numbers in OCR text (e.g. "4.How" -> "4. How", "Q.7Thenumber" -> "Q.7 The number")
-        clean_text = re.sub(r"^([1-9]\d{0,2})\.([A-Za-z])", r"\1. \2", clean_text)
+        # Normalize missing space after question numbers in OCR text
+        # e.g. "4.How" -> "4. How", "9.1+" -> "9. 1+", "Q.7Thenumber" -> "Q.7 The number"
+        clean_text = re.sub(r"^([1-9]\d{0,2})\.(?=[A-Za-z]|\s*\d\s*[\+\-\*\/]|\\frac|\\sqrt|[+*^√])", r"\1. ", clean_text)
         clean_text = re.sub(r"^(Q(?:uestion)?\s*[.\-]?\s*\d{1,3})\.?([A-Za-z])", r"\1 \2", clean_text, flags=re.IGNORECASE)
 
         # 0. Check section instruction directives (e.g. Q.1 to Q.9 has four choices, [SINGLE CORRECT CHOICE TYPE])
@@ -110,9 +114,11 @@ class RegionDetector:
             q_num = q_match.group(1) or q_match.group(2) or q_match.group(3)
             return {"type": "QUESTION", "question_number": q_num, "confidence": 0.96}
 
-        # Isolated number at extreme left margin (e.g. '1', '2', '3' without dot at x < 60)
-        if re.match(r"^[1-9]\d{0,1}$", clean_text) and x < 60:
-            return {"type": "QUESTION", "question_number": clean_text, "confidence": 0.92}
+        # Isolated question header with explicit punctuation at margin (e.g. '1.', '2.', '(1)')
+        # Never match a bare digit like '4' (which could be a fraction denominator like 1/4)
+        if re.match(r"^(?:Q\s*)?[1-9]\d{0,1}[.)\]]$", clean_text, re.IGNORECASE) and x < 60:
+            q_val = re.sub(r"[^0-9]", "", clean_text)
+            return {"type": "QUESTION", "question_number": q_val, "confidence": 0.92}
 
         # 2. Check Answer keys (e.g. "Ans. (A)", "Ans: B", "Answer: C")
         ans_match = RegionDetector.ANSWER_PATTERN.search(clean_text)
@@ -136,7 +142,7 @@ class RegionDetector:
         # Single option at start of block
         opt_match = RegionDetector.OPTION_PATTERN.match(clean_text)
         if opt_match and not re.search(r"\b(?:is|are|will\s*be|was|were)\s*[:=\-]", clean_text, re.IGNORECASE):
-            opt_label = opt_match.group(1) or opt_match.group(2)
+            opt_label = opt_match.group(1) or opt_match.group(2) or opt_match.group(3) or opt_match.group(4) or "A"
             mapping = {"1": "A", "2": "B", "3": "C", "4": "D"}
             return {"type": "OPTION", "option_label": mapping.get(opt_label, opt_label.upper()), "confidence": 0.95}
 

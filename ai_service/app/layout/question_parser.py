@@ -13,8 +13,10 @@ class QuestionParser:
     # Unified option-label detector with a single named capture group 'lbl'
     # Matches: (A)  (1)  A)  A.  — at start of text or after whitespace
     # Named group 'lbl' always holds the raw label character regardless of style.
+    # Unified option-label detector with named capture groups
+    # Matches: (A)  (1)  A)  A.  [A]  b]  a}  — at start of text or after whitespace
     OPTION_SPLIT_REGEX = re.compile(
-        rf"(?:{NOUN_EXCLUSIONS}\((?P<lbl>[a-dA-D1-4])\)|(?:(?<=^)|(?<=\s))(?P<lbl2>[a-dA-D1-4])\.(?!\d)(?![a-zA-Z][\.,])|(?:(?<=^)|(?<=\s))(?P<lbl3>[a-dA-D1-4])\))\s*",
+        rf"(?:{NOUN_EXCLUSIONS}\((?P<lbl>[a-dA-D1-4])\)|(?:(?<=^)|(?<=\s))(?P<lbl2>[a-dA-D1-4])\.(?!\d)(?![a-zA-Z][\.,])|(?:(?<=^)|(?<=\s))(?P<lbl3>[a-dA-D1-4])\)|\[(?P<lbl4>[a-dA-D1-4])\]|(?:(?<=^)|(?<=\s))(?P<lbl5>[a-dA-D1-4])\]|(?:(?<=^)|(?<=\s))(?P<lbl6>[a-dA-D1-4])\}})\s*",
         re.IGNORECASE
     )
 
@@ -45,10 +47,12 @@ class QuestionParser:
             om.group("lbl")
             or om.group("lbl2")
             or om.group("lbl3")
+            or om.group("lbl4")
+            or om.group("lbl5")
+            or om.group("lbl6")
             or None
         )
         if raw is None:
-            # Fallback: scan all groups for first non-None value
             for g in om.groups():
                 if g is not None:
                     raw = g
@@ -472,10 +476,11 @@ class QuestionParser:
             max_y = max(b[1] + b[3] for b in all_bboxes)
             q["bbox"] = [min_x, min_y, max_x - min_x, max_y - min_y]
 
-            # Associate diagrams that fall within or immediately adjacent to this question's bbox
+            # Associate diagrams that fall within this question's vertical span
             for d in diagrams:
                 db = d.get("bbox", [0, 0, 0, 0])
-                if (db[1] >= min_y - 40) and (db[1] <= max_y + 100):
+                d_mid_y = db[1] + db[3] / 2.0
+                if (min_y - 15 <= d_mid_y <= max_y + 25) and (d not in q["diagrams"]):
                     q["diagrams"].append(d)
 
         # 2-D Structural Formula & Mathematical Object Reconstruction

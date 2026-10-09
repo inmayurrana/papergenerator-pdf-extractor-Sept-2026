@@ -39,6 +39,7 @@ import { FormulaEditorModal } from '../components/common/FormulaEditorModal';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { ConfidenceBadge } from '../components/ui/Badge';
+import { sanitizeMathAndExamText } from '../lib/mathSanitizer';
 
 export interface WorkingOption {
   key: string;
@@ -457,55 +458,75 @@ export const SnippingWorkspace: React.FC = () => {
 
   const handleSaveToBody = () => {
     if (!snipResult) return;
-    const rawText = (snipResult.aiData?.extracted_text || '').trim();
-    const imgUrl = snipResult.snip?.imageUrl;
+    const ai = snipResult.aiData;
+    const candidateText = (ai?.stem || ai?.extracted_text || ai?.latex || '').trim();
+    const sanitizedText = sanitizeMathAndExamText(candidateText);
+    const imgUrl = snipResult.snip?.imageUrl || ai?.relative_url;
 
     setWorkingQuestion((prev) => {
       let newText = prev.questionText;
-      if (rawText) {
-        newText = prev.questionText ? `${prev.questionText}\n${rawText}` : rawText;
+      if (sanitizedText) {
+        newText = prev.questionText ? `${prev.questionText}\n${sanitizedText}` : sanitizedText;
       }
 
       const newDiagrams = [...prev.diagrams];
       if (imgUrl && !newDiagrams.some((d) => d.relative_url === imgUrl)) {
         newDiagrams.push({
           relative_url: imgUrl,
-          width: snipResult.aiData?.width,
-          height: snipResult.aiData?.height,
+          width: ai?.width,
+          height: ai?.height,
         });
       }
 
       let newQNum = prev.questionNumber;
-      const detectedNum = extractQuestionNumberFromText(rawText);
+      const detectedNum = ai?.question_number || extractQuestionNumberFromText(candidateText);
       if (detectedNum && (!prev.questionText || prev.questionNumber === '1')) {
         newQNum = detectedNum;
+      }
+
+      let newOptions = [...prev.options];
+      if (ai?.options && Array.isArray(ai.options) && ai.options.length >= 2) {
+        newOptions = ai.options.map((po: any, idx: number) => ({
+          key: po.key || String(idx + 1),
+          text: sanitizeMathAndExamText(po.text || ''),
+        }));
       }
 
       return {
         ...prev,
         questionNumber: newQNum,
         questionText: newText,
+        options: newOptions,
         diagrams: newDiagrams,
       };
     });
 
-    setToastMessage('✓ Snippet saved to Question Body!');
+    setToastMessage('✓ Snippet text, formula & diagram saved to Question Body!');
     setTimeout(() => setToastMessage(''), 3500);
   };
 
   const handleSaveToOption = (optKey: string) => {
     if (!snipResult) return;
-    const rawText = (snipResult.aiData?.extracted_text || '').trim();
-    const imgUrl = snipResult.snip?.imageUrl;
+    const ai = snipResult.aiData;
+    const candidate = (ai?.clean_option_text || (ai?.latex && ai.latex !== '$$' ? ai.latex : '') || ai?.extracted_text || '').trim();
+    let sanitizedText = sanitizeMathAndExamText(candidate);
+    const imgUrl = snipResult.snip?.imageUrl || ai?.relative_url;
 
-    const cleanedText = rawText.replace(new RegExp(`^\\(?\\s*${optKey}\\s*[\\)\\.:\\-]\\s*`, 'i'), '').trim();
+    // Clean leading option indicator
+    sanitizedText = sanitizedText.replace(new RegExp(`^\\(?\\s*${optKey}\\s*[\\)\\.:\\]\\-]\\s*`, 'i'), '').trim();
+    const numToLetter: Record<string, string> = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
+    const letterToNum: Record<string, string> = { A: '1', B: '2', C: '3', D: '4' };
+    const altKey = numToLetter[optKey] || letterToNum[optKey.toUpperCase()];
+    if (altKey) {
+      sanitizedText = sanitizedText.replace(new RegExp(`^\\(?\\s*${altKey}\\s*[\\)\\.:\\]\\-]\\s*`, 'i'), '').trim();
+    }
 
     setWorkingQuestion((prev) => {
       const newOptions = prev.options.map((opt) => {
-        if (opt.key === optKey) {
+        if (opt.key === optKey || (altKey && opt.key === altKey)) {
           return {
             ...opt,
-            text: cleanedText || (rawText || opt.text),
+            text: sanitizedText || (candidate || opt.text),
             imageUrl: imgUrl || opt.imageUrl || '',
           };
         }
@@ -518,7 +539,7 @@ export const SnippingWorkspace: React.FC = () => {
       };
     });
 
-    setToastMessage(`✓ Snippet saved to Option (${optKey})!`);
+    setToastMessage(`✓ Snippet formula & data saved to Option (${optKey})!`);
     setTimeout(() => setToastMessage(''), 3500);
   };
 

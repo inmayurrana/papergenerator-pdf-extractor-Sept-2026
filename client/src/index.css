@@ -660,6 +660,83 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--accent-primary);
 }
 
+/* =========================================================
+   EXTRACTED QUESTIONS REVIEW SCROLLBAR (High Contrast & Visible)
+   ========================================================= */
+.review-questions-scroll {
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+  scroll-behavior: smooth;
+}
+
+.review-questions-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.review-questions-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 9999px;
+  border-left: 1px solid #e2e8f0;
+  margin: 4px 0;
+}
+
+.review-questions-scroll::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 9999px;
+  border: 2px solid #f1f5f9;
+  min-height: 40px;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.review-questions-scroll::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+.review-questions-scroll::-webkit-scrollbar-thumb:active {
+  background: #0b1f3a;
+}
+
+/* Dark Theme Adaptations for Extracted Questions Scrollbar */
+[data-theme="midnight"] .review-questions-scroll,
+[data-theme="dracula"] .review-questions-scroll,
+[data-theme="tokyo-night"] .review-questions-scroll,
+[data-theme="synthwave"] .review-questions-scroll,
+[data-theme="catppuccin"] .review-questions-scroll,
+[data-theme="monokai"] .review-questions-scroll {
+  scrollbar-color: #64748b #1e293b;
+}
+
+[data-theme="midnight"] .review-questions-scroll::-webkit-scrollbar-track,
+[data-theme="dracula"] .review-questions-scroll::-webkit-scrollbar-track,
+[data-theme="tokyo-night"] .review-questions-scroll::-webkit-scrollbar-track,
+[data-theme="synthwave"] .review-questions-scroll::-webkit-scrollbar-track,
+[data-theme="catppuccin"] .review-questions-scroll::-webkit-scrollbar-track,
+[data-theme="monokai"] .review-questions-scroll::-webkit-scrollbar-track {
+  background: #1e293b;
+  border-left: 1px solid #334155;
+}
+
+[data-theme="midnight"] .review-questions-scroll::-webkit-scrollbar-thumb,
+[data-theme="dracula"] .review-questions-scroll::-webkit-scrollbar-thumb,
+[data-theme="tokyo-night"] .review-questions-scroll::-webkit-scrollbar-thumb,
+[data-theme="synthwave"] .review-questions-scroll::-webkit-scrollbar-thumb,
+[data-theme="catppuccin"] .review-questions-scroll::-webkit-scrollbar-thumb,
+[data-theme="monokai"] .review-questions-scroll::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border: 2px solid #1e293b;
+}
+
+[data-theme="midnight"] .review-questions-scroll::-webkit-scrollbar-thumb:hover,
+[data-theme="dracula"] .review-questions-scroll::-webkit-scrollbar-thumb:hover,
+[data-theme="tokyo-night"] .review-questions-scroll::-webkit-scrollbar-thumb:hover,
+[data-theme="synthwave"] .review-questions-scroll::-webkit-scrollbar-thumb:hover,
+[data-theme="catppuccin"] .review-questions-scroll::-webkit-scrollbar-thumb:hover,
+[data-theme="monokai"] .review-questions-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 /* Animations */
 @keyframes fadeIn {
   from { opacity: 0; }

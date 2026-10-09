@@ -66,6 +66,10 @@ export function sanitizeMathAndExamText(rawText: string): string {
   s = s.replace(/\\frac\{d([A-Za-z])\s*\/\s*d([A-Za-z])\}/g, '\\frac{d$1}{d$2}');
   s = s.replace(/\\frac\{([a-zA-Z0-9]+)\s*\/\s*([a-zA-Z0-9]+)\}/g, '\\frac{$1}{$2}');
 
+  // 7b. Self-heal malformed stacked subscript/superscript artifacts like _{5}^{4} -> \frac{4}{5}
+  s = s.replace(/(?:_|\b_)\s*\{([^}]+)\}\s*\^\s*\{([^}]+)\}/g, '\\frac{$2}{$1}');
+  s = s.replace(/\^\s*\{([^}]+)\}\s*(?:_|\b_)\s*\{([^}]+)\}/g, '\\frac{$1}{$2}');
+
   // Collapse duplicate backslashes before LaTeX macros (e.g. \\theta -> \theta)
   s = s.replace(/\\{2,}(theta|Theta|thita|Thita|alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|iota|kappa|lambda|mu|nu|xi|pi|varpi|rho|varrho|sigma|varsigma|tau|upsilon|phi|varphi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|sin|cos|tan|cot|sec|csc|cosec|frac|sqrt|times|pm|div|approx|le|ge|neq|circ|infty)\b/g, '\\$1');
 

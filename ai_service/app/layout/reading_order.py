@@ -70,13 +70,13 @@ class ReadingOrderSorter:
                 right_col.append(r)
 
         # Check if page has true two distinct vertical columns:
-        # Require questions in both columns, or multiple wide paragraphs in both columns
+        # Require multiple questions in BOTH columns (never trigger on horizontal options or formulas)
         left_q = [r for r in left_col if r.get("type") == "QUESTION"]
         right_q = [r for r in right_col if r.get("type") == "QUESTION"]
-        left_wide = [r for r in left_col if r["bbox"][2] > page_width * 0.28]
-        right_wide = [r for r in right_col if r["bbox"][2] > page_width * 0.28]
+        left_wide = [r for r in left_col if r["bbox"][2] > page_width * 0.32]
+        right_wide = [r for r in right_col if r["bbox"][2] > page_width * 0.32]
 
-        is_two_column = (len(left_q) >= 1 and len(right_q) >= 1) or (len(left_wide) >= 3 and len(right_wide) >= 3)
+        is_two_column = (len(left_q) >= 2 and len(right_q) >= 2) or (len(left_wide) >= 5 and len(right_wide) >= 5 and len(right_q) >= 1)
 
         if is_two_column:
             banners_sorted = sorted(spanning, key=lambda item: item["bbox"][1])

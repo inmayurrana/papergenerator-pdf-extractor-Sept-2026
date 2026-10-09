@@ -680,7 +680,7 @@ export const ComparisonReview: React.FC = () => {
       setCropStart(null);
 
       // Minimum crop size check (10x10px)
-      if (cropBox.w >= 10 && cropBox.h >= 10 && pageData?.page_image) {
+      if (cropBox.w >= 10 && cropBox.h >= 10 && (pageData?.page_image || activePageImageUrl || pageData?.imageUrl)) {
         await executeCropAction(cropBox);
       }
     }
@@ -715,6 +715,7 @@ export const ComparisonReview: React.FC = () => {
     setCroppingLoading(true);
     let croppedUrl = '';
     let ocrExtractedText = '';
+    let serverAiData: any = null;
     try {
       const bbox = [Math.round(box.x), Math.round(box.y), Math.round(box.w), Math.round(box.h)];
 
@@ -729,6 +730,7 @@ export const ComparisonReview: React.FC = () => {
             documentId: docId,
             pageNumber: currentPageNum,
           });
+          serverAiData = res.data.aiData;
           croppedUrl = res.data.snip?.imageUrl || res.data.aiData?.relative_url || '';
           ocrExtractedText = res.data.snip?.extractedText || res.data.aiData?.extracted_text || '';
         }
@@ -820,7 +822,18 @@ export const ComparisonReview: React.FC = () => {
       // Case A: Targeted Snip on a Specific Option
       if (snipTarget && snipTarget.type === 'OPTION' && snipTarget.optTarget !== undefined) {
         const optTarget = snipTarget.optTarget;
-        const optText = sanitizeMathAndExamText(rawExtractedText);
+        const candidateOptText = serverAiData?.clean_option_text || (serverAiData?.latex && serverAiData.latex !== '$$' ? serverAiData.latex : '') || rawExtractedText;
+        let optText = sanitizeMathAndExamText(candidateOptText);
+
+        // Strip leading option label (e.g. "(B) ", "B. ", "b] ", "2) ")
+        const optTargetStr = String(optTarget).trim();
+        optText = optText.replace(new RegExp(`^\\(?\\s*${optTargetStr}\\s*[\\)\\.:\\]\\-]\\s*`, 'i'), '').trim();
+        const numToLetter: Record<string, string> = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
+        const letterToNum: Record<string, string> = { A: '1', B: '2', C: '3', D: '4' };
+        const altTarget = numToLetter[optTargetStr] || letterToNum[optTargetStr.toUpperCase()];
+        if (altTarget) {
+          optText = optText.replace(new RegExp(`^\\(?\\s*${altTarget}\\s*[\\)\\.:\\]\\-]\\s*`, 'i'), '').trim();
+        }
 
         if (isInlineEditing && editFormData) {
           const updatedOpts = (editFormData.options || []).map((opt: any, idx: number) => {
@@ -843,7 +856,7 @@ export const ComparisonReview: React.FC = () => {
             return q;
           });
           setPageData({ ...pageData, questions: updatedList });
-          showToast(`✓ Extracted Option (${optTarget}) text & image!`);
+          showToast(`✓ Extracted Option (${optTarget}) formula & image: "${optText || '(image attached)'}"`);
         } else {
           const targetQ = selectedQuestion || (pageData?.questions && pageData.questions[0]) || null;
           if (targetQ) {
@@ -873,7 +886,7 @@ export const ComparisonReview: React.FC = () => {
             setPageData({ ...pageData, questions: updatedList });
             const found = updatedList.find((q: any) => String(q.question_number || q.questionNumber || '1') === qNum);
             if (found) setSelectedQuestion(found);
-            showToast(`✓ Extracted Option (${optTarget}) on Q${qNum}!`);
+            showToast(`✓ Extracted Option (${optTarget}) on Q${qNum}: "${optText || '(image attached)'}"`);
           }
         }
         setSnipTarget(null);
@@ -881,46 +894,132 @@ export const ComparisonReview: React.FC = () => {
         return;
       }
 
+      // Check if user drew a box around a single option WITHOUT having explicitly clicked "Snip Option"
+      if (!snipTarget && serverAiData?.option_key && (!serverAiData?.options || serverAiData.options.length === 0) && (!serverAiData?.stem || serverAiData.stem.length < 50)) {
+        const detectedOptKey = serverAiData.option_key;
+        const candidateOptText = serverAiData.clean_option_text || (serverAiData?.latex && serverAiData.latex !== '$$' ? serverAiData.latex : '') || rawExtractedText;
+        let optText = sanitizeMathAndExamText(candidateOptText);
+        optText = optText.replace(new RegExp(`^\\(?\\s*${detectedOptKey}\\s*[\\)\\.:\\]\\-]\\s*`, 'i'), '').trim();
+
+        const targetQ = selectedQuestion || (pageData?.questions && pageData.questions[0]) || null;
+        if (targetQ) {
+          const qNum = String(targetQ.question_number || targetQ.questionNumber || '1');
+          if (isInlineEditing && editFormData) {
+            const updatedOpts = (editFormData.options || []).map((opt: any, idx: number) => {
+              if (matchOptionTarget(opt, idx, detectedOptKey)) {
+                return {
+                  ...opt,
+                  imageUrl: croppedUrl || opt.imageUrl,
+                  text: optText || opt.text,
+                };
+              }
+              return opt;
+            });
+            setEditFormData({ ...editFormData, options: updatedOpts });
+            const updatedList = (pageData?.questions || []).map((q: any) => {
+              if (String(q.question_number || q.questionNumber) === editingQNum) {
+                return { ...q, options: updatedOpts };
+              }
+              return q;
+            });
+            setPageData({ ...pageData, questions: updatedList });
+            showToast(`✓ Extracted Option (${detectedOptKey}) formula & image: "${optText || '(image attached)'}"`);
+            setCropBox(null);
+            return;
+          } else {
+            const updatedList = (pageData?.questions || []).map((q: any) => {
+              if (String(q.question_number || q.questionNumber || '1') === qNum) {
+                const curOpts = q.options && q.options.length > 0 ? [...q.options] : [
+                  { key: 'A', text: '' }, { key: 'B', text: '' }, { key: 'C', text: '' }, { key: 'D', text: '' }
+                ];
+                const updatedOpts = curOpts.map((opt: any, idx: number) => {
+                  if (matchOptionTarget(opt, idx, detectedOptKey)) {
+                    return {
+                      ...opt,
+                      imageUrl: croppedUrl || opt.imageUrl,
+                      text: optText || opt.text,
+                    };
+                  }
+                  return opt;
+                });
+                return { ...q, options: updatedOpts };
+              }
+              return q;
+            });
+            setPageData({ ...pageData, questions: updatedList });
+            const found = updatedList.find((q: any) => String(q.question_number || q.questionNumber || '1') === qNum);
+            if (found) setSelectedQuestion(found);
+            showToast(`✓ Extracted Option (${detectedOptKey}) on Q${qNum}: "${optText || '(image attached)'}"`);
+            setCropBox(null);
+            return;
+          }
+        }
+      }
+
       // Case B: Question Snip (or Full Snip with text, diagram, and options)
-      let detectedQNum: string | null = null;
-      let parsedStem = rawExtractedText;
-      const parsedOptions: { key: string; text: string }[] = [];
+      let detectedQNum: string | null = serverAiData?.question_number || null;
+      let parsedStem = (serverAiData?.stem || rawExtractedText || '').trim();
+      let parsedOptions: { key: string; text: string }[] = [];
+
+      if (serverAiData?.options && Array.isArray(serverAiData.options) && serverAiData.options.length > 0) {
+        parsedOptions = serverAiData.options.map((po: any) => ({
+          key: po.key,
+          text: sanitizeMathAndExamText(po.text || ''),
+        }));
+      }
 
       if (rawExtractedText) {
-        // Detect Question Number prefix: e.g. "11. ", "Q.11 ", "Q11 ", "(11) ", "11) ", "11 - "
-        const qNumMatch = rawExtractedText.match(/^(?:Q(?:uestion)?\s*[.\-:]?\s*(\d{1,4})\b|\((\d{1,4})\)|(\d{1,4})\s*[.)\]:\-])\s*/i);
-        if (qNumMatch) {
-          detectedQNum = qNumMatch[1] || qNumMatch[2] || qNumMatch[3];
-          parsedStem = rawExtractedText.slice(qNumMatch[0].length).trim();
+        // Detect Question Number prefix if not already detected by server: e.g. "11. ", "Q.11 ", "Q11 ", "(11) ", "11) ", "11 - "
+        if (!detectedQNum) {
+          const qNumMatch = rawExtractedText.match(/^(?:Q(?:uestion)?\s*[.\-:]?\s*(\d{1,4})\b|\((\d{1,4})\)|(\d{1,4})\s*[.)\]:\-])\s*/i);
+          if (qNumMatch) {
+            detectedQNum = qNumMatch[1] || qNumMatch[2] || qNumMatch[3];
+            if (!serverAiData?.stem) {
+              parsedStem = rawExtractedText.slice(qNumMatch[0].length).trim();
+            }
+          }
         }
 
-        // Parse MCQ options inside the text: (1), (2), (A), (a), 1., A., [1], [A], etc.
-        const OPTION_SPLIT_REGEX = /(?:(?:\(([a-dA-D1-4])\)|\[([a-dA-D1-4])\]|(?<=\s|^)([a-dA-D1-4])\.(?!\d)|(?<=\s|^)([a-dA-D1-4])\))\s*)/g;
-        const matches = Array.from(parsedStem.matchAll(OPTION_SPLIT_REGEX));
+        // Parse MCQ options inside the text if server didn't already extract them
+        if (parsedOptions.length === 0) {
+          const OPTION_SPLIT_REGEX = /(?:(?:\(([a-dA-D1-4])\)|\[([a-dA-D1-4])\]|(?<=\s|^)([a-dA-D1-4])[\.\)\]\}]|(?<=\s|^)([a-dA-D1-4])(?=\s*\d|\s*[\+\-\*\/]|\s*\\))\s*)/g;
+          const matches = Array.from(parsedStem.matchAll(OPTION_SPLIT_REGEX)) as RegExpMatchArray[];
 
-        if (matches.length >= 2) {
-          const firstOptIdx = matches[0].index || 0;
-          const stemBeforeOpts = parsedStem.slice(0, firstOptIdx).trim();
-          const optsSlice = parsedStem.slice(firstOptIdx);
-          if (stemBeforeOpts.length > 0) {
-            parsedStem = stemBeforeOpts;
-          }
-
-          const relativeMatches = Array.from(optsSlice.matchAll(OPTION_SPLIT_REGEX));
-          relativeMatches.forEach((m, idx) => {
-            const rawKey = (m[1] || m[2] || m[3] || m[4]).toUpperCase();
-            const startIdx = (m.index || 0) + m[0].length;
-            const endIdx = idx + 1 < relativeMatches.length ? (relativeMatches[idx + 1].index || optsSlice.length) : optsSlice.length;
-            let optText = optsSlice.slice(startIdx, endIdx).trim();
-            // Clean trailing paper codes like "NL0134" or "AIPMT 2015" from last option
-            if (idx === relativeMatches.length - 1) {
-              optText = optText.replace(/\s*(?:NL\d+|[A-Z]{2,}\d{3,}|\b(?:Re-)?(?:AIPMT|NEET|JEE|CBSE)\s*\d{4})\s*$/i, '').trim();
+          if (matches.length >= 2) {
+            const firstOptIdx = matches[0].index || 0;
+            const stemBeforeOpts = parsedStem.slice(0, firstOptIdx).trim();
+            const optsSlice = parsedStem.slice(firstOptIdx);
+            if (stemBeforeOpts.length > 0) {
+              parsedStem = stemBeforeOpts;
             }
-            parsedOptions.push({
-              key: rawKey,
-              text: sanitizeMathAndExamText(optText),
+
+            const relativeMatches = Array.from(optsSlice.matchAll(OPTION_SPLIT_REGEX)) as RegExpMatchArray[];
+            relativeMatches.forEach((m: any, idx: number) => {
+              const rawKey = (m[1] || m[2] || m[3] || m[4]).toUpperCase();
+              const keyMap: Record<string, string> = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
+              const canonicalKey = keyMap[rawKey] || rawKey;
+              const startIdx = (m.index || 0) + m[0].length;
+              const endIdx = idx + 1 < relativeMatches.length ? ((relativeMatches[idx + 1] as any).index || optsSlice.length) : optsSlice.length;
+              let optText = optsSlice.slice(startIdx, endIdx).trim();
+              // Clean trailing paper codes like "NL0134" or "AIPMT 2015" from last option
+              if (idx === relativeMatches.length - 1) {
+                optText = optText.replace(/\s*(?:NL\d+|[A-Z]{2,}\d{3,}|\b(?:Re-)?(?:AIPMT|NEET|JEE|CBSE)\s*\d{4})\s*$/i, '').trim();
+              }
+              parsedOptions.push({
+                key: canonicalKey,
+                text: sanitizeMathAndExamText(optText),
+              });
             });
-          });
+          }
+        }
+      }
+
+      // If server generated a LaTeX formula and parsedStem is blank or incomplete, include it
+      if (serverAiData?.latex && serverAiData.latex !== '$$') {
+        if (!parsedStem || serverAiData.has_math) {
+          if (!parsedStem) {
+            parsedStem = serverAiData.latex;
+          }
         }
       }
 

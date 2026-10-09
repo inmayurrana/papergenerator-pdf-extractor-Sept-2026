@@ -888,5 +888,356 @@
         }
       }
     }
+  },
+  "9955104432ab4855bbb453efff8ccd9d4f598ea943fe402cfe2a844d8956e068": {
+    "hash": "9955104432ab4855bbb453efff8ccd9d4f598ea943fe402cfe2a844d8956e068",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "",
+      "formula_component": "",
+      "unit": null,
+      "latex": "$$",
+      "raw_latex": "",
+      "mathml": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mrow></mrow></math>",
+      "structured_ast": {
+        "type": "ROOT",
+        "value": "",
+        "attributes": {},
+        "confidence": 1.0,
+        "children": []
+      },
+      "spatial_meta": {
+        "has_subscript": false,
+        "has_superscript": false,
+        "has_fraction": false,
+        "has_integral": false,
+        "has_matrix": false,
+        "has_vector": false,
+        "has_root": false
+      },
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.7,
+        "visual_similarity": 0.5,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.745,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": true,
+          "confidence": 1.0,
+          "errors": [],
+          "warnings": [],
+          "tokens_count": 0,
+          "ast": null
+        }
+      }
+    }
+  },
+  "9cbe609d3bcb8f6ea6120921bf6eaaef78d36fad5ed59bd21309014460c02bed": {
+    "hash": "9cbe609d3bcb8f6ea6120921bf6eaaef78d36fad5ed59bd21309014460c02bed",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "$\\frac{a}{2}$ 一 The sum of tho c",
+      "formula_component": "$\\frac{a}{2}$ 一 The sum of tho c",
+      "unit": null,
+      "latex": "$\\frac{a}{2}$",
+      "raw_latex": "\\frac{a}{2}",
+      "mathml": "<math xmlns='http://www.w3.org/1998/Math/MathML'><mfrac><mrow><mi>a</mi></mrow><mrow><mn>2</mn></mrow></mfrac></math>",
+      "structured_ast": {
+        "type": "ROOT",
+        "value": "",
+        "attributes": {},
+        "children": [
+          {
+            "type": "FRACTION",
+            "value": "",
+            "attributes": {},
+            "children": [
+              {
+                "type": "VARIABLE",
+                "value": "a",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "NUMBER",
+                "value": "2",
+                "attributes": {},
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      "spatial_meta": {
+        "has_subscript": false,
+        "has_superscript": false,
+        "has_fraction": true,
+        "has_integral": false,
+        "has_matrix": false,
+        "has_vector": false,
+        "has_root": false
+      },
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.98,
+        "visual_similarity": 0.638,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.856,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": true,
+          "confidence": 0.99,
+          "errors": [],
+          "warnings": [],
+          "tokens_count": 16,
+          "ast": {
+            "type": "ROOT",
+            "value": "",
+            "attributes": {},
+            "children": [
+              {
+                "type": "VARIABLE",
+                "value": "$",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "FRACTION",
+                "value": "",
+                "attributes": {},
+                "children": [
+                  {
+                    "type": "VARIABLE",
+                    "value": "a",
+                    "attributes": {},
+                    "children": []
+                  },
+                  {
+                    "type": "NUMBER",
+                    "value": "2",
+                    "attributes": {},
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "type": "VARIABLE",
+                "value": "$",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "VARIABLE",
+                "value": "一",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "VARIABLE",
+                "value": "T",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "VARIABLE",
+                "value": "h",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "VARIABLE",
+                "value": "e",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "VARIABLE",
+                "value": "s",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "VARIABLE",
+                "value": "u",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "UNIT",
+                "value": "m",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "VARIABLE",
+                "value": "o",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "VARIABLE",
+                "value": "f",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "VARIABLE",
+                "value": "t",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "VARIABLE",
+                "value": "h",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "VARIABLE",
+                "value": "o",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "VARIABLE",
+                "value": "c",
+                "attributes": {},
+                "children": []
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "42fc4710455528cdb877a1cba982054de30184e6569dac0aef7618fd9ebb6bcc": {
+    "hash": "42fc4710455528cdb877a1cba982054de30184e6569dac0aef7618fd9ebb6bcc",
+    "engine": "ScientificRecognitionSubsystem",
+    "version": "2.0.0",
+    "data": {
+      "mode": "MATH",
+      "raw_text": "$\\frac{e+1}{2ve}$ a)",
+      "formula_component": "$\\frac{e+1}{2ve}$ a)",
+      "unit": null,
+      "latex": "$\\frac{e+1}{2ve}$",
+      "raw_latex": "\\frac{e+1}{2ve}",
+      "mathml": "<math xmlns='http://www.w3.org/1998/Math/MathML'><mfrac><mrow><mi>e+1</mi></mrow><mrow><mi>2ve</mi></mrow></mfrac></math>",
+      "structured_ast": {
+        "type": "ROOT",
+        "value": "",
+        "attributes": {},
+        "children": [
+          {
+            "type": "FRACTION",
+            "value": "",
+            "attributes": {},
+            "children": [
+              {
+                "type": "VARIABLE",
+                "value": "e+1",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "VARIABLE",
+                "value": "2ve",
+                "attributes": {},
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      "spatial_meta": {
+        "has_subscript": false,
+        "has_superscript": false,
+        "has_fraction": true,
+        "has_integral": false,
+        "has_matrix": false,
+        "has_vector": false,
+        "has_root": false
+      },
+      "confidence": {
+        "recognition_confidence": 0.95,
+        "structural_confidence": 0.98,
+        "visual_similarity": 0.522,
+        "domain_confidence": 0.9,
+        "overall_confidence": 0.822,
+        "validation_status": "VALIDATED",
+        "needs_review": false
+      },
+      "domain_info": {
+        "validation": {
+          "is_valid": false,
+          "confidence": 0.79,
+          "errors": [
+            "Unmatched closing bracket ')' at position 19"
+          ],
+          "warnings": [],
+          "tokens_count": 5,
+          "ast": {
+            "type": "ROOT",
+            "value": "",
+            "attributes": {},
+            "children": [
+              {
+                "type": "VARIABLE",
+                "value": "$",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "FRACTION",
+                "value": "",
+                "attributes": {},
+                "children": [
+                  {
+                    "type": "VARIABLE",
+                    "value": "e+1",
+                    "attributes": {},
+                    "children": []
+                  },
+                  {
+                    "type": "VARIABLE",
+                    "value": "2ve",
+                    "attributes": {},
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "type": "VARIABLE",
+                "value": "$",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "VARIABLE",
+                "value": "a",
+                "attributes": {},
+                "children": []
+              },
+              {
+                "type": "VARIABLE",
+                "value": ")",
+                "attributes": {},
+                "children": []
+              }
+            ]
+          }
+        }
+      }
+    }
   }
 }
