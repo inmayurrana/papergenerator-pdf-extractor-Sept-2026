@@ -1080,14 +1080,14 @@ class DigitalTextExtractor:
             score = max(0.1, 0.5 - garbled_ratio)
             is_auth = False
             reason = f"CORRUPTED_FONT_LAYER (Garbled ratio: {garbled_ratio:.2%})"
-        elif garbled_ratio > 0.04 or has_symbol_fonts:
+        elif garbled_ratio > 0.08:
             score = max(0.5, 0.85 - garbled_ratio * 3.0)
             is_auth = False
-            reason = "DEGRADED_SYMBOL_FONTS (Greek/Symbol remapping required)"
+            reason = f"DEGRADED_TEXT_LAYER (Garbled ratio: {garbled_ratio:.2%})"
         else:
             score = min(0.99, max(0.85, 1.0 - garbled_ratio * 2.0))
             is_auth = True
-            reason = "CLEAN_DIGITAL_TEXT_LAYER"
+            reason = "CLEAN_DIGITAL_TEXT_LAYER (Symbols Remapped)" if has_symbol_fonts else "CLEAN_DIGITAL_TEXT_LAYER"
 
         return {
             "reliability_score": round(score, 3),

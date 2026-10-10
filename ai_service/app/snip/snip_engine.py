@@ -193,9 +193,9 @@ class VisualSnippingEngine:
             detected_qnum = q_match.group(1)
             stem_text = extracted_text[q_match.end():].strip()
 
-        # MCQ Option Parsing: (a), (b), (c), (d) or a), b], c), d) or (1), (2), (3), (4) or [A], [B]
+        # MCQ Option Parsing: (a), (b), (c), (d) or a), b], c), d) or (1), (2), (3), (4) or [A], [B] or a. b.
         OPTION_DETECTOR = re.compile(
-            r"(?:^|\s)(?:\(([a-dA-D1-4])\)|\[([a-dA-D1-4])\]|([a-dA-D1-4])[\.\)\]\}]|([a-dA-D])(?=\s*\d|\s*[\+\-\*\/]|\s*[a-zA-Z]))\s*",
+            r"(?:^|\s)(?:\(\s*([a-dA-D1-4])\s*\)|\[\s*([a-dA-D1-4])\s*\]|([a-dA-D1-4])\s*[\)\]\}]|([a-dA-D1-4])\s*\.(?!\d))\s*",
             re.IGNORECASE
         )
         opt_matches = list(OPTION_DETECTOR.finditer(stem_text))
@@ -206,7 +206,7 @@ class VisualSnippingEngine:
             actual_stem = stem_text[:first_opt_idx].strip()
 
             for i, om in enumerate(opt_matches):
-                raw_key = (om.group(1) or om.group(2) or om.group(3) or om.group(4)).upper()
+                raw_key = (om.group(1) or om.group(2) or om.group(3) or om.group(4) or "A").upper()
                 key_map = {"1": "A", "2": "B", "3": "C", "4": "D"}
                 canonical_key = key_map.get(raw_key, raw_key)
                 start_p = om.end()
@@ -227,12 +227,12 @@ class VisualSnippingEngine:
         detected_opt_key = None
         clean_option_text = specialized_math.convert_embedded_math(extracted_text)
         single_opt_match = re.match(
-            r"^\s*(?:\(([a-dA-D1-4])\)|\[([a-dA-D1-4])\]|([a-dA-D1-4])[\.\)\]\}]|([a-dA-D])(?=\s*\d|\s*[\+\-\*\/]|\s*\\))\s*(.*)",
+            r"^\s*(?:\(\s*([a-dA-D1-4])\s*\)|\[\s*([a-dA-D1-4])\s*\]|([a-dA-D1-4])\s*[\)\]\}]|([a-dA-D1-4])\s*\.(?!\d))\s*(.*)",
             extracted_text,
             re.DOTALL | re.IGNORECASE
         )
         if single_opt_match:
-            raw_k = (single_opt_match.group(1) or single_opt_match.group(2) or single_opt_match.group(3) or single_opt_match.group(4)).upper()
+            raw_k = (single_opt_match.group(1) or single_opt_match.group(2) or single_opt_match.group(3) or single_opt_match.group(4) or "A").upper()
             key_map = {"1": "A", "2": "B", "3": "C", "4": "D"}
             detected_opt_key = key_map.get(raw_k, raw_k)
             raw_val = single_opt_match.group(5).strip()

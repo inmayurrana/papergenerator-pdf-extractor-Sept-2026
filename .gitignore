@@ -32,5 +32,7 @@ data/pages/
 data/snips/
 data/uploads/
 data/*.db
+server/prisma/*.db
+server/prisma/*.db-journal
 scratch/
 

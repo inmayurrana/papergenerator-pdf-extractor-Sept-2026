@@ -20,6 +20,7 @@ Implements:
 from __future__ import annotations
 
 import os
+import gc
 import cv2  # type: ignore
 import numpy as np  # type: ignore
 import time
@@ -149,7 +150,7 @@ class NativeDocumentExtractor:
                 pdf_doc = pymupdf.open(doc_path)
                 if 1 <= page_number <= len(pdf_doc):
                     page = pdf_doc[page_number - 1]
-                    native_spans, _ = digital_extractor.extract_text_spans(doc_path, page_number)
+                    native_spans = digital_extractor.extract_page_text_spans(doc_path, page_number, img_w, img_h)
                     reliability_info = digital_extractor.check_font_reliability(page, native_spans)
                 pdf_doc.close()
             except Exception as e:
@@ -446,9 +447,11 @@ class SourceFaithfulMultiPathEngine:
         native_spans = path_a_res["spans"]
         path_a_rel = path_a_res["reliability"]
 
-        # 4. Path B: Visual Document Extraction
-        path_b_res = VisualDocumentExtractor.extract_path_b(pristine_path, img_w, img_h)
-        visual_spans = path_b_res["spans"]
+        # 4. Path B: Visual Document Extraction (Executed when force_ocr is True or native digital text is unauthoritative/empty)
+        visual_spans: List[Dict[str, Any]] = []
+        if force_ocr or not path_a_rel.get("is_authoritative", False) or len(native_spans) == 0:
+            path_b_res = VisualDocumentExtractor.extract_path_b(pristine_path, img_w, img_h)
+            visual_spans = path_b_res["spans"]
 
         # 5. Extract Diagrams & Visual Figures (Preserve exact contours & crops)
         diagram_regions = region_detector.detect_diagram_regions_from_image(pristine_path)
@@ -469,11 +472,18 @@ class SourceFaithfulMultiPathEngine:
         processed_regions: List[Dict[str, Any]] = []
         formula_objects_all: List[Dict[str, Any]] = []
 
+        is_shortage, free_mb, used_pct = ocr_extractor.is_memory_shortage()
+        batch_size = 10 if is_shortage else 20
+
         primary_spans = visual_spans if (force_ocr or not path_a_rel["is_authoritative"] or not native_spans) else native_spans
 
         for idx, span in enumerate(primary_spans):
             region_id = span.get("id", f"sfme_p{page_number}_r{idx+1}")
             bbox = span.get("bbox", [0, 0, 10, 10])
+
+            # Periodic memory garbage collection between region batches under memory pressure
+            if (idx + 1) % batch_size == 0:
+                gc.collect()
 
             # Save immutable source crop
             crop_url, crop_img = source_model.save_source_crop(pristine_img, bbox, region_id)
@@ -594,13 +604,21 @@ class SourceFaithfulMultiPathEngine:
             "questions": structured_questions,
             "dates": extracted_dates,
             "formula_objects": formula_objects_all,
+            "memory_profile": {
+                "memory_shortage": is_shortage,
+                "execution_mode": "CHUNKED_MEMORY_SAFE" if is_shortage else "STANDARD",
+                "ram_free_mb": free_mb,
+                "ram_used_pct": used_pct,
+                "status": "COMPLETE"
+            },
             "diagnostics": {
-                "native_spans_count": path_a_res["count"],
-                "visual_spans_count": path_b_res["count"],
+                "native_spans_count": path_a_res.get("count", len(native_spans)),
+                "visual_spans_count": len(visual_spans),
                 "diagrams_count": len(saved_diagrams),
                 "questions_count": len(structured_questions),
                 "dates_count": len(extracted_dates),
                 "unverified_count": sum(1 for r in sorted_regions if r.get("needs_review")),
+                "execution_mode": "CHUNKED_MEMORY_SAFE" if is_shortage else "STANDARD",
             }
         }
 

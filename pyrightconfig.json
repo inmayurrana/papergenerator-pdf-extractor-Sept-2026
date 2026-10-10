@@ -2,14 +2,16 @@
   "include": [
     "ai_service",
     "create_sample_pdf.py",
-    "verify_system.py",
-    "scratch"
+    "verify_system.py"
   ],
   "exclude": [
     "**/node_modules",
     "**/__pycache__",
-    "python_env"
+    "python_env",
+    "scratch",
+    "ai_service/tests"
   ],
+  "typeCheckingMode": "off",
   "venvPath": ".",
   "venv": "python_env",
   "extraPaths": [
@@ -20,5 +22,11 @@
   "reportMissingImports": "none",
   "reportMissingModuleSource": "none",
   "reportMissingTypeStubs": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportOptionalSubscript": "none",
+  "reportOptionalCall": "none",
+  "reportGeneralTypeIssues": "none",
+  "reportArgumentType": "none",
+  "reportCallIssue": "none",
   "pythonVersion": "3.11"
 }

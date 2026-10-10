@@ -104,7 +104,9 @@ def load_unimernet() -> UniMERNetWrapper:
         def __call__(self, img):
             return {"latex": "", "confidence": 0.0}
 
-    return UniMERNetWrapper(_StubModel())
+    wrapper = UniMERNetWrapper(_StubModel())
+    wrapper._is_stub = True
+    return wrapper
 
 
 # ─── Pix2Text ─────────────────────────────────────────────────────────────────
@@ -159,7 +161,9 @@ def load_pix2text() -> Pix2TextWrapper:
             def recognize(self, img, **kw):
                 return []
 
-        return Pix2TextWrapper(_Stub())
+        wrapper = Pix2TextWrapper(_Stub())
+        wrapper._is_stub = True
+        return wrapper
 
 
 # ─── pix2tex / LaTeX-OCR ──────────────────────────────────────────────────────
@@ -191,7 +195,9 @@ def load_pix2tex() -> Pix2TexWrapper:
             def __call__(self, img):
                 return ""
 
-        return Pix2TexWrapper(_Stub())
+        wrapper = Pix2TexWrapper(_Stub())
+        wrapper._is_stub = True
+        return wrapper
 
 
 # ─── PaddleOCR ────────────────────────────────────────────────────────────────
@@ -235,7 +241,9 @@ def load_paddle_ocr() -> PaddleOCRWrapper:
             def ocr(self, img, **kw):
                 return [[]]
 
-        return PaddleOCRWrapper(_Stub())
+        wrapper = PaddleOCRWrapper(_Stub())
+        wrapper._is_stub = True
+        return wrapper
 
 
 # ─── Tesseract ────────────────────────────────────────────────────────────────

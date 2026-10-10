@@ -160,6 +160,9 @@ class ModelManager:
             elapsed = time.time() - t0
             logger.info("Model %r loaded in %.1f s", name, elapsed)
 
+            if getattr(model, "_is_stub", False):
+                desc.is_heavy = False
+
             self._cache[name] = model
             self._access[name] = time.time()
             return model

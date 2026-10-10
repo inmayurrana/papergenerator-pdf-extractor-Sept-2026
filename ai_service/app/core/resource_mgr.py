@@ -29,12 +29,23 @@ class ResourceManager:
         return cls._instance
 
     def _init(self):
-        self.heavy_job_semaphore = asyncio.Semaphore(config.MAX_HEAVY_JOBS)
-        self.page_worker_semaphore = asyncio.Semaphore(config.MAX_PAGE_WORKERS)
+        self._heavy_job_semaphore: Optional[asyncio.Semaphore] = None
+        self._page_worker_semaphore: Optional[asyncio.Semaphore] = None
         self.loaded_models: Dict[str, ModelEntry] = {}
         self.active_jobs_count = 0
-        self._lock = asyncio.Lock()
         self._idle_checker_task: Optional[asyncio.Task] = None
+
+    @property
+    def heavy_job_semaphore(self) -> asyncio.Semaphore:
+        if self._heavy_job_semaphore is None:
+            self._heavy_job_semaphore = asyncio.Semaphore(config.MAX_HEAVY_JOBS)
+        return self._heavy_job_semaphore
+
+    @property
+    def page_worker_semaphore(self) -> asyncio.Semaphore:
+        if self._page_worker_semaphore is None:
+            self._page_worker_semaphore = asyncio.Semaphore(config.MAX_PAGE_WORKERS)
+        return self._page_worker_semaphore
 
     def get_hardware_metrics(self) -> Dict[str, Any]:
         """Returns instantaneous CPU, RAM, and GPU/VRAM statistics."""

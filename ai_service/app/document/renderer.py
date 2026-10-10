@@ -26,9 +26,10 @@ class PageRenderer:
 
         if ext == ".pdf":
             doc = pymupdf.open(str(doc_path))
-            if page_number < 1 or page_number > len(doc):
+            page_count = len(doc)
+            if page_number < 1 or page_number > page_count:
                 doc.close()
-                raise ValueError(f"Page number {page_number} out of range (1 - {len(doc)})")
+                raise ValueError(f"Page number {page_number} out of range (1 - {page_count})")
 
             page = doc.load_page(page_number - 1)
             # Calculate zoom matrix based on DPI (72 dpi is 1.0)

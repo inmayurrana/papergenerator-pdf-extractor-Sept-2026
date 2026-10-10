@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <title>Midterm Physics Examination</title>
         <style>
-          body { font-family: 'Calibri', 'Times New Roman', 'Arial', sans-serif; font-size: 11pt; line-height: 1.35; color: #000; margin: 0.8in; }
+          body { font-family: 'Times New Roman', Times, serif; font-size: 10pt; line-height: 1.35; color: #000; margin: 0.8in; }
           .school-title { font-size: 18pt; font-weight: bold; text-align: center; text-transform: uppercase; margin-bottom: 3pt; }
           .exam-title { font-size: 13pt; font-weight: bold; text-align: center; text-transform: uppercase; margin-bottom: 6pt; color: #1a365d; }
           .meta-table { width: 100%; font-size: 10pt; font-weight: bold; margin-top: 4pt; }
@@ -12,11 +12,11 @@
           .roll-box { display: inline-block; width: 16pt; height: 16pt; border: 1pt solid #000; margin-left: 2pt; text-align: center; vertical-align: middle; }
           .instructions { font-size: 9pt; border-top: 0.5pt solid #ccc; padding-top: 4pt; margin-top: 4pt; color: #333; }
           .question-block { margin-bottom: 12pt; page-break-inside: avoid; border-bottom: 0.5pt solid #e2e8f0; padding-bottom: 8pt; }
-          .q-stem { font-weight: 500; font-size: 11pt; margin-bottom: 4pt; }
+          .q-stem { font-weight: 500; font-size: 1em; margin-bottom: 4pt; }
           .q-marks { float: right; font-weight: bold; font-family: monospace; color: #2d3748; }
           .diagram-container { margin: 6pt 0; text-align: left; }
           .diagram-img { max-height: 200pt; max-width: 450pt; width: auto; border: 0.5pt solid #cbd5e0; margin: 4pt 0; }
-          .options-grid { margin-left: 15pt; margin-top: 4pt; font-size: 10.5pt; }
+          .options-grid { margin-left: 15pt; margin-top: 4pt; font-size: 0.95em; }
           .opt-item { display: inline-block; min-width: 22%; margin-right: 15pt; margin-bottom: 4pt; vertical-align: top; }
           .opt-img { max-height: 45pt; width: auto; display: block; margin-top: 2pt; }
         </style>
@@ -49,7 +49,7 @@
 
         <div class="questions-container">
           
-              <div class="question-block">
+              <div class="question-block" >
                 <div class="q-stem">
                   <span class="q-marks">[2 Marks]</span>
                   <strong>Q1.</strong> What is the capital of France?
@@ -82,9 +82,11 @@
                         
                   </div>
                 
+
+                
               </div>
             
-              <div class="question-block">
+              <div class="question-block" >
                 <div class="q-stem">
                   <span class="q-marks">[3 Marks]</span>
                   <strong>Q2.</strong> Solve for x: 2x + 6 = 14
@@ -116,6 +118,8 @@
                           </span>
                         
                   </div>
+                
+
                 
               </div>
             

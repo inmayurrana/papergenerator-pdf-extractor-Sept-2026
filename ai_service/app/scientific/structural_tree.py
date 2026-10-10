@@ -6,7 +6,7 @@ Outputs valid LaTeX, MathML, plain text, and structured JSON.
 
 from __future__ import annotations
 import re
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional, Union, Tuple
 from enum import Enum
 
 

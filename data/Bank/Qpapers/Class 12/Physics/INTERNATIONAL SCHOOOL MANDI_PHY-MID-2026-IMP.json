@@ -1,5 +1,5 @@
 {
-  "id": "32b5e5d2-914f-445d-9e1a-7a6fbda0edc7",
+  "id": "bee3a25d-8037-4adb-9ae8-7f44d2c41e04",
   "title": "INTERNATIONAL SCHOOOL MANDI",
   "examCode": "PHY-MID-2026-IMP",
   "schoolName": "CAMBRIDGE ",
@@ -156,5 +156,5 @@
       "optionsJson": "[{\"key\":\"A\",\"text\":\"x = 2\"},{\"key\":\"B\",\"text\":\"x = 3\"},{\"key\":\"C\",\"text\":\"x = 4\"},{\"key\":\"D\",\"text\":\"x = 5\"}]"
     }
   ],
-  "updatedAt": "2026-09-19T04:02:30.964Z"
+  "updatedAt": {}
 }

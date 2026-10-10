@@ -1,4 +1,4 @@
-﻿"""
+"""
 Image Pre-Processor for Math Extraction
 ========================================
 Prepares document pages and formula crops for math recognition.
@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, Any
 
 import cv2
 import numpy as np
@@ -29,7 +29,7 @@ logger = logging.getLogger("image_preprocessor")
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
-def _to_numpy(source: Union[str, Path, bytes, np.ndarray, "PILImage"]) -> np.ndarray:
+def _to_numpy(source: Union[str, Path, bytes, np.ndarray, Any]) -> np.ndarray:
     """Convert any input type to a uint8 BGR numpy array."""
     if isinstance(source, np.ndarray):
         return source.copy()
@@ -40,14 +40,16 @@ def _to_numpy(source: Union[str, Path, bytes, np.ndarray, "PILImage"]) -> np.nda
         return img
     if isinstance(source, bytes):
         arr = np.frombuffer(source, np.uint8)
-        return cv2.imdecode(arr, cv2.IMREAD_COLOR)
+        decoded = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+        if decoded is None:
+            raise ValueError("Failed to decode image from bytes")
+        return decoded
     # PIL Image
     try:
-        import numpy as _np
-        from PIL import Image as _PIL
-        if isinstance(source, _PIL.Image.Image):
-            return _np.array(source.convert("RGB"))[:, :, ::-1].copy()  # RGB→BGR
-    except ImportError:
+        from PIL import Image as _PIL_Image
+        if isinstance(source, _PIL_Image.Image):
+            return np.array(source.convert("RGB"))[:, :, ::-1].copy()  # RGB->BGR
+    except Exception:
         pass
     raise TypeError(f"Unsupported image source type: {type(source)}")
 

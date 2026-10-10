@@ -288,6 +288,42 @@ export const ComparisonReview: React.FC = () => {
     setTimeout(() => setCopySuccessMsg(''), 3500);
   };
 
+  // Helper to normalize and deduplicate option labels (A, B, C, D)
+  const getNormalizedOptions = (opts?: any[]) => {
+    const defaults = [{ key: 'A', text: '' }, { key: 'B', text: '' }, { key: 'C', text: '' }, { key: 'D', text: '' }];
+    const source = (opts && opts.length > 0) ? opts : defaults;
+    const standardLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
+    const seen = new Set<string>();
+    const res: { key: string; label: string; text?: string; imageUrl?: string }[] = [];
+
+    source.forEach((opt: any, idx: number) => {
+      let raw = (opt.key !== undefined && opt.key !== null)
+        ? String(opt.key).replace(/[\(\)\.\:\s]/g, '').trim().toUpperCase()
+        : '';
+      if (raw === '1') raw = 'A';
+      else if (raw === '2') raw = 'B';
+      else if (raw === '3') raw = 'C';
+      else if (raw === '4') raw = 'D';
+
+      let label = raw || standardLabels[idx] || String.fromCharCode(65 + idx);
+      if (seen.has(label)) {
+        for (const sl of standardLabels) {
+          if (!seen.has(sl)) {
+            label = sl;
+            break;
+          }
+        }
+      }
+      seen.add(label);
+      res.push({
+        ...opt,
+        key: label,
+        label: label,
+      });
+    });
+    return res;
+  };
+
   // Helper to detect duplicate questions within extracted question list
   const findDuplicateIndices = (questions: any[]): { dupIdx: number; originalIdx: number; originalQNum: string }[] => {
     const dups: { dupIdx: number; originalIdx: number; originalQNum: string }[] = [];
@@ -427,7 +463,23 @@ export const ComparisonReview: React.FC = () => {
 
     try {
       const res = await api.post(`/documents/${currentDocId}/process-page/${pageNum}`);
-      const rawExtracted = res.data.extracted;
+      let rawExtracted = res.data.extracted;
+
+      // Automatically run Deep AI OCR if initial extraction returned 0 questions
+      if (!rawExtracted?.questions || rawExtracted.questions.length === 0) {
+        try {
+          const ocrRes = await api.post(`/documents/${currentDocId}/process-page/${pageNum}`, {
+            force_ocr: true,
+            profile: 'HIGH_ACCURACY',
+          });
+          if (ocrRes.data?.extracted?.questions && ocrRes.data.extracted.questions.length > 0) {
+            rawExtracted = ocrRes.data.extracted;
+          }
+        } catch (ocrErr) {
+          console.debug('Automatic Deep OCR fallback attempt:', ocrErr);
+        }
+      }
+
       // Auto sanitize any math font artifacts in extracted questions
       if (rawExtracted?.questions) {
         rawExtracted.questions = rawExtracted.questions.map((q: any) => ({
@@ -779,6 +831,19 @@ export const ComparisonReview: React.FC = () => {
           w: Math.round(box.w),
           h: Math.round(box.h),
         });
+        setTimeout(() => {
+          const targetQNum = String(
+            (isInlineEditing && editFormData?.question_number) ||
+            selectedQuestion?.question_number ||
+            selectedQuestion?.questionNumber ||
+            (pageData?.questions && (pageData.questions[0]?.question_number || pageData.questions[0]?.questionNumber)) ||
+            '1'
+          );
+          const el = document.getElementById(`question-card-${targetQNum}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }, 100);
       }
 
       // 3. Extract overlapping digital vector text from pageData regions (exact & typo-free for digital PDFs)
@@ -2812,117 +2877,7 @@ export const ComparisonReview: React.FC = () => {
               </div>
             )}
 
-            {/* FLOATING ACTION BAR FOR CROPPED IMAGE (ATTACH / DRAG / PASTE) */}
-            {activeCroppedImage && (
-              <div className="absolute bottom-3 left-3 right-3 bg-white p-4 rounded-classic border-2 border-emerald-600 shadow-xl space-y-3 z-30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    {/* Draggable Thumbnail */}
-                    <div
-                      draggable={true}
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData('application/image-url', activeCroppedImage.url);
-                        e.dataTransfer.setData('text/plain', activeCroppedImage.url);
-                        setActiveDragImage(activeCroppedImage.url);
-                      }}
-                      onDragEnd={() => setActiveDragImage(null)}
-                      className="relative group bg-slate-50 p-1.5 rounded-classic border border-emerald-600 cursor-grab active:cursor-grabbing shadow-sm"
-                      title="Drag this cropped image and drop it on any Question or Option!"
-                    >
-                      <img
-                        src={activeCroppedImage.url}
-                        alt="Crop Thumbnail"
-                        className="h-14 w-auto rounded object-contain"
-                      />
-                      <div className="absolute inset-0 bg-emerald-600/10 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Hand className="w-4 h-4 text-emerald-800 drop-shadow" />
-                      </div>
-                    </div>
 
-                    <div>
-                      <div className="text-sm font-bold text-emerald-900 flex items-center space-x-1.5">
-                        <Scissors className="w-4 h-4 text-emerald-700" />
-                        <span>Cropped Screenshot Ready ({activeCroppedImage.w}x{activeCroppedImage.h}px)</span>
-                      </div>
-                      <p className="text-xs text-classic-text-muted">
-                        Attach directly to Question as its primary image, or assign to any option below:
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setActiveCroppedImage(null);
-                      setCropBox(null);
-                    }}
-                    className="p-1 text-classic-text-muted hover:text-classic-text-primary rounded hover:bg-slate-100"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Instant 1-Click Attach Buttons */}
-                <div className="flex flex-wrap items-center gap-2 text-xs pt-2 border-t border-classic-border">
-                  <span className="text-xs font-semibold text-classic-text-primary mr-1">Use screenshot as:</span>
-                  <button
-                    type="button"
-                    onClick={() => handleAttachImageToQuestion(activeCroppedImage.url)}
-                    className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-classic font-bold flex items-center space-x-1.5 shadow-sm transition-colors"
-                  >
-                    <Camera className="w-3.5 h-3.5" />
-                    <span>Question Image / Figure</span>
-                  </button>
-
-                  {/* Dynamically render buttons for each option in active question */}
-                  {activeOptions.length > 0 ? (
-                    activeOptions.map((opt: any, idx: number) => {
-                      const optLabel = opt.key || String(idx + 1);
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => handleAttachImageToOption(optLabel, activeCroppedImage.url)}
-                          className="px-3 py-1.5 bg-slate-50 hover:bg-emerald-50 text-classic-text-primary hover:text-emerald-900 rounded-classic border border-classic-border font-mono font-semibold transition-colors"
-                        >
-                          + Opt ({optLabel}) Image
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => handleAttachImageToOption('1', activeCroppedImage.url)}
-                        className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-classic-text-primary rounded-classic border border-classic-border font-mono font-semibold"
-                      >
-                        + Opt (1)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleAttachImageToOption('2', activeCroppedImage.url)}
-                        className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-classic-text-primary rounded-classic border border-classic-border font-mono font-semibold"
-                      >
-                        + Opt (2)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleAttachImageToOption('3', activeCroppedImage.url)}
-                        className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-classic-text-primary rounded-classic border border-classic-border font-mono font-semibold"
-                      >
-                        + Opt (3)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleAttachImageToOption('4', activeCroppedImage.url)}
-                        className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-classic-text-primary rounded-classic border border-classic-border font-mono font-semibold"
-                      >
-                        + Opt (4)
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
 
             {/* Floating Quick Action Bar when Text is Selected */}
             {selectedText && interactionMode === 'SELECT_TEXT' && (
@@ -3312,8 +3267,83 @@ export const ComparisonReview: React.FC = () => {
                   return (
                     <div
                       key={idx}
+                      id={`question-card-${qNum}`}
                       className="p-4 rounded-xl bg-white border-2 border-[#0B1F3A] shadow-md space-y-4 transition-all"
                     >
+                      {/* DOCKED SNIPPING DETAILS AT SELECTED/EDITING QUESTION */}
+                      {activeCroppedImage && (
+                        <div
+                          className="p-3 bg-emerald-50/95 border-2 border-emerald-600 rounded-xl space-y-2.5 shadow-sm animate-fade-in"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex items-center justify-between gap-2.5">
+                            <div className="flex items-center space-x-2.5">
+                              {/* Left Thumbnail */}
+                              <div
+                                draggable={true}
+                                onDragStart={(e) => {
+                                  e.dataTransfer.setData('application/image-url', activeCroppedImage.url);
+                                  e.dataTransfer.setData('text/plain', activeCroppedImage.url);
+                                  setActiveDragImage(activeCroppedImage.url);
+                                }}
+                                onDragEnd={() => setActiveDragImage(null)}
+                                className="bg-white p-1 rounded-lg border-2 border-emerald-600 flex items-center justify-center max-h-16 min-w-[90px] max-w-[140px] overflow-hidden shrink-0 cursor-grab active:cursor-grabbing shadow-xs"
+                                title="Drag snippet and drop directly on question body or option"
+                              >
+                                <img
+                                  src={activeCroppedImage.url}
+                                  alt="Cropped Screenshot"
+                                  className="max-h-14 w-auto object-contain block select-none"
+                                />
+                              </div>
+                              <div>
+                                <div className="text-xs font-bold text-emerald-950 flex items-center space-x-1.5">
+                                  <Scissors className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                                  <span>✂ Snipping Details: Ready for Q{editFormData.question_number} ({activeCroppedImage.w}×{activeCroppedImage.h}px)</span>
+                                </div>
+                                <p className="text-[11px] text-emerald-800 mt-0.5">
+                                  Attach directly to Question Q{editFormData.question_number} or assign to any option below:
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveCroppedImage(null);
+                                setCropBox(null);
+                              }}
+                              className="p-1 text-slate-400 hover:text-slate-700 rounded-md hover:bg-emerald-100 transition-colors shrink-0 cursor-pointer"
+                              title="Dismiss snippet"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-emerald-200">
+                            <span className="text-[11px] font-bold text-emerald-950 mr-1 shrink-0">Use screenshot as:</span>
+                            <button
+                              type="button"
+                              onClick={() => handleAttachImageToQuestion(activeCroppedImage.url)}
+                              className="px-2.5 py-1 bg-[#047857] hover:bg-[#065f46] text-white rounded-lg font-bold flex items-center space-x-1 text-xs shadow-xs transition-all cursor-pointer"
+                            >
+                              <Camera className="w-3.5 h-3.5" />
+                              <span>Question Image / Figure</span>
+                            </button>
+
+                            {getNormalizedOptions(editFormData.options).map((opt) => (
+                              <button
+                                key={opt.key}
+                                type="button"
+                                onClick={() => handleAttachImageToOption(opt.key, activeCroppedImage.url)}
+                                className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-900 rounded-lg border border-emerald-600 font-mono font-bold text-xs transition-all shadow-xs cursor-pointer"
+                              >
+                                + Opt ({opt.key}) Image
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Edit Header Bar */}
                       <div className="flex items-center justify-between pb-2 border-b border-[#D1D5DB]">
                         <div className="flex items-center space-x-2">
@@ -3874,6 +3904,7 @@ export const ComparisonReview: React.FC = () => {
                         showToast('Opened edit and inserted dropped text!');
                       }
                     }}
+                    id={`question-card-${qNum}`}
                     className={`p-4 rounded-xl border transition-all cursor-pointer space-y-3 ${
                       isCheckedForBulk
                         ? 'bg-blue-50/80 border-2 border-[#0B1F3A] shadow-md'
@@ -3886,6 +3917,80 @@ export const ComparisonReview: React.FC = () => {
                         : 'bg-white border border-[#D1D5DB] hover:border-slate-400 shadow-sm'
                     }`}
                   >
+                    {/* DOCKED SNIPPING DETAILS AT SELECTED QUESTION */}
+                    {activeCroppedImage && (isSelected || (!selectedQuestion && idx === 0)) && (
+                      <div
+                        className="p-3 bg-emerald-50/95 border-2 border-emerald-600 rounded-xl space-y-2.5 shadow-sm animate-fade-in"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center justify-between gap-2.5">
+                          <div className="flex items-center space-x-2.5">
+                            {/* Left Thumbnail */}
+                            <div
+                              draggable={true}
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData('application/image-url', activeCroppedImage.url);
+                                e.dataTransfer.setData('text/plain', activeCroppedImage.url);
+                                setActiveDragImage(activeCroppedImage.url);
+                              }}
+                              onDragEnd={() => setActiveDragImage(null)}
+                              className="bg-white p-1 rounded-lg border-2 border-emerald-600 flex items-center justify-center max-h-16 min-w-[90px] max-w-[140px] overflow-hidden shrink-0 cursor-grab active:cursor-grabbing shadow-xs"
+                              title="Drag snippet and drop directly on question body or option"
+                            >
+                              <img
+                                src={activeCroppedImage.url}
+                                alt="Cropped Screenshot"
+                                className="max-h-14 w-auto object-contain block select-none"
+                              />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-emerald-950 flex items-center space-x-1.5">
+                                <Scissors className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                                <span>✂ Snipping Details: Ready for Q{qNum} ({activeCroppedImage.w}×{activeCroppedImage.h}px)</span>
+                              </div>
+                              <p className="text-[11px] text-emerald-800 mt-0.5">
+                                Attach directly to Question Q{qNum} or assign to any option below:
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveCroppedImage(null);
+                              setCropBox(null);
+                            }}
+                            className="p-1 text-slate-400 hover:text-slate-700 rounded-md hover:bg-emerald-100 transition-colors shrink-0 cursor-pointer"
+                            title="Dismiss snippet"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-emerald-200">
+                          <span className="text-[11px] font-bold text-emerald-950 mr-1 shrink-0">Use screenshot as:</span>
+                          <button
+                            type="button"
+                            onClick={() => handleAttachImageToQuestion(activeCroppedImage.url)}
+                            className="px-2.5 py-1 bg-[#047857] hover:bg-[#065f46] text-white rounded-lg font-bold flex items-center space-x-1 text-xs shadow-xs transition-all cursor-pointer"
+                          >
+                            <Camera className="w-3.5 h-3.5" />
+                            <span>Question Image / Figure</span>
+                          </button>
+
+                          {getNormalizedOptions(options).map((opt) => (
+                            <button
+                              key={opt.key}
+                              type="button"
+                              onClick={() => handleAttachImageToOption(opt.key, activeCroppedImage.url)}
+                              className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-900 rounded-lg border border-emerald-600 font-mono font-bold text-xs transition-all shadow-xs cursor-pointer"
+                            >
+                              + Opt ({opt.key}) Image
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Header bar with Multi-Select Checkbox, Snip, Edit & Delete Actions */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
@@ -5034,6 +5139,91 @@ export const ComparisonReview: React.FC = () => {
           setFormulaModalState({ isOpen: false, latex: '' });
         }}
       />
+
+      {/* FLOATING ACTION BAR FOR CROPPED IMAGE (SCREENSHOT READY AT BOTTOM OF SCREEN) */}
+      {activeCroppedImage && (() => {
+        const targetQ = (isInlineEditing && editFormData)
+          ? editFormData
+          : (selectedQuestion || (pageData?.questions && pageData.questions[0]) || null);
+
+        const normalizedOpts = getNormalizedOptions(targetQ?.options);
+
+        return (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-2xl bg-white border-2 border-emerald-600 rounded-xl shadow-2xl p-4 space-y-3 animate-fade-in pointer-events-auto">
+            <div className="flex items-start justify-between gap-3">
+              {/* Left: Cropped Thumbnail Preview */}
+              <div
+                draggable={true}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('application/image-url', activeCroppedImage.url);
+                  e.dataTransfer.setData('text/plain', activeCroppedImage.url);
+                  setActiveDragImage(activeCroppedImage.url);
+                }}
+                onDragEnd={() => setActiveDragImage(null)}
+                className="bg-white p-1.5 rounded-lg border border-emerald-600 flex items-center justify-center max-h-20 min-w-[140px] max-w-[280px] overflow-hidden shrink-0 cursor-grab active:cursor-grabbing shadow-xs group relative"
+                title="Drag this cropped image and drop it on any Question or Option!"
+              >
+                <img
+                  src={activeCroppedImage.url}
+                  alt="Cropped Screenshot"
+                  className="max-h-16 w-auto object-contain block select-none"
+                />
+                <div className="absolute inset-0 bg-emerald-600/10 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  <Hand className="w-4 h-4 text-emerald-800 drop-shadow" />
+                </div>
+              </div>
+
+              {/* Center: Title & Subtitle */}
+              <div className="flex-1 min-w-0 pt-0.5">
+                <div className="text-sm font-bold text-emerald-800 flex items-center space-x-1.5">
+                  <Scissors className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <span>Cropped Screenshot Ready ({activeCroppedImage.w}×{activeCroppedImage.h}px)</span>
+                </div>
+                <p className="text-xs text-slate-600 mt-1 leading-snug">
+                  Attach directly to Question as its primary image, or assign to any option below:
+                </p>
+              </div>
+
+              {/* Dismiss Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveCroppedImage(null);
+                  setCropBox(null);
+                }}
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 transition-colors shrink-0 cursor-pointer"
+                title="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Instant 1-Click Attach Action Row */}
+            <div className="flex flex-wrap items-center gap-2 text-xs pt-3 border-t border-slate-200">
+              <span className="text-xs font-bold text-slate-800 mr-1 shrink-0">Use screenshot as:</span>
+              <button
+                type="button"
+                onClick={() => handleAttachImageToQuestion(activeCroppedImage.url)}
+                className="px-3.5 py-1.5 bg-[#047857] hover:bg-[#065f46] text-white rounded-lg font-bold flex items-center space-x-1.5 text-xs shadow-xs transition-all cursor-pointer"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>Question Image / Figure</span>
+              </button>
+
+              {normalizedOpts.map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => handleAttachImageToOption(opt.key, activeCroppedImage.url)}
+                  className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-900 rounded-lg border border-slate-300 hover:border-emerald-500 font-mono font-bold text-xs transition-all shadow-xs cursor-pointer"
+                >
+                  + Opt ({opt.key}) Image
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

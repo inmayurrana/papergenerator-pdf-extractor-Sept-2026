@@ -2,6 +2,7 @@ import asyncio
 import gc
 import logging
 import re
+import time
 import cv2  # type: ignore
 import numpy as np  # type: ignore
 from pathlib import Path
@@ -50,7 +51,7 @@ def resolve_file_path(input_path: Optional[str], default_subfolder: Optional[Pat
     if p.exists():
         return p
 
-    clean = str(input_path).replace("\\", "/").lstrip("/")
+    clean = input_path.replace("\\", "/").lstrip("/")
     if clean.startswith("data/"):
         clean = clean[5:]
     elif clean.startswith("api/"):
@@ -102,7 +103,7 @@ def resolve_file_path(input_path: Optional[str], default_subfolder: Optional[Pat
 # Models for request schemas
 class ProcessPageRequest(BaseModel):
     doc_path: str
-    doc_id: str
+    doc_id: Optional[str] = "default_doc"
     page_number: int  # 1-indexed
     profile: str = "BALANCED"  # FAST, BALANCED, HIGH_ACCURACY, MAXIMUM_ACCURACY, HIGH_FIDELITY
     force_ocr: bool = False
@@ -160,11 +161,11 @@ async def extract_document_dates(req: ExtractDatesRequest):
         if not doc_p.exists():
             raise HTTPException(status_code=404, detail="Document file not found")
         # Extract text using digital extractor or OCR
-        spans, _ = digital_extractor.extract_text_spans(doc_p, req.page_number)
+        render_res = page_renderer.render_page(doc_p, req.page_number)
+        page_img = Path(render_res["image_path"])
+        spans = digital_extractor.extract_page_text_spans(doc_p, req.page_number, render_res["width"], render_res["height"])
         if not spans:
-            render_res = page_renderer.render_page_image(doc_p, req.page_number)
-            page_img = resolve_file_path(render_res["relative_url"], config.STORAGE_DOCUMENTS)
-            spans = ocr_extractor.extract_page_text_spans(page_img, render_res["width"], render_res["height"])
+            spans = ocr_extractor.extract_page_text_spans(str(page_img), render_res["width"], render_res["height"])
         dates = date_extractor.extract_dates_from_spans(spans, req.page_number, req.locale_preference)
         return {"status": "SUCCESS", "dates": dates, "count": len(dates)}
     else:
@@ -437,7 +438,8 @@ async def process_page_v2_endpoint(req: ProcessPageRequest):
             if not doc_p.exists():
                 raise HTTPException(status_code=404, detail=f"Document file not found: {doc_p.name}")
 
-            res = sfme_engine.process_page_sfme(
+            res = await asyncio.to_thread(
+                sfme_engine.process_page_sfme,
                 doc_path=doc_p,
                 page_number=req.page_number,
                 profile=req.profile,
@@ -454,11 +456,7 @@ async def process_page_sequentially(req: ProcessPageRequest):
     """
     Core sequential page processing pipeline:
     1. Acquires sequential lock (enforces 1 heavy AI job at a time on 8GB RAM).
-    2. Renders requested page to image.
-    3. Extracts embedded digital text or runs preprocessor + OCR router.
-    4. Detects layout regions, reading order, and diagrams.
-    5. Reconstructs structured questions, MCQ options, formulas, and marks.
-    6. Releases PyMuPDF objects and cleans intermediate memory.
+    2. Runs SFME Source-Faithful Multi-Path Engine to extract questions, formulas, and diagrams.
     """
     async with resource_manager.heavy_job_semaphore:
         resource_manager.active_jobs_count += 1
@@ -468,17 +466,17 @@ async def process_page_sequentially(req: ProcessPageRequest):
             if not doc_p.exists():
                 raise HTTPException(status_code=404, detail=f"Document file not found: {doc_p.name}")
 
-            # Route to SFME when Source-Preserving mode or High-Fidelity profile is selected
-            if req.profile in ["HIGH_FIDELITY", "SFME"] or req.mode == "SOURCE_PRESERVING":
-                sfme_res = sfme_engine.process_page_sfme(
-                    doc_path=doc_p,
-                    page_number=req.page_number,
-                    profile=req.profile,
-                    force_ocr=req.force_ocr,
-                    mode=req.mode or "SOURCE_PRESERVING"
-                )
-                gc.collect()
-                return sfme_res
+            # Route to Source-Faithful Multi-Path Engine (SFME) for instant, high-accuracy extraction
+            sfme_res = await asyncio.to_thread(
+                sfme_engine.process_page_sfme,
+                doc_path=doc_p,
+                page_number=req.page_number,
+                profile=req.profile,
+                force_ocr=req.force_ocr,
+                mode=req.mode or "SOURCE_PRESERVING"
+            )
+            gc.collect()
+            return sfme_res
 
             # 1. Render single page
             render_res = page_renderer.render_page(doc_p, req.page_number)
@@ -990,9 +988,10 @@ async def recognize_scientific_content(req: ScientificRecognizeRequest):
         ocr_res = await asyncio.to_thread(tesseract_adapter.process_region, img)
         ocr_text = ocr_res.get("text", "")
 
+    safe_img = img if img is not None else np.zeros((32, 32, 3), dtype=np.uint8)
     result = await asyncio.to_thread(
         scientific_subsystem.process_formula_crop,
-        crop_image=img,
+        crop_image=safe_img,
         ocr_text=ocr_text,
         mode=req.mode,
     )
@@ -1004,6 +1003,8 @@ async def validate_formula_rendering(req: ScientificValidateRequest):
     from ..scientific.visual_validator import visual_validator
 
     img = _decode_image_payload(req.crop_path, req.crop_base64)
+    if img is None:
+        raise HTTPException(status_code=400, detail="Valid crop_path or crop_base64 is required for visual validation")
     eval_res = await asyncio.to_thread(
         visual_validator.evaluate_multi_dimensional_confidence,
         crop_img=img,
@@ -1279,7 +1280,7 @@ async def get_scientific_settings():
 async def update_scientific_settings(req: ScientificSettingsUpdate):
     """Updates and saves mathematical recognition administrator thresholds."""
     current = _load_scientific_settings()
-    updates = req.dict(exclude_unset=True)
+    updates = req.model_dump(exclude_unset=True)
     current.update(updates)
     try:
         import json
@@ -1364,7 +1365,7 @@ async def validate_formula_endpoint(req: ValidateFormulaRequest):
 
 class ProcessPageV2Request(BaseModel):
     doc_path: str
-    doc_id: str
+    doc_id: Optional[str] = "default_doc"
     page_number: int
     profile: str = "BALANCED"
     watermark_action: str = "KEEP_ORIGINAL"
@@ -1433,6 +1434,8 @@ async def apply_watermark_action_endpoint(req: WatermarkActionRequest):
     if not img_p.exists():
         raise HTTPException(status_code=404, detail="Image not found")
     bgr = cv2.imread(str(img_p))
+    if bgr is None:
+        raise HTTPException(status_code=400, detail="Failed to load image file")
     derivative, res = watermark_detector.apply_watermark_action(
         bgr,
         watermark_id=req.watermark_id,
